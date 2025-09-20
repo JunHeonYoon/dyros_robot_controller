@@ -3,6 +3,18 @@
 **dyros_robot_controller** is a versatile ROS2-based control package that implements control algorithms for various types of robots, including mobile robots, manipulators, and mobile manipulators.  
 It is designed to work seamlessly in both simulation and real-robot environments, enabling rapid development and testing of advanced control strategies.
 
+| ClearPath Husky             |  Summit XLS              |    DYROS PCV             |  
+| --------------------------- | ------------------------ | ------------------------ | 
+| ![husky](images/husky.gif)  | ![ur5e](images/xls.gif)  | ![pcv](images/pcv.gif)  |
+
+| Franka FR3              |  UR5e                    |  
+| ----------------------- | ------------------------ | 
+| ![FR3](images/fr3.gif)  | ![ur5e](images/ur5.gif)  | 
+
+| Husky-FR3                     |          XLS-FR3            |  
+| ----------------------------- | --------------------------- | 
+| ![husky_fr3](images/fr3.gif)  | ![xls_fr3](images/ur5.gif)  | 
+
 ---
 
 ## Key Features
