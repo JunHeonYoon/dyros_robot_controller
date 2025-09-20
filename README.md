@@ -1,25 +1,42 @@
 # DYROS Robot Controller Package
- ![mecanum_video](images/mecanum_motion.gif)
 
+**dyros_robot_controller** is a versatile ROS2-based control package that implements control algorithms for various types of robots, including mobile robots, manipulators, and mobile manipulators.  
+It is designed to work seamlessly in both simulation and real-robot environments, enabling rapid development and testing of advanced control strategies.
 
-이 패키지는 여러 형태의 로봇 구동에 필요한 제어 알고리즘을 구현한 것이다. 
-지원되는 로봇 형태:
- - 바퀴 기반 모바일 로봇: Differential Wheel, Mecanum Wheel, Active Caster Wheel
- - 단일 매니퓰레이터 로봇: 위치, 속도, 토크 제어 모드 기반의 매니퓰레이터
- - 바퀴 기반의 모바일 단일 매니퓰레이터
+---
 
-각 로봇 제어기에 대한 설명
-robotdata, robotcontroller 함수 설명
-필요한 파일? URDF, SRDF 같은거
-cpp, python 둘 다 지원
-사용 예시
+## Key Features
 
+- **Mobile Robots**
+  - Supports differential drive, mecanum, and caster wheel configurations  
+  - Provides kinematics-based Forward/Inverse Kinematics  
 
-# Requirement
-- [ROS2 humble](https://docs.ros.org/en/humble/index.html)
-- [Pinocchio](https://stack-of-tasks.github.io/pinocchio/download.html)
-- [OSQP](https://osqp.org/docs/get_started/sources.html)
-- [OSQP-Eigen](https://github.com/robotology/osqp-eigen)
+- **Manipulators**
+  - Joint-space position, velocity, and torque control  
+  - Task-space control using Jacobian-based CLIK (Closed-loop Inverse Kinematics)  
+  - Dynamic control using OSF (Operational Space Formulation)  
+  - QP-based controllers that handle constraints (joint limits, velocity, collision avoidance, etc.)  
+
+- **Mobile Manipulators**
+  - Whole-body torque-based controller  
+
+- **Simulation and Real-World Integration**
+  - Validated in simulation with:  
+    - Mobile robots: ClearPath Husky, Summit XL, 4-wheel powered caster vehicle  
+    - Manipulators: Franka FR3, UR5  
+    - Mobile manipulators: Husky-FR3, XLS-FR3  
+  - Real robot integration in progress  
+
+---
+
+## Dependencies
+
+- [ROS2 Humble](https://docs.ros.org/en/humble/index.html)  
+- [Pinocchio](https://stack-of-tasks.github.io/pinocchio/download.html) – for kinematics and dynamics computation  
+- [OSQP](https://osqp.org/) and [OSQP-Eigen](https://github.com/robotology/osqp-eigen) – for fast Quadratic Programming solvers  
+
+---
+
 
  # Installation
  ```bash
@@ -29,50 +46,18 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
+---
+## Applications
+
+`dyros_robot_controller` serves as a foundation for research and development in robot control, supporting:  
+
+- Mobile robot kinematic control  
+- Advanced manipulator control strategies  
+- Whole-body control for mobile manipulators  
+
+It enables fast prototyping of novel controllers and facilitates seamless integration between simulation and real-world robotics platforms.  
+
+---
 
 
-# Usage
-In [macro](wheel_code_gen.py) code, there are some parameters that can be customized according to user settings.
-  1. link_name: link name of wheel
-  2. n_roller: number of rollers of wheel
-  3. pos: position of wheel wrt body frame
-  4. mass: mass of a wheel
-  5. diag_inertia: diagonal inertia of a wheel [ixx, iyy, izz]
-  6. size: size of a wheel [radius, height]
-  7. type: type of a wheel (1 or 2)
 
-```bash
-python3 wheel_code_gen.py --link_name mecanum 
-```
-
-After running this code, you can get `wheel.xml`. Using this, you can implement collision model of mecanum wheel.
-
-
-# Example
-SUMMIT XL STEEL model was used to implement mecanum wheel.
-
-In this [code](robots/summit_xl_description/assets/summit_xls.urdf.xml), you can see how to use.
-
-And you can simmulate this model.
-```
-python3 summit_test.py
-```
-
-
-# Notice
-For using this model, you can not use velocity actuator like below.
-```
-<actuator>
-  <velocity name="mecanum_wheel_joint" .../>
-</actuator>
-```
-Rather than using velocity, use force based actuator.
-```
-<actuator>
-  <motor name="mecanum_wheel_joint" .../>
-</actuator>
-```
-And in controller code, you can control wheel by PID controller like this [code](summit_test.py).
-
-# License
-`mujoco mecanum` is releasd under MIT license. Please see the [LICENSE](LICENSE) file for more information.
