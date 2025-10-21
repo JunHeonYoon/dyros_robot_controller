@@ -1,6 +1,6 @@
 # Dyros Robot Controller
 
-**Dyros Robot Controller** is a versatile ROS2-based control package that implements control algorithms for various types of robots, including mobile robots, manipulators, and mobile manipulators.  
+**Dyros Robot Controller** is a versatile ROS-based control package that implements control algorithms for various types of robots, including mobile robots, manipulators, and mobile manipulators.  
 It is designed to work seamlessly in both simulation and real-robot environments, enabling rapid development and testing of advanced control strategies.
 Documentation of the **Dyros Robot Controller** is available [here](https://www.notion.so/dyros_robot_controller-28c454d594108063817bc141f5668e0f#28c454d5941080999042f30fb446355a).
 
@@ -43,7 +43,7 @@ Documentation of the **Dyros Robot Controller** is available [here](https://www.
 
 ## Dependencies
 
-- [ROS2 Humble](https://docs.ros.org/en/humble/index.html)  
+- [ROS Noetic](https://wiki.ros.org/noetic/Installation/Ubuntu)  
 - [Pinocchio](https://github.com/stack-of-tasks/pinocchio) – for kinematics and dynamics computation  
 - [OSQP](https://osqp.org/) and [OSQP-Eigen](https://github.com/robotology/osqp-eigen) – for fast Quadratic Programming solvers  
 
@@ -51,10 +51,10 @@ Documentation of the **Dyros Robot Controller** is available [here](https://www.
 ## Installation
 
 ```bash
-cd ros2_ws
-git clone https://github.com/JunHeonYoon/dyros_robot_controller.git src
-colcon build --symlink-install
-source install/setup.bash
+cd catkin_ws
+git clone https://github.com/YoungWook0533/dyros_robot_controller.git src
+catkin build
+source devel/setup.bash
 ```
 
 ## Applications
@@ -67,7 +67,7 @@ source install/setup.bash
 
 - ## Examples
 
-In the [examples](https://github.com/JunHeonYoon/dyros_robot_controller/tree/main/examples) directory, we provide some basic examples of using dyros robot controller in Python and C++.
+In the [examples](https://github.com/YoungWook0533/dyros_robot_controller/tree/main/examples) directory, we provide some basic examples of using dyros robot controller in Python and C++.
 It enables fast prototyping of novel controllers and facilitates seamless integration between simulation and real-world robotics platforms.  
 
 ---

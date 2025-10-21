@@ -1,26 +1,20 @@
-<package format="3">
+<package format="2">
   <name>dyros_robot_controller</name>
   <version>0.3.0</version>
   <description>Robot controller with C++ and Python interface.</description>
   <maintainer email="yoonjh98@snu.ac.kr">Yoon Junheon</maintainer>
   <license>Apache License 2.0</license>
 
-  <!-- Buildtool -->
-  <buildtool_depend>ament_cmake</buildtool_depend>
-  <buildtool_depend>ament_cmake_python</buildtool_depend>
-
-  <!-- Dependencies -->
-  <depend>rclcpp</depend>
-  <depend>rclpy</depend>
+  <!--  Buildtool  -->
+  <buildtool_depend>catkin</buildtool_depend>
+  
+  <!--  Third-party libraries  -->
   <depend>Eigen3</depend>
   <depend>pinocchio</depend>
-  <depend>std_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>sensor_msgs</depend>
+  <depend>OsqpEigen</depend>
+  <depend>eigenpy</depend>
 
   <export>
-    <!-- <build_type>ament_python</build_type> -->
-    <build_type>ament_cmake</build_type>
-    <!-- <build_type>ament_cmake_python</build_type> -->
+    <build_type>catkin</build_type>
   </export>
 </package>

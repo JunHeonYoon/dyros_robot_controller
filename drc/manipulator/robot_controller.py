@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Optional
 import dyros_robot_controller_cpp_wrapper as drc
 from .robot_data import RobotData
 
@@ -158,9 +159,9 @@ class RobotController(drc.ManipulatorRobotController):
     #     return super().moveJointTorqueStep(qddot_target)
     
     def move_joint_torque_step(self,
-                               q_target:     np.ndarray | None = None,
-                               qdot_target:  np.ndarray | None = None,
-                               qddot_target: np.ndarray | None = None,
+                               q_target:     Optional[np.ndarray] = None,
+                               qdot_target:  Optional[np.ndarray] = None,
+                               qddot_target: Optional[np.ndarray] = None,
                                ) -> np.ndarray:
         """
         Computes joint torques to achieve desired joint configurations using equations of motion and PD control law.
@@ -220,7 +221,7 @@ class RobotController(drc.ManipulatorRobotController):
                   x_target: np.ndarray,
                   xdot_target: np.ndarray,
                   link_name: str,
-                  null_qdot: np.ndarray | None = None,
+                  null_qdot: Optional[np.ndarray] = None,
                   ) -> np.ndarray:
         """
         Computes joint velocity to achieve desired position & velocity of a link using closed-loop inverse kinematics, projecting null_qdot into null space to exploit redundancy if provided.
@@ -255,7 +256,7 @@ class RobotController(drc.ManipulatorRobotController):
                    init_time: float,
                    duration: float,
                    link_name: str,
-                   null_qdot: np.ndarray | None = None,
+                   null_qdot: Optional[np.ndarray] = None,
                    ) -> np.ndarray:
         """
         Perform cubic interpolation between the initial and desired link pose and velocity over the given duration, then compute joint velocities to follow the resulting trajectory.
@@ -300,7 +301,7 @@ class RobotController(drc.ManipulatorRobotController):
     def OSF(self,
             xddot_target: np.ndarray,
             link_name: str,
-            null_torque: np.ndarray | None = None,
+            null_torque: Optional[np.ndarray] = None,
             ) -> np.ndarray:
         """
         Computes joint torque to achieve desired acceleration of a link using operational space control, projecting null_torque into null space to exploit redundancy if provided.
@@ -322,7 +323,7 @@ class RobotController(drc.ManipulatorRobotController):
                  x_target: np.ndarray,
                  xdot_target: np.ndarray,
                  link_name: str,
-                 null_torque: np.ndarray | None = None,
+                 null_torque: Optional[np.ndarray] = None,
                  ) -> np.ndarray:
         """
         Computes joint torque to achieve desired position & velocity of a link using operational space control, projecting null_torque into null space to exploit redundancy if provided.
@@ -350,7 +351,7 @@ class RobotController(drc.ManipulatorRobotController):
                   init_time: float,
                   duration: float,
                   link_name: str,
-                  null_torque: np.ndarray | None = None,
+                  null_torque: Optional[np.ndarray] = None,
                   ) -> np.ndarray:
         """
         Perform cubic interpolation between the initial and desired link pose and velocity over the given duration, then compute joint torques to follow the resulting trajectory.

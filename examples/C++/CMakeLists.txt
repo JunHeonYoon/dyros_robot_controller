@@ -4,6 +4,7 @@ project(dyros_robot_controller_example)
 # Build profile & OpenGL policy (kept as-is)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_POLICY_DEFAULT_CMP0072 NEW)
+set(CMAKE_CXX_STANDARD 17)
 
 # Robot resource root (URDF/SRDF/meshes) for your controller code
 add_definitions(-DROBOTS_DIRECTORY="${CMAKE_SOURCE_DIR}/../robots")
@@ -14,12 +15,11 @@ include_directories(include)
 # =========================================================
 # dyros_robot_controller — HOW TO USE IN CMAKE
 # ---------------------------------------------------------
-#  - This is the only required integration step at CMake level:
-#      find_package(dyros_robot_controller REQUIRED)
-#      target_link_libraries(... dyros_robot_controller::dyros_robot_controller)
-#  - Your sources (controller & example) call RobotData/RobotController APIs.
 # =========================================================
 find_package(dyros_robot_controller REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(OsqpEigen REQUIRED)
+find_package(pinocchio REQUIRED)
 
 # The executable entry point is kept explicit; helpers are attached below.
 add_executable(${PROJECT_NAME}
@@ -32,9 +32,18 @@ target_sources(${PROJECT_NAME} PRIVATE
   src/xls_controller.cpp
 )
 
+# Include dirs
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${dyros_robot_controller_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${OsqpEigen_INCLUDE_DIRS}
+)
+
 # Link the dyros controller (PRIMARY dependency)
 target_link_libraries(${PROJECT_NAME} PUBLIC
-  dyros_robot_controller::dyros_robot_controller
+  ${dyros_robot_controller_LIBRARIES}
+  OsqpEigen::OsqpEigen
+  pinocchio::pinocchio
 )
 
 # =========================================================

@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import List
+from typing import List, Optional
 import numpy as np
 import dyros_robot_controller_cpp_wrapper as drc
 
@@ -16,11 +16,11 @@ class KinematicParam:
                  max_ang_speed: float = 2.0,
                  max_lin_acc: float = 2.0,
                  max_ang_acc: float = 2.0,
-                 base_width: float | None = None,
-                 roller_angles: List | None = None,
-                 base2wheel_positions: List[np.ndarray] | None = None,
-                 base2wheel_angles: List | None = None,
-                 wheel_offset: float | None = None,
+                 base_width: Optional[float] = None,
+                 roller_angles: Optional[List] = None,
+                 base2wheel_positions: Optional[List[np.ndarray]] = None,
+                 base2wheel_angles: Optional[List] = None,
+                 wheel_offset: Optional[float] = None,
                  ) -> None:
 
         p = drc.KinematicParam()

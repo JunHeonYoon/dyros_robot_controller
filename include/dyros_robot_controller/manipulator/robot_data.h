@@ -15,7 +15,7 @@
 #include <pinocchio/algorithm/jacobian.hpp>
 #include <pinocchio/algorithm/rnea-derivatives.hpp>
 #include <pinocchio/collision/distance.hpp>
-#include <pinocchio/spatial/fcl-pinocchio-conversions.hpp>
+#include <pinocchio/collision/fcl-pinocchio-conversions.hpp>
 #include <pinocchio/parsers/urdf.hpp>
 #include <pinocchio/parsers/srdf.hpp>
 

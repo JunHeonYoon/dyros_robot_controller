@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Tuple, Optional
 import dyros_robot_controller_cpp_wrapper as drc
 from .robot_data import RobotData
 
@@ -125,9 +126,9 @@ class RobotController(drc.MobileManipulatorRobotController):
     # def move_manipulator_joint_torque_step(self, qddot_mani_target: np.ndarray) -> np.ndarray:
     #     return super().moveManipulatorJointTorqueStep(qddot_mani_target)
     def move_manipulator_joint_torque_step(self,
-                                           q_mani_target:     np.ndarray | None = None,
-                                           qdot_mani_target:  np.ndarray | None = None,
-                                           qddot_mani_target: np.ndarray | None = None,
+                                           q_mani_target:     Optional[np.ndarray] = None,
+                                           qdot_mani_target:  Optional[np.ndarray] = None,
+                                           qddot_mani_target: Optional[np.ndarray] = None,
                                            ) -> np.ndarray:
         """
         Computes manipulator joint torques to achieve desired manipulator joint configurations using equations of motion and PD control law.
@@ -184,7 +185,7 @@ class RobotController(drc.MobileManipulatorRobotController):
 
     # ================================ Task space Functions ================================
 
-    def QPIK(self, xdot_target: np.ndarray, link_name: str) -> tuple[np.ndarray, np.ndarray]:
+    def QPIK(self, xdot_target: np.ndarray, link_name: str) -> Tuple[np.ndarray, np.ndarray]:
         """
         Computes velocities for mobile base and manipulator joints to achieve desired velocity of a link by solving inverse kinematics QP.
 
@@ -197,7 +198,7 @@ class RobotController(drc.MobileManipulatorRobotController):
         """
         return super().QPIK(xdot_target, link_name)
 
-    def QPIK_step(self, x_target: np.ndarray, xdot_target: np.ndarray, link_name: str) -> tuple[np.ndarray, np.ndarray]:
+    def QPIK_step(self, x_target: np.ndarray, xdot_target: np.ndarray, link_name: str) -> Tuple[np.ndarray, np.ndarray]:
         """
         Computes velocities for mobile base and manipulator joints to achieve desired position & velocity of a link by solving inverse kinematics QP.
 
@@ -220,7 +221,7 @@ class RobotController(drc.MobileManipulatorRobotController):
                    init_time: float,
                    duration: float,
                    link_name: str,
-                   ) -> tuple[np.ndarray, np.ndarray]:
+                   ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perform cubic interpolation between the initial and desired link pose & velocity over the given duration, then compute velocities for mobile base and manipulator joints using QP to follow the resulting trajectory.
 
@@ -247,7 +248,7 @@ class RobotController(drc.MobileManipulatorRobotController):
                                  link_name
                                  )
 
-    def QPID(self, xddot_target: np.ndarray, link_name: str) -> tuple[np.ndarray, np.ndarray]:
+    def QPID(self, xddot_target: np.ndarray, link_name: str) -> Tuple[np.ndarray, np.ndarray]:
         """
         Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration of a link by solving inverse dynamics QP.
 
@@ -260,7 +261,7 @@ class RobotController(drc.MobileManipulatorRobotController):
         """
         return super().QPID(xddot_target, link_name)
 
-    def QPID_step(self, x_target: np.ndarray, xdot_target: np.ndarray, link_name: str) -> tuple[np.ndarray, np.ndarray]:
+    def QPID_step(self, x_target: np.ndarray, xdot_target: np.ndarray, link_name: str) -> Tuple[np.ndarray, np.ndarray]:
         """
         Computes mobile base accelerations and manipulator joint torques to achieve desired position & velocity of a link by solving inverse dynamics QP.
 
@@ -283,7 +284,7 @@ class RobotController(drc.MobileManipulatorRobotController):
                    init_time: float,
                    duration: float,
                    link_name: str,
-                   ) -> tuple[np.ndarray, np.ndarray]:
+                   ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perform cubic interpolation between the initial and desired link pose & velocity over the given duration, then compute mobile base accelerations and manipulator joint torques using QP to follow the resulting trajectory.
 

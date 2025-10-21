@@ -3,25 +3,31 @@ project(dyros_robot_controller LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release )
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 
-find_package(ament_cmake        REQUIRED)
-find_package(ament_cmake_python REQUIRED)
+find_package(catkin REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
+find_package(Boost REQUIRED COMPONENTS python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 find_package(eigenpy            REQUIRED)
-find_package(rclcpp             REQUIRED)
 find_package(Eigen3             REQUIRED)
 find_package(pinocchio          REQUIRED)
 find_package(OsqpEigen          REQUIRED)
 
-include_directories(
-  ${EIGEN3_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
-  ${eigenpy_INCLUDE_DIRS}
+catkin_python_setup()
+
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
+  DEPENDS Eigen3 pinocchio OsqpEigen eigenpy
 )
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include
+  ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+  ${eigenpy_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME} SHARED 
@@ -46,13 +52,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
+  ${catkin_LIBRARIES}
   pinocchio::pinocchio
-  rclcpp::rclcpp
   OsqpEigen::OsqpEigen
+  Eigen3::Eigen
 )
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-
 
 add_library(${PROJECT_NAME}_cpp_wrapper MODULE
   src/bindings.cpp
@@ -72,33 +78,25 @@ target_include_directories(${PROJECT_NAME}_cpp_wrapper PUBLIC
 set_target_properties(${PROJECT_NAME}_cpp_wrapper PROPERTIES
   PREFIX ""
   SUFFIX ".so"
+  LIBRARY_OUTPUT_DIRECTORY "${CATKIN_DEVEL_PREFIX}/lib/python${Python3_VERSION_MAJOR}/dist-packages"
 )
 
 install(
   TARGETS ${PROJECT_NAME}
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
+  EXPORT ${PROJECT_NAME}-targets
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  INCLUDES DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
 
 install(
   DIRECTORY include/
-  DESTINATION include
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   FILES_MATCHING
     PATTERN "*.h"
 )
 
 install(TARGETS ${PROJECT_NAME}_cpp_wrapper
-  LIBRARY DESTINATION lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages
+  LIBRARY DESTINATION lib/python${Python3_VERSION_MAJOR}/dist-packages
 )
-
-install(TARGETS ${PROJECT_NAME}_cpp_wrapper
-  LIBRARY DESTINATION lib
-)
-          
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(Eigen3 rclcpp pinocchio OsqpEigen eigenpy)
-ament_python_install_package(drc)
-ament_package()
