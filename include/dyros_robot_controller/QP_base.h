@@ -54,7 +54,10 @@ namespace drc
                 /**
                  * @brief Cosntructor.
                  */
-                QPBase(){}
+                QPBase()
+                {
+                    is_first_ = true;
+                }
                 /**
                  * @brief Destructor.
                  */
@@ -159,8 +162,7 @@ namespace drc
                     
             
                     // set the initial data of the QP solver
-                    static bool is_first = true;
-                    if (is_first)
+                    if (is_first_)
                     {
                         if (!solver_.data()->setHessianMatrix(P))           return false;
                         if (!solver_.data()->setGradient(q))                return false;
@@ -170,15 +172,17 @@ namespace drc
                 
                         // instantiate the solver
                         if (!solver_.initSolver()) return false;
-                        is_first = false;
+                        is_first_ = false;
                     }
                     else
                     {
+                        // solver_.clearSolverVariables();
                         if (!solver_.updateHessianMatrix(P))           return false;
                         if (!solver_.updateGradient(q))                return false;
                         if (!solver_.updateLinearConstraintsMatrix(A)) return false;
-                        if (!solver_.updateLowerBound(l))              return false;
-                        if (!solver_.updateUpperBound(u))              return false;
+                        // if (!solver_.updateLowerBound(l))              return false;
+                        // if (!solver_.updateUpperBound(u))              return false;
+                        if(!solver_.updateBounds(l, u))               return false;
                     }
             
                     // solve the QP problem
@@ -198,7 +202,8 @@ namespace drc
             
             private:
                 OsqpEigen::Solver solver_;
-                
+                bool is_first_;
+
                 /**
                  * @brief Set the cost function for the QP problem.
                  */
