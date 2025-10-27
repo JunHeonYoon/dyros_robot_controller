@@ -52,7 +52,7 @@ Documentation of the **Dyros Robot Controller** is available [here](https://www.
 
 ```bash
 cd catkin_ws
-git clone https://github.com/YoungWook0533/dyros_robot_controller.git src
+git clone -b noetic https://github.com/JunHeonYoon/dyros_robot_controller.git src
 catkin build
 source devel/setup.bash
 ```
