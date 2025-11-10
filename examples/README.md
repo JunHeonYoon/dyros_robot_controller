@@ -6,6 +6,7 @@ Some examples require the installation of the **MuJoCo** simulator.
 Installing **MuJoCo**:
 ```bash
 git clone https://github.com/deepmind/mujoco.git
+cd mujoco
 mkdir build && cd build
 cmake ..
 cmake --build .
@@ -96,5 +97,6 @@ Each mode can be selected from the terminal using the assigned key number.
 | `b` / `v` | Rotate CCW / CW | +ω / -ω |
 
 ---
+
 
 
