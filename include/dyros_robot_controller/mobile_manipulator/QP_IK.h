@@ -44,9 +44,17 @@ namespace drc
                 struct QPIndex
                 {
                     // decision variables
-                    int eta_start; // qdot_actuated 
+                    int eta_start; // qdot_actuated
+                    int slack_q_mani_min_start;
+                    int slack_q_mani_max_start;
+                    int slack_sing_start;
+                    int slack_sel_col_start;
     
                     int eta_size;
+                    int slack_q_mani_min_size;
+                    int slack_q_mani_max_size;
+                    int slack_sing_size;
+                    int slack_sel_col_size;
                     
                     // inequality
                     int con_q_mani_min_start;    // min q_manipulator
