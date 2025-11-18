@@ -1,8 +1,8 @@
 #pragma once
 #include "dyros_robot_controller/mobile_manipulator/robot_data.h"
 #include "math_type_define.h"
-#include "dyros_robot_controller/manipulator/QP_IK.h"
-#include "dyros_robot_controller/manipulator/QP_ID.h"
+#include "dyros_robot_controller/mobile/robot_controller.h"
+#include "dyros_robot_controller/manipulator/robot_controller.h"
 #include "dyros_robot_controller/mobile_manipulator/QP_IK.h"
 #include "dyros_robot_controller/mobile_manipulator/QP_ID.h"
 
@@ -17,7 +17,7 @@ namespace drc
          * Joint space functions compute control inputs of the manipulator to track desired joint positions, velocities, or accelerations.
          * Task space functions compute control inputs of the whole body to track desired position or velocity of a link.
         */
-        class RobotController
+        class RobotController : public Mobile::RobotController
         {
             public:
                 EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -63,7 +63,32 @@ namespace drc
                  * @brief Set task space D gains for the robot.
                  * @param Kv (Eigen::VectorXd) Derivative gains.
                 */
-                virtual void setTaskKvGain(const VectorXd& Kv);
+                virtual void setTaskKvGain(const VectorXd& Kv);         
+
+                // TODO: modify comments, add bindings and python func, add python comment, add to notion
+                // ================================== Mobile Functions ===================================
+                /**
+                 * @brief Compute wheel velocities from desired base velocity using inverse kinematics.
+                 *
+                 * @param base_vel (Eigen::VectorXd) Desired base velocity [vx, vy, wz], size = 3.
+                 * @return (Eigen::VectorXd) Computed wheel velocities [rad/s], size = number of wheels.
+                */
+                virtual VectorXd computeMobileWheelVel(const VectorXd& base_vel);
+
+                /**
+                 * @brief Compute inverse kinematics Jacobian (maps base velocity to wheel velocity).
+                 *
+                 * @return (Eigen::MatrixXd) Jacobian matrix of size [wheel_num x 3].
+                */
+                virtual MatrixXd computeMobileIKJacobian();
+
+                /**
+                 * @brief Generate velocity command with optional constraints (e.g., saturation).
+                 *
+                 * @param desired_base_vel (Eigen::VectorXd) Desired base velocity [vx, vy, wz], size = 3.
+                 * @return (Eigen::VectorXd) Wheel velocity command (possibly saturated), size = number of wheels.
+                */
+                virtual VectorXd MobileVelocityCommand(const VectorXd& desired_base_vel);
 
                 // ================================ Joint space Functions ================================                
                 /**

@@ -6,7 +6,8 @@ namespace drc
     {
         RobotController::RobotController(const double& dt,
                                          std::shared_ptr<MobileManipulator::RobotData> robot_data)
-        : robot_data_(robot_data)
+        : Mobile::RobotController(dt, std::static_pointer_cast<Mobile::RobotData>(robot_data))
+        , robot_data_(std::move(robot_data))
         {
             dof_ = robot_data_->getDof();
             mani_dof_ = robot_data_->getManipulatorDof();
@@ -75,6 +76,21 @@ namespace drc
                 throw std::runtime_error("Kv must be of size 6.");
             }
             Kv_task_ = Kv;
+        }
+
+        VectorXd RobotController::computeMobileWheelVel(const VectorXd& base_vel)
+        {
+            return Mobile::RobotController::computeWheelVel(base_vel);
+        }
+
+        MatrixXd RobotController::computeMobileIKJacobian()
+        {
+            return Mobile::RobotController::computeIKJacobian();
+        }
+
+        VectorXd RobotController::MobileVelocityCommand(const VectorXd& desired_base_vel)
+        {
+            return Mobile::RobotController::VelocityCommand(desired_base_vel);
         }
 
         VectorXd RobotController::moveManipulatorJointPositionCubic(const VectorXd& q_mani_target,
