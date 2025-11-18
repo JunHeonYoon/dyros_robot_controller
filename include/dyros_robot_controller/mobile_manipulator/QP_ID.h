@@ -47,9 +47,21 @@ namespace drc
                     // decision variables
                     int eta_dot_start; // qddot_actuated 
                     int torque_start;  // torque_actuated
+                    int slack_q_mani_min_start;
+                    int slack_q_mani_max_start;
+                    int slack_qdot_mani_min_start;
+                    int slack_qdot_mani_max_start;
+                    int slack_sing_start;
+                    int slack_sel_col_start;
     
                     int eta_dot_size;
                     int torque_size;
+                    int slack_q_mani_min_size;
+                    int slack_q_mani_max_size;
+                    int slack_qdot_mani_min_size;
+                    int slack_qdot_mani_max_size;
+                    int slack_sing_size;
+                    int slack_sel_col_size;
                     
                     // equality
                     int con_dyn_start; // dynamics constraint
