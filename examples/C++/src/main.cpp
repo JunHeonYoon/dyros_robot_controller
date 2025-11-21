@@ -396,7 +396,7 @@ void PhysicsLoop(mj::Simulate& sim) {
             sim.speed_changed = false;
 
             // inject noise
-            sim.InjectNoise();
+            sim.InjectNoise(sim.key);
 
             // run single step, let next iteration deal with timing
             mj_step(m, d);
@@ -428,7 +428,7 @@ void PhysicsLoop(mj::Simulate& sim) {
               }
 
               // inject noise
-              sim.InjectNoise();
+              sim.InjectNoise(sim.key);
 
               // Build qpos/qvel dicts
               std::unordered_map<std::string, double> qpos_dict, qvel_dict;
