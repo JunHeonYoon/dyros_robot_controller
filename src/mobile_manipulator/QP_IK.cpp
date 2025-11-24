@@ -83,12 +83,12 @@ namespace drc
                   min     || x_dot_des - J_tilda*eta ||_W1^2 + W * || eta ||_W2^2
                   eta
     
-            =>    min     1/2 * eta.T * (2*J_tilda.T*W1*J_tilda + W2) * eta + (-2*J_tilda.T*W1*x_dot_des).T * eta
+            =>    min     1/2 * eta.T * (2*J_tilda.T*W1*J_tilda + 2*W2) * eta + (-2*J_tilda.T*W1*x_dot_des).T * eta
                   eta
             */
            MatrixXd J_tilda = robot_data_->getJacobianActuated(link_name_);
     
-           P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) = 2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * J_tilda + w_damping_.asDiagonal().toDenseMatrix();
+           P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) = 2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * J_tilda + 2.0 * w_damping_.asDiagonal().toDenseMatrix();
            q_ds_.segment(si_index_.eta_start,si_index_.eta_size) = -2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * xdot_desired_;
            q_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size) = VectorXd::Constant(si_index_.slack_q_mani_min_size, 1000.0);
            q_ds_.segment(si_index_.slack_q_mani_max_start,si_index_.slack_q_mani_max_size) = VectorXd::Constant(si_index_.slack_q_mani_max_size, 1000.0);
@@ -98,7 +98,6 @@ namespace drc
     
         void QPIK::setBoundConstraint()    
         {
-            // TODO: Bound constraint makes the robot weired
             // Manipulator Joint Velocity Limit
             l_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
                                 mani_dof_) = robot_data_->getJointVelocityLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);

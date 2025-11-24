@@ -186,7 +186,6 @@ namespace drc
                                    VectorXd& opt_qdot_mobile,
                                    VectorXd& opt_qdot_manipulator)
         {  
-            // TODO:  at the beginning of moving along z-axis, robot vibrates
             QP_moma_IK_->setDesiredTaskVel(xdot_target, link_name);
             VectorXd opt_qdot = VectorXd::Zero(actuator_dof_);
             QP::TimeDuration tmp;
