@@ -4,8 +4,8 @@ namespace drc
 {
     namespace Manipulator
     {
-        QPIK::QPIK(std::shared_ptr<Manipulator::RobotData> robot_data)
-        : QP::QPBase(), robot_data_(robot_data)
+        QPIK::QPIK(std::shared_ptr<Manipulator::RobotData> robot_data, const double dt)
+        : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
             joint_dof_ = robot_data_->getDof();
     
@@ -86,6 +86,8 @@ namespace drc
             =>    min     1/2 * qdot.T * (2*J.T*W1*J + W2) * qdot + (-2*J.T*W1*x_dot_des).T * qdot
                   qdot
             */
+            P_ds_.setZero(nx_, nx_);
+            q_ds_.setZero(nx_);
             MatrixXd J = robot_data_->getJacobian(link_name_);
     
             P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) = 2.0 * J.transpose() * w_tracking_.asDiagonal() * J + w_damping_.asDiagonal().toDenseMatrix();

@@ -4,8 +4,8 @@ namespace drc
 {
     namespace MobileManipulator
     {
-        QPID::QPID(std::shared_ptr<MobileManipulator::RobotData> robot_data)
-        : QP::QPBase(), robot_data_(robot_data)
+        QPID::QPID(std::shared_ptr<MobileManipulator::RobotData> robot_data, const double dt)
+        : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
             actuator_dof_ = robot_data_->getActuatordDof();
             mani_dof_ = robot_data_->getManipulatorDof();
@@ -104,24 +104,25 @@ namespace drc
         void QPID::setCost()
         {
             /*
-                  min     || x_ddot_des - J_tilda*eta_dot - J_tilda_dot*eta ||_W1^2 + || eta_dot ||_W2^2
+                    min     || x_ddot_des - J_tilda*eta_dot - J_tilda_dot*eta ||_W1^2 + || eta_dot ||_W2^2
             [eta_dot, torque]
-    
-            =>      min        1/2 * [ eta_dot ].T * [ 2*J_tilda.T*W1*J_tilda + W2  0 ] * [ eta_dot ] + [ -2*J_tilda.T*W1*(x_ddot_des - J_tilda_dot*eta)].T * [ eta_dot ]
-             [eta_dot, torque]       [ torque  ]     [              0               0 ]   [ torque  ]   [                    0                          ]     [ torque  ]
+
+            =>      min        1/2 * [ eta_dot ].T * [ 2*J_tilda.T*W1*J_tilda + 2*W2  0 ] * [ eta_dot ] + [ -2*J_tilda.T*W1*(x_ddot_des - J_tilda_dot*eta)].T * [ eta_dot ]
+             [eta_dot, torque]       [ torque  ]     [              0                 0 ]   [ torque  ]   [                    0                          ]     [ torque  ]
             */
-           MatrixXd J_tilda = robot_data_->getJacobianActuated(link_name_);
-           MatrixXd J_tilda_dot = robot_data_->getJacobianActuatedTimeVariation(link_name_);
-           VectorXd eta = robot_data_->getJointVelocityActuated();
-    
-           P_ds_.block(si_index_.eta_dot_start,si_index_.eta_dot_start,si_index_.eta_dot_size,si_index_.eta_dot_size) = 2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * J_tilda + w_damping_.asDiagonal().toDenseMatrix();
-           q_ds_.segment(si_index_.eta_dot_start,si_index_.eta_dot_size) = -2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * (xddot_desired_ - J_tilda_dot * eta);
-           q_ds_.segment(si_index_.slack_q_mani_min_start,   si_index_.slack_q_mani_min_size)    = VectorXd::Constant(si_index_.slack_q_mani_min_size,    1000.0);
-           q_ds_.segment(si_index_.slack_q_mani_max_start,   si_index_.slack_q_mani_max_size)    = VectorXd::Constant(si_index_.slack_q_mani_max_size,    1000.0);
-           q_ds_.segment(si_index_.slack_qdot_mani_min_start,si_index_.slack_qdot_mani_min_size) = VectorXd::Constant(si_index_.slack_qdot_mani_min_size, 1000.0);
-           q_ds_.segment(si_index_.slack_qdot_mani_max_start,si_index_.slack_qdot_mani_max_size) = VectorXd::Constant(si_index_.slack_qdot_mani_max_size, 1000.0);
-           q_ds_(si_index_.slack_sing_start)    = 1000.0;
-           q_ds_(si_index_.slack_sel_col_start) = 1000.0;
+            P_ds_.setZero(nx_, nx_);
+            q_ds_.setZero(nx_);
+            MatrixXd J_tilda = robot_data_->getJacobianActuated(link_name_);
+            MatrixXd J_tilda_dot = robot_data_->getJacobianActuatedTimeVariation(link_name_);
+            VectorXd eta = robot_data_->getJointVelocityActuated();
+            P_ds_.block(si_index_.eta_dot_start,si_index_.eta_dot_start,si_index_.eta_dot_size,si_index_.eta_dot_size) = 2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * J_tilda + 2.0 * w_damping_.asDiagonal().toDenseMatrix();
+            q_ds_.segment(si_index_.eta_dot_start,si_index_.eta_dot_size) = -2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * (xddot_desired_ - J_tilda_dot * eta);
+            q_ds_.segment(si_index_.slack_q_mani_min_start,   si_index_.slack_q_mani_min_size)    = VectorXd::Constant(si_index_.slack_q_mani_min_size,    1000.0);
+            q_ds_.segment(si_index_.slack_q_mani_max_start,   si_index_.slack_q_mani_max_size)    = VectorXd::Constant(si_index_.slack_q_mani_max_size,    1000.0);
+            q_ds_.segment(si_index_.slack_qdot_mani_min_start,si_index_.slack_qdot_mani_min_size) = VectorXd::Constant(si_index_.slack_qdot_mani_min_size, 1000.0);
+            q_ds_.segment(si_index_.slack_qdot_mani_max_start,si_index_.slack_qdot_mani_max_size) = VectorXd::Constant(si_index_.slack_qdot_mani_max_size, 1000.0);
+            q_ds_(si_index_.slack_sing_start)    = 1000.0;
+            q_ds_(si_index_.slack_sel_col_start) = 1000.0;
         }
     
         void QPID::setBoundConstraint()    

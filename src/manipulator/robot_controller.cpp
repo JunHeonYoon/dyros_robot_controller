@@ -14,8 +14,8 @@ namespace drc
             Kp_joint_ = VectorXd::Constant(dof_, 400);
             Kv_joint_ = VectorXd::Constant(dof_, 40);
     
-            QP_mani_IK_ = std::make_unique<Manipulator::QPIK>(robot_data_);
-            QP_mani_ID_ = std::make_unique<Manipulator::QPID>(robot_data_);
+            QP_mani_IK_ = std::make_unique<Manipulator::QPIK>(robot_data_, dt_);
+            QP_mani_ID_ = std::make_unique<Manipulator::QPID>(robot_data_, dt_);
         }
     
         void RobotController::setJointGain(const VectorXd& Kp, const VectorXd& Kv)

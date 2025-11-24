@@ -4,8 +4,8 @@ namespace drc
 {
     namespace MobileManipulator
     {
-        QPIK::QPIK(std::shared_ptr<MobileManipulator::RobotData> robot_data)
-        : QP::QPBase(), robot_data_(robot_data)
+        QPIK::QPIK(std::shared_ptr<MobileManipulator::RobotData> robot_data, const double dt)
+        : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
             actuator_dof_ = robot_data_->getActuatordDof();
             mani_dof_ = robot_data_->getManipulatorDof();
@@ -80,20 +80,22 @@ namespace drc
         void QPIK::setCost()
         {
             /*
-                  min     || x_dot_des - J_tilda*eta ||_W1^2 + W * || eta ||_W2^2
-                  eta
-    
+                    min     || x_dot_des - J_tilda*eta ||_W1^2 + W * || eta ||_W2^2
+                    eta
+
             =>    min     1/2 * eta.T * (2*J_tilda.T*W1*J_tilda + 2*W2) * eta + (-2*J_tilda.T*W1*x_dot_des).T * eta
-                  eta
+                    eta
             */
-           MatrixXd J_tilda = robot_data_->getJacobianActuated(link_name_);
-    
-           P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) = 2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * J_tilda + 2.0 * w_damping_.asDiagonal().toDenseMatrix();
-           q_ds_.segment(si_index_.eta_start,si_index_.eta_size) = -2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * xdot_desired_;
-           q_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size) = VectorXd::Constant(si_index_.slack_q_mani_min_size, 1000.0);
-           q_ds_.segment(si_index_.slack_q_mani_max_start,si_index_.slack_q_mani_max_size) = VectorXd::Constant(si_index_.slack_q_mani_max_size, 1000.0);
-           q_ds_(si_index_.slack_sing_start) = 1000.0;
-           q_ds_(si_index_.slack_sel_col_start) = 1000.0;
+            P_ds_.setZero(nx_, nx_);
+            q_ds_.setZero(nx_);
+            MatrixXd J_tilda = robot_data_->getJacobianActuated(link_name_);
+
+            P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) = 2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * J_tilda + 2.0 * w_damping_.asDiagonal().toDenseMatrix();
+            q_ds_.segment(si_index_.eta_start,si_index_.eta_size) = -2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * xdot_desired_;
+            q_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size) = VectorXd::Constant(si_index_.slack_q_mani_min_size, 1000.0);
+            q_ds_.segment(si_index_.slack_q_mani_max_start,si_index_.slack_q_mani_max_size) = VectorXd::Constant(si_index_.slack_q_mani_max_size, 1000.0);
+            q_ds_(si_index_.slack_sing_start) = 1000.0;
+            q_ds_(si_index_.slack_sel_col_start) = 1000.0;
         }
     
         void QPIK::setBoundConstraint()    

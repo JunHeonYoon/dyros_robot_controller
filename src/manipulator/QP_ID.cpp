@@ -4,8 +4,8 @@ namespace drc
 {
     namespace Manipulator
     {
-        QPID::QPID(std::shared_ptr<Manipulator::RobotData> robot_data)
-        : QP::QPBase(), robot_data_(robot_data)
+        QPID::QPID(std::shared_ptr<Manipulator::RobotData> robot_data, const double dt)
+        : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
             joint_dof_ = robot_data_->getDof();
        
@@ -107,10 +107,12 @@ namespace drc
              =>     min        1/2 * [ qddot  ]^T * [2*J.T*W1*J + W2  0] * [ qddot  ] + [-2*J.T*W1*(x_ddot_des - Jdot*qdot)].T * [ qddot  ]
               [qddot, torque]        [ torque ]     [         0       0]   [ torque ]   [                0                 ]     [ torque ]
             */
+            P_ds_.setZero(nx_, nx_);
+            q_ds_.setZero(nx_);
             MatrixXd J = robot_data_->getJacobian(link_name_);
             MatrixXd Jdot = robot_data_->getJacobianTimeVariation(link_name_);
             VectorXd qdot = robot_data_->getJointVelocity();
-    
+
             P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) = 2.0 * J.transpose() * w_tracking_.asDiagonal() * J + w_damping_.asDiagonal().toDenseMatrix();
             q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) = -2.0 * J.transpose() * w_tracking_.asDiagonal() * (xddot_desired_ - Jdot * qdot);
             q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 1000.0); 

@@ -19,10 +19,11 @@ namespace drc
                 EIGEN_MAKE_ALIGNED_OPERATOR_NEW
                 /**
                  * @brief constructor.
-                 * @param robot_data (std::shared_ptr<Manipulator::RobotData>)
-                 *                   Shared pointer to the RobotData class.
+                 * @param robot_data (std::shared_ptr<Manipulator::RobotData>) Shared pointer to the RobotData class.
+                 * @param dt (double) Control loop time step in seconds.
                  */
-                QPIK(std::shared_ptr<Manipulator::RobotData> robot_data);
+                // TODO: add document to notion that add dt
+                QPIK(std::shared_ptr<Manipulator::RobotData> robot_data, const double dt);
                 /**
                  * @brief Set the wight vector for the cost terms
                  * @param w_tracking (Eigen::VectorXd) Weight for task velocity tracking; its size must be 6.
@@ -76,6 +77,7 @@ namespace drc
                 }si_index_;
 
                 std::shared_ptr<Manipulator::RobotData> robot_data_;   // Shared pointer to the robot data class.
+                double dt_; // control time step size
 
                 int joint_dof_;              // Number of joints in the manipulator
                 VectorXd xdot_desired_;      // Desired task velocity
