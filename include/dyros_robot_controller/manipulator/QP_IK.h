@@ -91,7 +91,7 @@ namespace drc
                  * @brief Set the cost function which minimizes task space velocity error.
                  *        Use slack variables to increase feasibility of QP.
                  * 
-                 *       min     || x_dot_des - J*q_dot ||_W1^2 + W2 * || q_dot ||_W2^2
+                 *       min     || x_dot_des - J*q_dot ||_W1^2 + || q_dot ||_W2^2
                  *       qdot
                  *
                  * =>    min     1/2 * qdot.T * (2*J.T*W1*J + W2) * qdot + (-2*J.T*W1*x_dot_des).T * qdot

@@ -91,7 +91,7 @@ namespace drc
                 /**
                  * @brief Set the cost function which minimizes task space velocity error.
                  * 
-                 *       min     || x_dot_des - J_tilda*eta ||_W1^2 + W * || eta ||_W2^2
+                 *       min     || x_dot_des - J_tilda*eta ||_W1^2 + || eta ||_W2^2
                  *       eta
                  *
                  * =>    min     1/2 * eta.T * (2*J_tilda.T*W1*J_tilda + W2) * eta + (-2*J_tilda.T*W1*x_dot_des).T * eta
