@@ -78,6 +78,24 @@ namespace drc
             Kv_task_ = Kv;
         }
 
+        void RobotController::setQPIKGain(const VectorXd& w_tracking, const VectorXd& w_damping)
+        {
+            if (w_tracking.size() != 6 || w_damping.size() != actuator_dof_)
+            {
+                throw std::runtime_error("w_tracking must be of size 6 and w_damping must be of size actuator_dof_");
+            }
+            QP_moma_IK_->setWeight(w_tracking, w_damping);
+        }
+
+        void RobotController::setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_damping)
+        {
+            if (w_tracking.size() != 6 || w_damping.size() != actuator_dof_)
+            {
+                throw std::runtime_error("w_tracking must be of size 6 and w_damping must be of size actuator_dof_");
+            }
+            QP_moma_ID_->setWeight(w_tracking, w_damping);
+        }
+
         VectorXd RobotController::computeMobileWheelVel(const VectorXd& base_vel)
         {
             return Mobile::RobotController::computeWheelVel(base_vel);
@@ -116,21 +134,23 @@ namespace drc
             return q_mani_desired;
         }
 
-        VectorXd RobotController::moveManipulatorJointTorqueStep(const VectorXd& qddot_mani_target)
+        VectorXd RobotController::moveManipulatorJointTorqueStep(const VectorXd& qddot_mani_target, const bool use_mass)
         {
             assert(qddot_mani_target.size() == mani_dof_);
             MatrixXd M_mani = robot_data_->getMassMatrix().block(robot_data_->getJointIndex().mani_start,robot_data_->getJointIndex().mani_start,mani_dof_,mani_dof_);
             MatrixXd g_mani = robot_data_->getGravity().segment(robot_data_->getJointIndex().mani_start,mani_dof_);
-            return M_mani * qddot_mani_target + g_mani;
+            if(use_mass) return M_mani * qddot_mani_target + g_mani;
+            else         return qddot_mani_target + g_mani;
         }
 
         VectorXd RobotController::moveManipulatorJointTorqueStep(const VectorXd& q_mani_target,
-                                                                 const VectorXd& qdot_mani_target)
+                                                                 const VectorXd& qdot_mani_target,
+                                                                 const bool use_mass)
         {
             VectorXd q_mani = robot_data_->getJointPosition().segment(robot_data_->getJointIndex().mani_start,mani_dof_);
             VectorXd qdot_mani = robot_data_->getJointVelocity().segment(robot_data_->getJointIndex().mani_start,mani_dof_);
             VectorXd qddot_mani_desired = Kp_mani_joint_.asDiagonal() * (q_mani_target - q_mani) + Kv_mani_joint_.asDiagonal() * (qdot_mani_target - qdot_mani);
-            return moveManipulatorJointTorqueStep(qddot_mani_desired);
+            return moveManipulatorJointTorqueStep(qddot_mani_desired, use_mass);
         }
 
         VectorXd RobotController::moveManipulatorJointTorqueCubic(const VectorXd& q_mani_target,
@@ -139,7 +159,8 @@ namespace drc
                                                                   const VectorXd& qdot_mani_init,
                                                                   const double& current_time,
                                                                   const double& init_time,
-                                                                  const double& duration)
+                                                                  const double& duration,
+                                                                  const bool use_mass)
         {
             VectorXd q_mani_desired =  DyrosMath::cubicVector(current_time,
                                                               init_time,
@@ -157,7 +178,7 @@ namespace drc
                                                                     qdot_mani_init,
                                                                     qdot_mani_target);
     
-            return moveManipulatorJointTorqueStep(q_mani_desired, qdot_mani_desired);
+            return moveManipulatorJointTorqueStep(q_mani_desired, qdot_mani_desired, use_mass);
         }
 
         void RobotController::QPIK(const VectorXd& xdot_target,

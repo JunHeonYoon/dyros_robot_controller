@@ -63,7 +63,21 @@ namespace drc
                  * @brief Set task space D gains for the robot.
                  * @param Kv (Eigen::VectorXd) Derivative gains.
                 */
-                virtual void setTaskKvGain(const VectorXd& Kv);         
+                virtual void setTaskKvGain(const VectorXd& Kv);      
+                /**
+                 * @brief Set the wight vector for  the cost terms of the QPIK
+                 * @param w_tracking (Eigen::VectorXd) Weight for task velocity tracking; its size must be 6.
+                 * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
+                // TODO: add document to notion
+                void setQPIKGain(const VectorXd& w_tracking, const VectorXd& w_dampling);
+                /**
+                 * @brief Set the wight vector for  the cost terms of the QPID
+                 * @param w_tracking (Eigen::VectorXd) Weight for task acceleration tracking; its size must be 6.
+                 * @param w_damping  (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                // TODO: add document to notion
+                void setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_dampling);
 
                 // TODO: modify comments, add bindings and python func, add python comment, add to notion
                 // ================================== Mobile Functions ===================================
@@ -113,17 +127,22 @@ namespace drc
                 /**
                  * @brief Computes joint torques to achieve desired manipulator joint accelerations using equations of motion about manipulator.
                  * @param qddot_mani_target (Eigen::VectorXd) Desired joint accelerations.
+                 * @param use_mass          (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired manipulator joint torques.
-                */                                                    
-                virtual VectorXd moveManipulatorJointTorqueStep(const VectorXd& qddot_mani_target);
+                */                             
+                // TODO: add document to notion that add use_mass                       
+                virtual VectorXd moveManipulatorJointTorqueStep(const VectorXd& qddot_mani_target, const bool use_mass = true);
                 /**
                  * @brief Computes joint torques to achieve desired manipulator joint positions & velocities using PD control law.
                  * @param q_mani_target     (Eigen::VectorXd) Desired manipulator joint positions.
                  * @param qdot_mani_target  (Eigen::VectorXd) Desired manipulator joint velocities.
+                 * @param use_mass          (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired manipulator joint torques.
                  */
+                // TODO: add document to notion that add use_mass
                 virtual VectorXd moveManipulatorJointTorqueStep(const VectorXd& q_mani_target,
-                                                                const VectorXd& qdot_mani_target);
+                                                                const VectorXd& qdot_mani_target,
+                                                                const bool use_mass = true);
 
                 /**
                  * @brief Perform cubic interpolation between the initial and desired manipulator joint configurations over the given duration, then compute manipulator joint torques to follow the resulting trajectory.
@@ -134,15 +153,18 @@ namespace drc
                  * @param current_time      (double) Current time.
                  * @param init_time         (double) Start time of the segment.
                  * @param duration          (double) Time duration.
+                 * @param use_mass    (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired manipulator joint torques.
-                 */                                                
+                 */          
+                // TODO: add document to notion that add use_mass                                      
                 virtual VectorXd moveManipulatorJointTorqueCubic(const VectorXd& q_mani_target,
                                                                  const VectorXd& qdot_mani_target,
                                                                  const VectorXd& q_mani_init,
                                                                  const VectorXd& qdot_mani_init,
                                                                  const double& current_time,
                                                                  const double& init_time,
-                                                                 const double& duration);
+                                                                 const double& duration,
+                                                                 const bool use_mass = true);
 
                 // ================================ Task space Functions ================================
                 /**

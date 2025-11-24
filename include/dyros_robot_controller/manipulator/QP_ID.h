@@ -24,6 +24,13 @@ namespace drc
                  */
                 QPID(std::shared_ptr<Manipulator::RobotData> robot_data);
                 /**
+                 * @brief Set the wight vector for the cost terms
+                 * @param w_tracking (Eigen::VectorXd) Weight for task acceleration tracking; its size must be 6.
+                 * @param w_damping  (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                // TODO: add document to notion
+                void setWeight(const VectorXd w_tracking, const VectorXd w_damping);
+                /**
                  * @brief Set the desired task space acceleration for the link.
                  * @param xddot_desired (Eigen::VectorXd) Desired task space acceleration.
                  * @param link_name     (std::string) Name of the link.
@@ -91,16 +98,19 @@ namespace drc
                 int joint_dof_;             // Number of joints in the manipulator
                 VectorXd xddot_desired_;    // Desired task space acceleration
                 std::string link_name_;     // Name of the link
+
+                VectorXd w_tracking_; // weight for tracking; || x_ddot_des - J*qddot - Jdot*qdot ||
+                VectorXd w_damping_;  // weight for damping;  || q_ddot ||
                 
                 /**
                  * @brief Set the cost function which minimizes task space acceleration error.
                  *        Use slack variables to increase feasibility of QP.
                  *
-                 *         min       || x_ddot_des - J*qddot - Jdot * qdot ||_2^2
+                 *         min       || x_ddot_des - J*qddot - Jdot*qdot ||_W1^2 + ||q_ddot||_W2^2
                  * [qddot, torque]
                  *
-                 * =>      min        1/2 * [ qddot  ]^T * [2 * J.T * J  0] * [ qddot  ] + [-2 * J.T * (x_ddot_des - Jdot * qdot)].T * [ qddot  ]
-                 * [qddot, torque]          [ torque ]     [     0       0]   [ torque ]   [                 0                   ]     [ torque ]
+                 * =>      min        1/2 * [ qddot  ]^T * [2*J.T*W1*J + W2  0] * [ qddot  ] + [-2*J.T*W1*(x_ddot_des - Jdot*qdot)].T * [ qddot  ]
+                 * [qddot, torque]          [ torque ]     [         0       0]   [ torque ]   [                0                 ]     [ torque ]
                  */
                 void setCost() override;
                 /**

@@ -24,6 +24,13 @@ namespace drc
                  */
                 QPIK(std::shared_ptr<Manipulator::RobotData> robot_data);
                 /**
+                 * @brief Set the wight vector for the cost terms
+                 * @param w_tracking (Eigen::VectorXd) Weight for task velocity tracking; its size must be 6.
+                 * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
+                // TODO: add document to notion
+                void setWeight(const VectorXd w_tracking, const VectorXd w_damping);
+                /**
                  * @brief Set the desired task space velocity for the link.
                  * @param xdot_desired (Eigen::VectorXd) Desired task space velocity.
                  * @param link_name    (std::string) Name of the link.
@@ -74,14 +81,18 @@ namespace drc
                 VectorXd xdot_desired_;      // Desired task velocity
                 std::string link_name_;      // Name of the link
 
+                VectorXd w_tracking_; // weight for tracking; ||x_dot_des - J*q_dot||
+                VectorXd w_damping_;  // weight for damping;  || q_dot ||
+                
+
                 /**
                  * @brief Set the cost function which minimizes task space velocity error.
                  *        Use slack variables to increase feasibility of QP.
                  * 
-                 *       min     || x_dot_des - J*q_dot ||_2^2 + W * || q_dot ||_2^2
+                 *       min     || x_dot_des - J*q_dot ||_W1^2 + W2 * || q_dot ||_W2^2
                  *       qdot
                  *
-                 * =>    min     1/2 * qdot.T * (2*J.T*J + W) * qdot + (-2*J.T*x_dot_des).T * qdot
+                 * =>    min     1/2 * qdot.T * (2*J.T*W1*J + W2) * qdot + (-2*J.T*W1*x_dot_des).T * qdot
                  *       qdot
                  */
                 void setCost() override;

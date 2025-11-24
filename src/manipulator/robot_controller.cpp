@@ -73,6 +73,24 @@ namespace drc
             }
             Kv_task_ = Kv;
         }
+
+        void RobotController::setQPIKGain(const VectorXd& w_tracking, const VectorXd& w_damping)
+        {
+            if (w_tracking.size() != 6 || w_damping.size() != dof_)
+            {
+                throw std::runtime_error("w_tracking must be of size 6 and w_damping must be of size dof_");
+            }
+            QP_mani_IK_->setWeight(w_tracking, w_damping);
+        }
+
+        void RobotController::setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_damping)
+        {
+            if (w_tracking.size() != 6 || w_damping.size() != dof_)
+            {
+                throw std::runtime_error("w_tracking must be of size 6 and w_damping must be of size dof_");
+            }
+            QP_mani_ID_->setWeight(w_tracking, w_damping);
+        }
     
         VectorXd RobotController::moveJointPositionCubic(const VectorXd& q_target,
                                                          const VectorXd& qdot_target,
@@ -112,16 +130,18 @@ namespace drc
             return qdot_desired;
         }
 
-        VectorXd RobotController::moveJointTorqueStep(const VectorXd& qddot_target)
+        VectorXd RobotController::moveJointTorqueStep(const VectorXd& qddot_target, const bool use_mass)
         {
-            return robot_data_->getMassMatrix() * qddot_target + robot_data_->getGravity();;
+            if(use_mass) return robot_data_->getMassMatrix() * qddot_target + robot_data_->getGravity();
+            else         return qddot_target + robot_data_->getGravity();
         }
 
         VectorXd RobotController::moveJointTorqueStep(const VectorXd& q_target,
-                                                      const VectorXd& qdot_target)
+                                                      const VectorXd& qdot_target,
+                                                      const bool use_mass)
         {
             VectorXd qddot_desired = Kp_joint_.asDiagonal() * (q_target - robot_data_->getJointPosition()) + Kv_joint_.asDiagonal() * (qdot_target - robot_data_->getJointVelocity());
-            return moveJointTorqueStep(qddot_desired);
+            return moveJointTorqueStep(qddot_desired, use_mass);
         }
     
         VectorXd RobotController::moveJointTorqueCubic(const VectorXd& q_target,
@@ -130,7 +150,8 @@ namespace drc
                                                        const VectorXd& qdot_init,
                                                        const double& current_time,
                                                        const double& init_time,
-                                                       const double& duration)
+                                                       const double& duration,
+                                                       const bool use_mass)
         {
             VectorXd q_desired =  DyrosMath::cubicVector(current_time,
                                                          init_time,
@@ -148,7 +169,7 @@ namespace drc
                                                                qdot_init,
                                                                qdot_target);
     
-            return moveJointTorqueStep(q_desired, qdot_desired);
+            return moveJointTorqueStep(q_desired, qdot_desired, use_mass);
         }
     
         

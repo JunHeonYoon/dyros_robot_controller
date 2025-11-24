@@ -44,6 +44,9 @@ namespace drc
             si_index_.con_q_mani_max_start    = si_index_.con_q_mani_min_start + si_index_.con_q_mani_min_size;
             si_index_.con_sing_start          = si_index_.con_q_mani_max_start + si_index_.con_q_mani_max_size;
             si_index_.con_sel_col_start       = si_index_.con_sing_start       + si_index_.con_sing_size;
+
+            w_tracking_.setOnes(6);
+            w_damping_.setOnes(actuator_dof_);
         }
     
         void QPIK::setDesiredTaskVel(const VectorXd &xdot_desired, const std::string &link_name)
@@ -67,21 +70,26 @@ namespace drc
                 return true;
             }
         }
+
+        void QPIK::setWeight(const VectorXd w_tracking, const VectorXd w_damping)
+        {
+            w_tracking_ = w_tracking;
+            w_damping_ = w_damping;
+        }
     
         void QPIK::setCost()
         {
             /*
-                  min     || x_dot_des - J_tilda*eta ||_2^2 + W * || eta ||_2^2
+                  min     || x_dot_des - J_tilda*eta ||_W1^2 + W * || eta ||_W2^2
                   eta
     
-            =>    min     1/2 * eta.T * (2*J_tilda.T*J_tilda + W) * eta + (-2*J_tilda.T*x_dot_des).T * eta
+            =>    min     1/2 * eta.T * (2*J_tilda.T*W1*J_tilda + W2) * eta + (-2*J_tilda.T*W1*x_dot_des).T * eta
                   eta
             */
            MatrixXd J_tilda = robot_data_->getJacobianActuated(link_name_);
     
-           P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) = 2.0 * J_tilda.transpose() * J_tilda;
-           P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) += 1*MatrixXd::Identity(si_index_.eta_size,si_index_.eta_size);
-           q_ds_.segment(si_index_.eta_start,si_index_.eta_size) = -2.0 * J_tilda.transpose() * xdot_desired_;
+           P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) = 2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * J_tilda + w_damping_.asDiagonal().toDenseMatrix();
+           q_ds_.segment(si_index_.eta_start,si_index_.eta_size) = -2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * xdot_desired_;
            q_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size) = VectorXd::Constant(si_index_.slack_q_mani_min_size, 1000.0);
            q_ds_.segment(si_index_.slack_q_mani_max_start,si_index_.slack_q_mani_max_size) = VectorXd::Constant(si_index_.slack_q_mani_max_size, 1000.0);
            q_ds_(si_index_.slack_sing_start) = 1000.0;
@@ -92,14 +100,14 @@ namespace drc
         {
             // TODO: Bound constraint makes the robot weired
             // Manipulator Joint Velocity Limit
-            // l_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-            //                     mani_dof_) = robot_data_->getJointVelocityLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            l_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
+                                mani_dof_) = robot_data_->getJointVelocityLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            u_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
+                                mani_dof_) = robot_data_->getJointVelocityLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
             l_bound_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size).setZero();
             l_bound_ds_.segment(si_index_.slack_q_mani_max_start,si_index_.slack_q_mani_max_size).setZero();
             l_bound_ds_(si_index_.slack_sing_start) = 0.0;
             l_bound_ds_(si_index_.slack_sel_col_start) = 0.0;
-            // u_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-            //                     mani_dof_) = robot_data_->getJointVelocityLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
         }
     
         void QPIK::setIneqConstraint()    

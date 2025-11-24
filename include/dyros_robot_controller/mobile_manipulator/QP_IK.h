@@ -24,6 +24,13 @@ namespace drc
                  */
                 QPIK(std::shared_ptr<MobileManipulator::RobotData> robot_data);
                 /**
+                 * @brief Set the wight vector for the cost terms
+                 * @param w_tracking (Eigen::VectorXd) Weight for task velocity tracking; its size must be 6.
+                 * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator dof.
+                 */
+                // TODO: add document to notion
+                void setWeight(const VectorXd w_tracking, const VectorXd w_damping);
+                /**
                  * @brief Set the desired task space velocity for the link.
                  * @param xdot_desired (Eigen::VectorXd) Desired task space velocity.
                  * @param link_name    (std::string) Name of the link.
@@ -75,14 +82,17 @@ namespace drc
                 int mobi_dof_;          // Number of degrees of freedom in the mobile base
                 VectorXd xdot_desired_; // Desired task velocity
                 std::string link_name_; // Name of the link
+
+                VectorXd w_tracking_; // weight for tracking; || x_dot_des - J_tilda*eta ||
+                VectorXd w_damping_;  // weight for damping;  || eta ||
                 
                 /**
                  * @brief Set the cost function which minimizes task space velocity error.
                  * 
-                 *       min     || x_dot_des - J_tilda*eta ||_2^2 + W * || eta ||_2^2
+                 *       min     || x_dot_des - J_tilda*eta ||_W1^2 + W * || eta ||_W2^2
                  *       eta
                  *
-                 * =>    min     1/2 * eta.T * (2*J_tilda.T*J_tilda + W) * eta + (-2*J_tilda.T*x_dot_des).T * eta
+                 * =>    min     1/2 * eta.T * (2*J_tilda.T*W1*J_tilda + W2) * eta + (-2*J_tilda.T*W1*x_dot_des).T * eta
                  *       eta
                  */
                 void setCost() override;

@@ -83,6 +83,26 @@ class RobotController(drc.MobileManipulatorRobotController):
             kv : (np.ndarray) Derivative gains.
         """
         super().setTaskKpGain(kv)
+        
+    def set_QPIK_gain(self, w_tracking: np.ndarray, w_damping: np.ndarray):
+        """
+        Set the wight vector for the cost terms of the QPIK
+        
+        Parameters:
+            w_tracking : (np.ndarray) Weight for task velocity tracking; its size must be 6.
+            w_damping : (np.ndarray) Weight for joint velocity damping; its size must same as actuator dof.
+        """
+        super().setQPIKGain(w_tracking, w_damping)
+        
+    def set_QPID_gain(self, w_tracking: np.ndarray, w_damping: np.ndarray):
+        """
+        Set the wight vector for the cost terms of the QPID
+        
+        Parameters:
+            w_tracking : (np.ndarray) Weight for task acceleration tracking; its size must be 6.
+            w_damping : (np.ndarray) Weight for joint acceleration damping; its size must same as actuator dof.
+        """
+        super().setQPIDGain(w_tracking, w_damping)
 
     # ================================ Joint space Functions ================================        
 
@@ -128,6 +148,7 @@ class RobotController(drc.MobileManipulatorRobotController):
                                            q_mani_target:     np.ndarray | None = None,
                                            qdot_mani_target:  np.ndarray | None = None,
                                            qddot_mani_target: np.ndarray | None = None,
+                                           use_mass:          bool              = True,
                                            ) -> np.ndarray:
         """
         Computes manipulator joint torques to achieve desired manipulator joint configurations using equations of motion and PD control law.
@@ -139,15 +160,16 @@ class RobotController(drc.MobileManipulatorRobotController):
                                 Desired manipulator joint velocities.
             qddot_mani_target : (np.ndarray) [Required if q_mani_target and qdot_mani_target are None]
                                 Desired manipulator joint accelerations.
+            use_mass          : (bool) Whether use mass matrix.
 
         Returns:
             (np.ndarray) Desired manipulator joint torques.
         """
         if qddot_mani_target is not None:
-            return super().moveManipulatorJointTorqueStep(qddot_mani_target)
+            return super().moveManipulatorJointTorqueStep(qddot_mani_target, use_mass)
 
         if q_mani_target is not None and qdot_mani_target is not None:
-            return super().moveManipulatorJointTorqueStep(q_mani_target, qdot_mani_target)
+            return super().moveManipulatorJointTorqueStep(q_mani_target, qdot_mani_target, use_mass)
 
     def move_manipulator_joint_torque_cubic(self,
                                             q_mani_target: np.ndarray,
@@ -157,6 +179,7 @@ class RobotController(drc.MobileManipulatorRobotController):
                                             current_time: float,
                                             init_time: float,
                                             duration: float,
+                                            use_mass: bool = True
                                             ) -> np.ndarray:
         """
         Perform cubic interpolation between the initial and desired manipulator joint configurations over the given duration, then compute manipulator joint torques to follow the resulting trajectory.
@@ -169,6 +192,7 @@ class RobotController(drc.MobileManipulatorRobotController):
             current_time      : (float) Current time.
             init_time         : (float) Start time of the segment.
             duration          : (float) Time duration.
+            use_mass          : (bool) Whether use mass matrix.
 
         Returns:
             (np.ndarray) Desired manipulator joint torques.
@@ -180,6 +204,7 @@ class RobotController(drc.MobileManipulatorRobotController):
                                                        current_time,
                                                        init_time,
                                                        duration,
+                                                       use_mass,
                                                        )
 
     # ================================ Task space Functions ================================

@@ -63,6 +63,9 @@ namespace drc
             const int neq = si_index_.con_dyn_size;
     
             QPBase::setQPsize(nx, nbound, nineq, neq);
+
+            w_tracking_.setOnes(6);
+            w_damping_.setOnes(joint_dof_);
         }
     
         void QPID::setDesiredTaskAcc(const VectorXd &xddot_desired, const std::string &link_name)
@@ -88,22 +91,28 @@ namespace drc
                 return true;
             }
         }
+
+        void QPID::setWeight(const VectorXd w_tracking, const VectorXd w_damping)
+        {
+            w_tracking_ = w_tracking;
+            w_damping_ = w_damping;
+        }
     
         void QPID::setCost()
         {
             /*
-                 min       || x_ddot_des - J*qddot - Jdot * qdot ||_2^2
-            qddot, torque
-    
-            =>      min        1/2 * [ qddot  ]^T * [2 * J.T * J  0] * [ qddot  ] + [-2 * J.T * (x_ddot_des - Jdot * qdot)].T * [ qddot  ]
-              [qddot, torque]        [ torque ]     [     0       0]   [ torque ]   [                 0                   ]     [ torque ]
+                    min        || x_ddot_des - J*qddot - Jdot*qdot ||_W1^2 + ||q_ddot||_W2^2
+             [qddot, torque]
+            
+             =>     min        1/2 * [ qddot  ]^T * [2*J.T*W1*J + W2  0] * [ qddot  ] + [-2*J.T*W1*(x_ddot_des - Jdot*qdot)].T * [ qddot  ]
+              [qddot, torque]        [ torque ]     [         0       0]   [ torque ]   [                0                 ]     [ torque ]
             */
             MatrixXd J = robot_data_->getJacobian(link_name_);
             MatrixXd Jdot = robot_data_->getJacobianTimeVariation(link_name_);
             VectorXd qdot = robot_data_->getJointVelocity();
     
-            P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) = 2.0 * J.transpose() * J;
-            q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) = -2.0 * J.transpose() * (xddot_desired_ - Jdot * qdot);
+            P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) = 2.0 * J.transpose() * w_tracking_.asDiagonal() * J + w_damping_.asDiagonal().toDenseMatrix();
+            q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) = -2.0 * J.transpose() * w_tracking_.asDiagonal() * (xddot_desired_ - Jdot * qdot);
             q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 1000.0); 
             q_ds_.segment(si_index_.slack_q_max_start,si_index_.slack_q_max_size) = VectorXd::Constant(si_index_.slack_q_max_size, 1000.0); 
             q_ds_.segment(si_index_.slack_qdot_min_start,si_index_.slack_qdot_min_size) = VectorXd::Constant(si_index_.slack_qdot_min_size, 1000.0); 
@@ -111,7 +120,6 @@ namespace drc
             q_ds_(si_index_.slack_sing_start) = 1000.0;
             q_ds_(si_index_.slack_sel_col_start) = 1000.0;
             
-        //    P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,joint_dof_,joint_dof_) += 0.1*MatrixXd::Identity(joint_dof_,joint_dof_);
         }
     
         void QPID::setBoundConstraint()    

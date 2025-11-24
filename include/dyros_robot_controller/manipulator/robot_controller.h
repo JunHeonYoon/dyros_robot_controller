@@ -62,6 +62,21 @@ namespace drc
                  */ 
                 virtual void setTaskKvGain(const VectorXd& Kv);
                 
+                /**
+                 * @brief Set the wight vector for  the cost terms of the QPIK
+                 * @param w_tracking (Eigen::VectorXd) Weight for task velocity tracking; its size must be 6.
+                 * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
+                // TODO: add document to notion
+                void setQPIKGain(const VectorXd& w_tracking, const VectorXd& w_dampling);
+                /**
+                 * @brief Set the wight vector for  the cost terms of the QPID
+                 * @param w_tracking (Eigen::VectorXd) Weight for task acceleration tracking; its size must be 6.
+                 * @param w_damping  (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                // TODO: add document to notion
+                void setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_dampling);
+                
                 
                 // ================================ Joint space Functions ================================
                 /**
@@ -103,18 +118,22 @@ namespace drc
                 /**
                  * @brief Computes joint torques to achieve desired joint accelerations using dynamics.
                  * @param qddot_target (Eigen::VectorXd) Desired manipulator joint accelerations.
+                 * @param use_mass     (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired joint torques.
                  */
-                virtual VectorXd moveJointTorqueStep(const VectorXd& qddot_target);
+                // TODO: add document to notion that add use_mass
+                virtual VectorXd moveJointTorqueStep(const VectorXd& qddot_target, const bool use_mass = true);
                 /**
                  * @brief Computes joint torques to achieve desired joint positions & velocities using PD control law.
                  * @param q_target    (Eigen::VectorXd) Desired manipulator joint positions.
                  * @param qdot_target (Eigen::VectorXd) Desired manipulator joint velocities.
+                 * @param use_mass    (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired joint torques.
                  */
+                // TODO: add document to notion that add use_mass
                 virtual VectorXd moveJointTorqueStep(const VectorXd& q_target,
-                                                     const VectorXd& qdot_target);
-                
+                                                     const VectorXd& qdot_target,
+                                                     const bool use_mass = true);
                 /**
                  * @brief Perform cubic interpolation between the initial and desired joint configurations over the given duration, then compute joint torques to follow the resulting trajectory.
                  * @param q_target      (Eigen::VectorXd) Desired manipulator joint positions at the end of the segment.
@@ -124,15 +143,18 @@ namespace drc
                  * @param current_time  (double) Current time.
                  * @param init_time     (double) Start time of the segment.
                  * @param duration      (double) Time duration
+                 * @param use_mass      (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired joint torques.
-                 */                                     
+                 */                          
+                // TODO: add document to notion that add use_mass           
                 virtual VectorXd moveJointTorqueCubic(const VectorXd& q_target,
                                                       const VectorXd& qdot_target,
                                                       const VectorXd& q_init,
                                                       const VectorXd& qdot_init,
                                                       const double& current_time,
                                                       const double& init_time,
-                                                      const double& duration);
+                                                      const double& duration,
+                                                      const bool use_mass = true);
                                                 
                 // ================================ Task space Functions ================================
                 /**
