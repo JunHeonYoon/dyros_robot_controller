@@ -67,7 +67,8 @@ namespace drc
             si_index_.con_sel_col_start       = si_index_.con_sing_start          + si_index_.con_sing_size;
 
             w_tracking_.setOnes(6);
-            w_damping_.setOnes(actuator_dof_);
+            w_vel_damping_.setOnes(actuator_dof_);
+            w_acc_damping_.setOnes(actuator_dof_);
         }
         
     
@@ -95,28 +96,32 @@ namespace drc
             }
         }
 
-        void QPID::setWeight(const VectorXd w_tracking, const VectorXd w_damping)
+        void QPID::setWeight(const VectorXd w_tracking, const VectorXd w_vel_damping, const VectorXd w_acc_damping)
         {
             w_tracking_ = w_tracking;
-            w_damping_ = w_damping;
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
         }
     
         void QPID::setCost()
         {
             /*
-                    min     || x_ddot_des - J_tilda*eta_dot - J_tilda_dot*eta ||_W1^2 + || eta_dot ||_W2^2
+                    min     || x_ddot_des - J_tilda*eta_dot - J_tilda_dot*eta ||_W1^2 + || eta_dot ||_W2^2 + || eta_dot*dt + eta ||_W3^2
             [eta_dot, torque]
 
-            =>      min        1/2 * [ eta_dot ].T * [ 2*J_tilda.T*W1*J_tilda + 2*W2  0 ] * [ eta_dot ] + [ -2*J_tilda.T*W1*(x_ddot_des - J_tilda_dot*eta)].T * [ eta_dot ]
-             [eta_dot, torque]       [ torque  ]     [              0                 0 ]   [ torque  ]   [                    0                          ]     [ torque  ]
+            =>      min        1/2 * [ eta_dot ].T * [ 2*J_tilda.T*W1*J_tilda + 2*W2 + 2*dt*dt*W3  0 ] * [ eta_dot ] + [ -2*J_tilda.T*W1*(x_ddot_des - J_tilda_dot*eta) + 2*dt*eta].T * [ eta_dot ]
+             [eta_dot, torque]       [ torque  ]     [                      0                      0 ]   [ torque  ]   [                                0                         ]     [ torque  ]
             */
             P_ds_.setZero(nx_, nx_);
             q_ds_.setZero(nx_);
             MatrixXd J_tilda = robot_data_->getJacobianActuated(link_name_);
             MatrixXd J_tilda_dot = robot_data_->getJacobianActuatedTimeVariation(link_name_);
             VectorXd eta = robot_data_->getJointVelocityActuated();
-            P_ds_.block(si_index_.eta_dot_start,si_index_.eta_dot_start,si_index_.eta_dot_size,si_index_.eta_dot_size) = 2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * J_tilda + 2.0 * w_damping_.asDiagonal().toDenseMatrix();
-            q_ds_.segment(si_index_.eta_dot_start,si_index_.eta_dot_size) = -2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * (xddot_desired_ - J_tilda_dot * eta);
+            P_ds_.block(si_index_.eta_dot_start,si_index_.eta_dot_start,si_index_.eta_dot_size,si_index_.eta_dot_size) = 2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * J_tilda + 
+                                                                                                                         2.0 * w_acc_damping_.asDiagonal().toDenseMatrix() +
+                                                                                                                         2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
+            q_ds_.segment(si_index_.eta_dot_start,si_index_.eta_dot_size) = -2.0 * J_tilda.transpose() * w_tracking_.asDiagonal() * (xddot_desired_ - J_tilda_dot * eta) +
+                                                                            2.0 * dt_ * eta;
             q_ds_.segment(si_index_.slack_q_mani_min_start,   si_index_.slack_q_mani_min_size)    = VectorXd::Constant(si_index_.slack_q_mani_min_size,    1000.0);
             q_ds_.segment(si_index_.slack_q_mani_max_start,   si_index_.slack_q_mani_max_size)    = VectorXd::Constant(si_index_.slack_q_mani_max_size,    1000.0);
             q_ds_.segment(si_index_.slack_qdot_mani_min_start,si_index_.slack_qdot_mani_min_size) = VectorXd::Constant(si_index_.slack_qdot_mani_min_size, 1000.0);

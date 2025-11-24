@@ -68,14 +68,15 @@ namespace drc
                  * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  */
                 // TODO: add document to notion
-                void setQPIKGain(const VectorXd& w_tracking, const VectorXd& w_dampling);
+                void setQPIKGain(const VectorXd& w_tracking, const VectorXd& w_damping);
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPID
-                 * @param w_tracking (Eigen::VectorXd) Weight for task acceleration tracking; its size must be 6.
-                 * @param w_damping  (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 * @param w_tracking    (Eigen::VectorXd) Weight for task acceleration tracking; its size must be 6.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
                 // TODO: add document to notion
-                void setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_dampling);
+                void setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_vel_damping, const VectorXd& w_acc_damping);
                 
                 
                 // ================================ Joint space Functions ================================

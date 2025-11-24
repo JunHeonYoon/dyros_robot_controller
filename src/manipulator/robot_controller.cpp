@@ -83,13 +83,13 @@ namespace drc
             QP_mani_IK_->setWeight(w_tracking, w_damping);
         }
 
-        void RobotController::setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_damping)
+        void RobotController::setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_vel_damping, const VectorXd& w_acc_damping)
         {
-            if (w_tracking.size() != 6 || w_damping.size() != dof_)
+            if (w_tracking.size() != 6 || w_vel_damping.size() != dof_ || w_acc_damping.size() != dof_)
             {
                 throw std::runtime_error("w_tracking must be of size 6 and w_damping must be of size dof_");
             }
-            QP_mani_ID_->setWeight(w_tracking, w_damping);
+            QP_mani_ID_->setWeight(w_tracking, w_vel_damping, w_acc_damping);
         }
     
         VectorXd RobotController::moveJointPositionCubic(const VectorXd& q_target,

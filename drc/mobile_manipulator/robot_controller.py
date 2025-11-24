@@ -94,15 +94,16 @@ class RobotController(drc.MobileManipulatorRobotController):
         """
         super().setQPIKGain(w_tracking, w_damping)
         
-    def set_QPID_gain(self, w_tracking: np.ndarray, w_damping: np.ndarray):
+    def set_QPID_gain(self, w_tracking: np.ndarray, w_vel_damping: np.ndarray, w_acc_damping: np.ndarray):
         """
         Set the wight vector for the cost terms of the QPID
         
         Parameters:
             w_tracking : (np.ndarray) Weight for task acceleration tracking; its size must be 6.
-            w_damping : (np.ndarray) Weight for joint acceleration damping; its size must same as actuator dof.
+            w_vel_damping : (np.ndarray) Weight for joint velocity damping; its size must same as actuator dof.
+            w_acc_damping : (np.ndarray) Weight for joint acceleration damping; its size must same as actuator dof.
         """
-        super().setQPIDGain(w_tracking, w_damping)
+        super().setQPIDGain(w_tracking, w_vel_damping, w_acc_damping)
 
     # ================================ Joint space Functions ================================        
 

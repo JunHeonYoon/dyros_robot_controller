@@ -65,7 +65,8 @@ namespace drc
             QPBase::setQPsize(nx, nbound, nineq, neq);
 
             w_tracking_.setOnes(6);
-            w_damping_.setOnes(joint_dof_);
+            w_vel_damping_.setOnes(joint_dof_);
+            w_acc_damping_.setOnes(joint_dof_);
         }
     
         void QPID::setDesiredTaskAcc(const VectorXd &xddot_desired, const std::string &link_name)
@@ -92,20 +93,21 @@ namespace drc
             }
         }
 
-        void QPID::setWeight(const VectorXd w_tracking, const VectorXd w_damping)
+        void QPID::setWeight(const VectorXd w_tracking, const VectorXd w_vel_damping, const VectorXd w_acc_damping)
         {
             w_tracking_ = w_tracking;
-            w_damping_ = w_damping;
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
         }
     
         void QPID::setCost()
         {
             /*
-                    min        || x_ddot_des - J*qddot - Jdot*qdot ||_W1^2 + ||q_ddot||_W2^2
+                    min       || x_ddot_des - J*qddot - Jdot*qdot ||_W1^2 + || q_ddot ||_W2^2 + || q_ddot*dt + qdot ||_W3^2
              [qddot, torque]
             
-             =>     min        1/2 * [ qddot  ]^T * [2*J.T*W1*J + W2  0] * [ qddot  ] + [-2*J.T*W1*(x_ddot_des - Jdot*qdot)].T * [ qddot  ]
-              [qddot, torque]        [ torque ]     [         0       0]   [ torque ]   [                0                 ]     [ torque ]
+             =>     min        1/2 * [ qddot  ]^T * [2*J.T*W1*J + 2*W2 + 2*dt*dt*W3  0] * [ qddot  ] + [-2*J.T*W1*(x_ddot_des - Jdot*qdot) + 2*dt*qdot].T * [ qddot  ]
+            [qddot, torque]          [ torque ]     [                  0             0]   [ torque ]   [                      0                       ]     [ torque ]
             */
             P_ds_.setZero(nx_, nx_);
             q_ds_.setZero(nx_);
@@ -113,8 +115,11 @@ namespace drc
             MatrixXd Jdot = robot_data_->getJacobianTimeVariation(link_name_);
             VectorXd qdot = robot_data_->getJointVelocity();
 
-            P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) = 2.0 * J.transpose() * w_tracking_.asDiagonal() * J + w_damping_.asDiagonal().toDenseMatrix();
-            q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) = -2.0 * J.transpose() * w_tracking_.asDiagonal() * (xddot_desired_ - Jdot * qdot);
+            P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) = 2.0 * J.transpose() * w_tracking_.asDiagonal() * J + 
+                                                                                                                 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix() + 
+                                                                                                                 2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
+            q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) = -2.0 * J.transpose() * w_tracking_.asDiagonal() * (xddot_desired_ - Jdot * qdot) +
+                                                                         2.0 * dt_ * qdot;
             q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 1000.0); 
             q_ds_.segment(si_index_.slack_q_max_start,si_index_.slack_q_max_size) = VectorXd::Constant(si_index_.slack_q_max_size, 1000.0); 
             q_ds_.segment(si_index_.slack_qdot_min_start,si_index_.slack_qdot_min_size) = VectorXd::Constant(si_index_.slack_qdot_min_size, 1000.0); 

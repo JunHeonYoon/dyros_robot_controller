@@ -27,10 +27,11 @@ namespace drc
                  /**
                  * @brief Set the wight vector for the cost terms
                  * @param w_tracking (Eigen::VectorXd) Weight for task acceleration tracking; its size must be 6.
-                 * @param w_damping  (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as actuator dof.
+                 * @param w_vel_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator dof.
+                 * @param w_acc_damping  (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as actuator dof.
                  */
                 // TODO: add document to notion
-                void setWeight(const VectorXd w_tracking, const VectorXd w_damping);
+                void setWeight(const VectorXd w_tracking, const VectorXd w_vel_damping, const VectorXd w_acc_damping);
                 /**
                  * @brief Set the desired task space acceleration for the link.
                  * @param xddot_desired (Eigen::VectorXd) Desired task space acceleration.
@@ -102,17 +103,18 @@ namespace drc
                 VectorXd xddot_desired_;        // Desired task acceleration
                 std::string link_name_;         // Name of the link
 
-                VectorXd w_tracking_; // weight for tracking; || x_ddot_des - J_tilda*eta_dot - J_tilda_dot*eta ||
-                VectorXd w_damping_;  // weight for damping;  || eta_ddot ||^2
+                VectorXd w_tracking_;     // weight for tracking;             || x_ddot_des - J_tilda*eta_dot - J_tilda_dot*eta ||
+                VectorXd w_vel_damping_;  // weight for velocity damping;     || eta_dot*dt + eta ||^2
+                VectorXd w_acc_damping_;  // weight for acceleration damping; || eta_ddot ||^2
 
                 /**
                  * @brief Set the cost function which minimizes task space acceleration error.
                  * 
-                 *       min     || x_ddot_des - J_tilda*eta_dot - J_tilda_dot*eta ||_W1^2 + || eta_dot ||_W2^2
+                 *       min     || x_ddot_des - J_tilda*eta_dot - J_tilda_dot*eta ||_W1^2 + || eta_dot ||_W2^2 + || eta_dot*dt + eta ||_W3^2
                  *  [eta_dot, torque]
                  *
-                 * =>      min        1/2 * [ eta_dot ].T * [ 2*J_tilda.T*W1*J_tilda + W2  0 ] * [ eta_dot ] + [ -2*J_tilda.T*W1*(x_ddot_des - J_tilda_dot*eta)].T * [ eta_dot ]
-                 *  [eta_dot, torque]       [ torque  ]     [              0               0 ]   [ torque  ]   [                    0                          ]     [ torque  ]
+                 * =>      min        1/2 * [ eta_dot ].T * [ 2*J_tilda.T*W1*J_tilda + 2*W2 + 2*dt*dt*W3  0 ] * [ eta_dot ] + [ -2*J_tilda.T*W1*(x_ddot_des - J_tilda_dot*eta) + 2*dt*eta].T * [ eta_dot ]
+                 *  [eta_dot, torque]       [ torque  ]     [                      0                      0 ]   [ torque  ]   [                                0                         ]     [ torque  ]
                  */
                 void setCost() override;
                 /**
