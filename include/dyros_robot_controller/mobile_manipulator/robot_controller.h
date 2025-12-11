@@ -24,86 +24,84 @@ namespace drc
                 /**
                  * @brief Constructor.
                  * @param dt         (double) Control loop time step in seconds.
-                 * @param robot_data (std::shared_ptr<MobileManipulator::RobotData>)
-                 *                   Shared pointer to the RobotData class.
+                 * @param robot_data (std::shared_ptr<MobileManipulator::RobotData>) Shared pointer to the RobotData class.
                 */
-                RobotController(const double& dt,
-                                std::shared_ptr<MobileManipulator::RobotData> robot_data);
+                RobotController(const double& dt, std::shared_ptr<MobileManipulator::RobotData> robot_data);
                 
                 /**
                  * @brief Set joint space PD gains for the manipulator.
-                 * @param Kp (Eigen::VectorXd) Proportional gains.
-                 * @param Kv (Eigen::VectorXd) Derivative gains.
+                 * @param Kp (Eigen::VectorXd) Proportional gains; its size must same as mani_dof.
+                 * @param Kv (Eigen::VectorXd) Derivative gains; its size must same as mani_dof.
                 */                
                 virtual void setManipulatorJointGain(const VectorXd& Kp, 
                                                      const VectorXd& Kv);
                 /**
                  * @brief Set joint space P gains for the robot.
-                 * @param Kp (Eigen::VectorXd) Proportional gains.
+                 * @param Kp (Eigen::VectorXd) Proportional gains; its size must same as mani_dof.
                 */                                     
                 virtual void setManipulatorJointKpGain(const VectorXd& Kp);
                 /**
                  * @brief Set joint space D gains for the robot.
-                 * @param Kv (Eigen::VectorXd) Derivative gains.
+                 * @param Kv (Eigen::VectorXd) Derivative gains; its size must same as mani_dof.
                 */ 
                 virtual void setManipulatorJointKvGain(const VectorXd& Kv);
                 /**
-                 * @brief Set task space PD gains for the robot.
-                 * @param Kp (Eigen::VectorXd) Proportional gains.
-                 * @param Kv (Eigen::VectorXd) Derivative gains.
+                 * @brief Set task space PD gains for the robot per links.
+                 * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
+                 * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
                 */
-                virtual void setTaskGain(const VectorXd& Kp, 
-                                         const VectorXd& Kv);
+                virtual void setTaskGain(const std::map<std::string, Vector6d>& link_Kp, 
+                                         const std::map<std::string, Vector6d>& link_Kv);
                 /**
-                 * @brief Set task space P gains for the robot.
-                 * @param Kp (Eigen::VectorXd) Proportional gains.
-                */                         
-                virtual void setTaskKpGain(const VectorXd& Kp);
+                 * @brief Set task space P gains for the robot per links.
+                 * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
+                 */                         
+                virtual void setTaskKpGain(const std::map<std::string, Vector6d>& link_Kp);
                 /**
-                 * @brief Set task space D gains for the robot.
-                 * @param Kv (Eigen::VectorXd) Derivative gains.
-                */
-                virtual void setTaskKvGain(const VectorXd& Kv);      
+                 * @brief Set task space D gains for the robot per links.
+                 * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
+                 */
+                virtual void setTaskKvGain(const std::map<std::string, Vector6d>& link_Kv);      
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPIK
-                 * @param w_tracking (Eigen::VectorXd) Weight for task velocity tracking; its size must be 6.
-                 * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator_dof.
                  */
                 // TODO: add document to notion
-                void setQPIKGain(const VectorXd& w_tracking, const VectorXd& w_damping);
+                void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_damping);
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPID
-                 * @param w_tracking    (Eigen::VectorXd) Weight for task acceleration tracking; its size must be 6.
-                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
-                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator_dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as actuator_dof.
                  */
                 // TODO: add document to notion
-                void setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_vel_damping, const VectorXd& w_acc_damping);
+                void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_vel_damping, const VectorXd& w_acc_damping);
 
                 // TODO: modify comments, add bindings and python func, add python comment, add to notion
                 // ================================== Mobile Functions ===================================
                 /**
                  * @brief Compute wheel velocities from desired base velocity using inverse kinematics.
                  *
-                 * @param base_vel (Eigen::VectorXd) Desired base velocity [vx, vy, wz], size = 3.
+                 * @param base_vel (Eigen::Vector3d) Desired base velocity [vx, vy, wz].
                  * @return (Eigen::VectorXd) Computed wheel velocities [rad/s], size = number of wheels.
                 */
-                virtual VectorXd computeMobileWheelVel(const VectorXd& base_vel);
+                virtual VectorXd computeMobileWheelVel(const Vector3d& base_vel);
 
                 /**
-                 * @brief Compute inverse kinematics Jacobian (maps base velocity to wheel velocity).
+                 * @brief Compute inverse kinematics Jacobian of base mobile (maps base velocity to wheel velocity).
                  *
                  * @return (Eigen::MatrixXd) Jacobian matrix of size [wheel_num x 3].
                 */
                 virtual MatrixXd computeMobileIKJacobian();
 
                 /**
-                 * @brief Generate velocity command with optional constraints (e.g., saturation).
+                 * @brief Generate base velocity command with optional constraints (e.g., saturation).
                  *
-                 * @param desired_base_vel (Eigen::VectorXd) Desired base velocity [vx, vy, wz], size = 3.
+                 * @param desired_base_vel (Eigen::Vector3d) Desired base velocity [vx, vy, wz].
                  * @return (Eigen::VectorXd) Wheel velocity command (possibly saturated), size = number of wheels.
                 */
-                virtual VectorXd MobileVelocityCommand(const VectorXd& desired_base_vel);
+                virtual VectorXd MobileVelocityCommand(const Vector3d& desired_base_vel);
 
                 // ================================ Joint space Functions ================================                
                 /**
@@ -169,104 +167,89 @@ namespace drc
 
                 // ================================ Task space Functions ================================
                 /**
-                 * @brief Computes velocities for mobile base and manipulator joints to achieve desired velocity of a link by solving inverse kinematics QP.
-                 * @param xdot_target           (Eigen::VectorXd) Desired velocity of a link.
-                 * @param link_name             (std::string) Name of the link.
-                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile base velocities.
+                 * @brief Computes velocities for mobile base and manipulator joints to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
+                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
+                 * @param time_verbose  (bool) If true, print the computation time for QP. 
                 */                                                  
-                virtual void QPIK(const VectorXd& xdot_target,
-                                  const std::string& link_name,
+                virtual void QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   VectorXd& opt_qdot_mobile,
-                                  VectorXd& opt_qdot_manipulator);
+                                  VectorXd& opt_qdot_manipulator,
+                                  const bool time_verbose=false);
 
                 /**
-                 * @brief Computes velocities for mobile base and manipulator joints to achieve desired position & velocity of a link by solving inverse kinematics QP.
-                 * @param x_target              (Eigen::Affine3d) Desired position of a link.
-                 * @param xdot_target           (Eigen::VectorXd) Desired velocity of a link.
-                 * @param link_name             (std::string) Name of the link.
-                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile base velocities.
+                 * @brief Computes velocities for mobile base and manipulator joints to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
+                 * @param time_verbose  (bool) If true, print the computation time for QP. 
                 */                    
-                virtual void QPIKStep(const Affine3d& x_target, 
-                                      const VectorXd& xdot_target,
-                                      const std::string& link_name,
+                virtual void QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       VectorXd& opt_qdot_mobile,
-                                      VectorXd& opt_qdot_manipulator);
+                                      VectorXd& opt_qdot_manipulator,
+                                      const bool time_verbose=false);
 
                 /**
-                 * @brief Perform cubic interpolation between the initial and desired link pose & velocity over the given duration, then compute velocities for mobile base and manipulator joints using QP to follow the resulting trajectory.
-                 * @param x_target              (Eigen::Affine3d) Desired position of a link at the end of the segment.
-                 * @param xdot_target           (Eigen::VectorXd) Desired velocity of a link at the end of the segment.
-                 * @param x_init                (Eigen::Affine3d) Initial position of a link at the start of the segment.
-                 * @param xdot_init             (Eigen::VectorXd) Initial velocity of a link at the start of the segment.
+                 * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute velocities for mobile base and manipulator joints using QP to follow the resulting trajectory.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time          (double) Current time.
                  * @param init_time             (double) Start time of the segment.
                  * @param duration              (double) Time duration.
-                 * @param link_name             (std::string) Name of the link.
-                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile base velocities.
+                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
+                 * @param time_verbose  (bool) If true, print the computation time for QP. 
                 */                      
-                virtual void QPIKCubic(const Affine3d& x_target,
-                                       const VectorXd& xdot_target,
-                                       const Affine3d& x_init,
-                                       const VectorXd& xdot_init,
+                virtual void QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
                                        const double& init_time,
                                        const double& duration,
-                                       const std::string& link_name,
                                        VectorXd& opt_qdot_mobile,
-                                       VectorXd& opt_qdot_manipulator);
+                                       VectorXd& opt_qdot_manipulator,
+                                       const bool time_verbose=false);
 
                 /**
-                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired velocity of a link by solving inverse dynamics QP.
-                 * @param xddot_target           (Eigen::VectorXd) Desired acceleration of a link.
-                 * @param link_name              (std::string) Name of the link.
-                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
+                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
+                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @param time_verbose  (bool) If true, print the computation time for QP. 
                 */      
-                virtual void QPID(const VectorXd& xddot_target,
-                                  const std::string& link_name,
+                virtual void QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   VectorXd& opt_qddot_mobile,
-                                  VectorXd& opt_torque_manipulator);
+                                  VectorXd& opt_torque_manipulator,
+                                  const bool time_verbose=false);
 
                 /**
-                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired position & velocity of a link by solving inverse dynamics QP.
-                 * @param x_target               (Eigen::Affine3d) Desired position of a link.
-                 * @param xdot_target            (Eigen::VectorXd) Desired velocity of a link.
-                 * @param link_name              (std::string) Name of the link.
+                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse dynamics QP.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @param time_verbose  (bool) If true, print the computation time for QP. 
                 */                  
-                virtual void QPIDStep(const Affine3d& x_target, 
-                                      const VectorXd& xdot_target,
-                                      const std::string& link_name,
+                virtual void QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       VectorXd& opt_qddot_mobile,
-                                      VectorXd& opt_torque_manipulator);
+                                      VectorXd& opt_torque_manipulator,
+                                      const bool time_verbose=false);
 
                 /**
-                 * @brief Perform cubic interpolation between the initial and desired link pose & velocity over the given duration, then compute mobile base accelerations and manipulator joint torques using QP to follow the resulting trajectory.
-                 * @param x_target               (Eigen::Affine3d) Desired position of a link at the end of the segment.
-                 * @param xdot_target            (Eigen::VectorXd) Desired velocity of a link at the end of the segment.
-                 * @param x_init                 (Eigen::Affine3d) Initial position of a link at the start of the segment.
-                 * @param xdot_init              (Eigen::VectorXd) Initial velocity of a link at the start of the segment.
+                 * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using QP to follow the resulting trajectory.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time           (double) Current time.
                  * @param init_time              (double) Start time of the segment.
                  * @param duration               (double) Time duration.
-                 * @param link_name              (std::string) Name of the link.
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @param time_verbose  (bool) If true, print the computation time for QP. 
                 */
-                virtual void QPIDCubic(const Affine3d& x_target,
-                                       const VectorXd& xdot_target,
-                                       const Affine3d& x_init,
-                                       const VectorXd& xdot_init,
+                virtual void QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
                                        const double& init_time,
                                        const double& duration,
-                                       const std::string& link_name,
                                        VectorXd& opt_qddot_mobile,
-                                       VectorXd& opt_torque_manipulator);
+                                       VectorXd& opt_torque_manipulator,
+                                       const bool time_verbose=false);
+
    
                 
             protected:
@@ -277,9 +260,9 @@ namespace drc
                 int actuator_dof_;                                          // Number of actuated joints
                 std::shared_ptr<MobileManipulator::RobotData> robot_data_;  // Shared pointer to the robot data.
 
-                // Task space gains
-                VectorXd Kp_task_;
-                VectorXd Kv_task_;
+                // Task space gains per links
+                std::map<std::string, Vector6d> link_Kp_task_;
+                std::map<std::string, Vector6d> link_Kv_task_;
 
                 // Joint space gains
                 VectorXd Kp_mani_joint_;
@@ -288,6 +271,16 @@ namespace drc
                 // QP solvers
                 std::unique_ptr<MobileManipulator::QPIK> QP_moma_IK_;
                 std::unique_ptr<MobileManipulator::QPID> QP_moma_ID_;
+
+                virtual void QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
+                                  VectorXd& opt_qdot_mobile,
+                                  VectorXd& opt_qdot_manipulator,
+                                  const bool time_verbose=false);
+
+                virtual void QPID(const std::map<std::string, Vector6d>& link_xddot_target,
+                                  VectorXd& opt_qddot_mobile,
+                                  VectorXd& opt_torque_manipulator,
+                                  const bool time_verbose=false);
         };
     } // namespace MobileManipulator
 } // namespace drc

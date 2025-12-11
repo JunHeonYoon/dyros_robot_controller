@@ -6,11 +6,9 @@ namespace drc
     {
         RobotController::RobotController(const double& dt,
                                          std::shared_ptr<Manipulator::RobotData> robot_data)
-        : robot_data_(robot_data)
+        : robot_data_(robot_data), dt_(dt)
         {
             dof_ = robot_data_->getDof();
-            Kp_task_ = VectorXd::Constant(6, 100);
-            Kv_task_ = VectorXd::Constant(6, 20);
             Kp_joint_ = VectorXd::Constant(dof_, 400);
             Kv_joint_ = VectorXd::Constant(dof_, 40);
     
@@ -20,78 +18,50 @@ namespace drc
     
         void RobotController::setJointGain(const VectorXd& Kp, const VectorXd& Kv)
         {
-            if (Kp.size() != dof_ || Kv.size() != dof_)
-            {
-                throw std::runtime_error("Kp and Kv must be of size dof_.");
-            }
+            assert(Kp.size() == dof_ && Kv.size() != dof_);
             Kp_joint_ = Kp;
             Kv_joint_ = Kv;
         }
 
         void RobotController::setJointKpGain(const VectorXd& Kp)
         {
-            if (Kp.size() != dof_ )
-            {
-                throw std::runtime_error("Kp must be of size dof_.");
-            }
+            assert(Kp.size() == dof_);
             Kp_joint_ = Kp;
         }
 
         void RobotController::setJointKvGain(const VectorXd& Kv)
         {
-            if (Kv.size() != dof_ )
-            {
-                throw std::runtime_error("Kv must be of size dof_.");
-            }
+            assert(Kv.size() == dof_);
             Kv_joint_ = Kv;
         }
     
-        void RobotController::setTaskGain(const VectorXd& Kp, const VectorXd& Kv)
+        void RobotController::setTaskGain(const std::map<std::string, Vector6d>& link_Kp, const std::map<std::string, Vector6d>& link_Kv)
         {
-            if (Kp.size() != 6 || Kv.size() != 6)
-            {
-                throw std::runtime_error("Kp and Kv must be of size 6.");
-            }
-            Kp_task_ = Kp;
-            Kv_task_ = Kv;
+            link_Kp_task_ = link_Kp;
+            link_Kv_task_ = link_Kv;
         }
 
-        void RobotController::setTaskKpGain(const VectorXd& Kp)
+        void RobotController::setTaskKpGain(const std::map<std::string, Vector6d>& link_Kp)
         {
-            if (Kp.size() != 6)
-            {
-                throw std::runtime_error("Kp must be of size 6.");
-            }
-            Kp_task_ = Kp;
+            link_Kp_task_ = link_Kp;
         }
 
-        void RobotController::setTaskKvGain(const VectorXd& Kv)
+        void RobotController::setTaskKvGain(const std::map<std::string, Vector6d>& link_Kv)
         {
-            if (Kv.size() != 6)
-            {
-                throw std::runtime_error("Kv must be of size 6.");
-            }
-            Kv_task_ = Kv;
+            link_Kv_task_ = link_Kv;
         }
 
-        void RobotController::setQPIKGain(const VectorXd& w_tracking, const VectorXd& w_damping)
+        void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_damping)
         {
-            if (w_tracking.size() != 6 || w_damping.size() != dof_)
-            {
-                throw std::runtime_error("w_tracking must be of size 6 and w_damping must be of size dof_");
-            }
-            QP_mani_IK_->setWeight(w_tracking, w_damping);
+            assert(w_damping.size() == dof_);
+            QP_mani_IK_->setWeight(link_w_tracking, w_damping);
         }
 
-        void RobotController::setQPIDGain(const VectorXd& w_tracking, const VectorXd& w_vel_damping, const VectorXd& w_acc_damping)
+        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_vel_damping, const VectorXd& w_acc_damping)
         {
-            if (w_tracking.size() != 6 || w_vel_damping.size() != dof_ || w_acc_damping.size() != dof_)
-            {
-                throw std::runtime_error("w_tracking must be of size 6 and w_damping must be of size dof_");
-            }
-            QP_mani_ID_->setWeight(w_tracking, w_vel_damping, w_acc_damping);
+            QP_mani_ID_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
         }
-    
+
         VectorXd RobotController::moveJointPositionCubic(const VectorXd& q_target,
                                                          const VectorXd& qdot_target,
                                                          const VectorXd& q_init,
@@ -100,13 +70,13 @@ namespace drc
                                                          const double& init_time,
                                                          const double& duration)
         {
-            VectorXd q_desired =  DyrosMath::cubicVector(current_time,
-                                                         init_time,
-                                                         init_time + duration,
-                                                         q_init,
-                                                         q_target,
-                                                         qdot_init,
-                                                         qdot_target);
+            const VectorXd q_desired = DyrosMath::cubicVector(current_time,
+                                                              init_time,
+                                                              init_time + duration,
+                                                              q_init,
+                                                              q_target,
+                                                              qdot_init,
+                                                              qdot_target);
     
             return q_desired;
         }
@@ -119,13 +89,13 @@ namespace drc
                                                          const double& init_time,
                                                          const double& duration)
         {
-            VectorXd qdot_desired =  DyrosMath::cubicDotVector(current_time,
-                                                               init_time,
-                                                               init_time + duration,
-                                                               q_init,
-                                                               q_target,
-                                                               qdot_init,
-                                                               qdot_target);
+            const VectorXd qdot_desired =  DyrosMath::cubicDotVector(current_time,
+                                                                     init_time,
+                                                                     init_time + duration,
+                                                                     q_init,
+                                                                     q_target,
+                                                                     qdot_init,
+                                                                     qdot_target);
     
             return qdot_desired;
         }
@@ -140,7 +110,7 @@ namespace drc
                                                       const VectorXd& qdot_target,
                                                       const bool use_mass)
         {
-            VectorXd qddot_desired = Kp_joint_.asDiagonal() * (q_target - robot_data_->getJointPosition()) + Kv_joint_.asDiagonal() * (qdot_target - robot_data_->getJointVelocity());
+            const VectorXd qddot_desired = Kp_joint_.asDiagonal() * (q_target - robot_data_->getJointPosition()) + Kv_joint_.asDiagonal() * (qdot_target - robot_data_->getJointVelocity());
             return moveJointTorqueStep(qddot_desired, use_mass);
         }
     
@@ -153,231 +123,358 @@ namespace drc
                                                        const double& duration,
                                                        const bool use_mass)
         {
-            VectorXd q_desired =  DyrosMath::cubicVector(current_time,
-                                                         init_time,
-                                                         init_time + duration,
-                                                         q_init,
-                                                         q_target,
-                                                         qdot_init,
-                                                         qdot_target);
+            const VectorXd q_desired = DyrosMath::cubicVector(current_time,
+                                                              init_time,
+                                                              init_time + duration,
+                                                              q_init,
+                                                              q_target,
+                                                              qdot_init,
+                                                              qdot_target);
     
-            VectorXd qdot_desired =  DyrosMath::cubicDotVector(current_time,
-                                                               init_time,
-                                                               init_time + duration,
-                                                               q_init,
-                                                               q_target,
-                                                               qdot_init,
-                                                               qdot_target);
+            const VectorXd qdot_desired = DyrosMath::cubicDotVector(current_time,
+                                                                    init_time,
+                                                                    init_time + duration,
+                                                                    q_init,
+                                                                    q_target,
+                                                                    qdot_init,
+                                                                    qdot_target);
     
             return moveJointTorqueStep(q_desired, qdot_desired, use_mass);
         }
     
+        VectorXd RobotController::CLIK(const std::map<std::string, Vector6d>& link_xdot_target, const VectorXd& null_qdot)
+        {
+            MatrixXd J_total;
+            J_total.setZero(6*link_xdot_target.size(), dof_);
+
+            VectorXd x_dot_target_total;
+            x_dot_target_total.setZero(6*link_xdot_target.size());
+
+            int i=0;
+            for (auto &[link_name, xdot_target] : link_xdot_target)
+            {
+                J_total.block(6*i, 0, 6, dof_) = robot_data_->getJacobian(link_name);
+                x_dot_target_total.segment(6*i, 6) = xdot_target;
+                i++;
+            }
+
+            const MatrixXd J_total_pinv = DyrosMath::PinvCOD(J_total);
+            const MatrixXd null_proj = MatrixXd::Identity(dof_, dof_) - J_total_pinv * J_total;
+    
+            return J_total_pinv * x_dot_target_total + null_proj * null_qdot;
+        }
+
+        VectorXd RobotController::CLIK(const std::map<std::string, TaskSpaceData>& link_task_data, const VectorXd& null_qdot)
+        {
+            std::map<std::string, Vector6d> link_xdot_target;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                link_xdot_target[link_name] = task_data.xdot_desired;
+            }
+            return CLIK(link_xdot_target, null_qdot);
+        }
         
-    
-        VectorXd RobotController::CLIKStep(const Affine3d& x_target,
-                                           const VectorXd& xdot_target,
-                                           const VectorXd& null_qdot,
-                                           const std::string& link_name)
+        VectorXd RobotController::CLIK(const std::map<std::string, TaskSpaceData>& link_task_data)
         {
-            VectorXd x_error, xdot_error;
-            DyrosMath::getTaskSpaceError(x_target, xdot_target, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+            return CLIK(link_task_data, VectorXd::Zero(dof_));
+        }
     
-            MatrixXd J = robot_data_->getJacobian(link_name);
-            MatrixXd J_pinv = DyrosMath::PinvCOD(J);
+        VectorXd RobotController::CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                           const VectorXd& null_qdot)
+        {
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                Vector6d x_error, xdot_error;
+                DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+
+                Vector6d Kp_task; Kp_task.setOnes(); 
+                auto iter = link_Kp_task_.find(link_name);
+                if(iter != link_Kp_task_.end()) Kp_task = iter->second;
+
+                link_task_data_result[link_name].xdot_desired = Kp_task.asDiagonal() * x_error + task_data.xdot_desired;
+            }
+
+            return CLIK(link_task_data_result, null_qdot);
+        }
     
-            MatrixXd null_proj = MatrixXd::Identity(dof_, dof_) - J_pinv * J;
-    
-            VectorXd qdot_desired = J_pinv * (Kp_task_.asDiagonal() * x_error + xdot_target) + null_proj * null_qdot;
-            return qdot_desired;
+        VectorXd RobotController::CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data)
+        {
+            return CLIKStep(link_task_data, VectorXd::Zero(dof_));
         }
 
-        VectorXd RobotController::CLIKStep(const Affine3d& x_target,
-                                           const VectorXd& xdot_target,
-                                           const std::string& link_name)
-        {
-            return CLIKStep(x_target, xdot_target, VectorXd::Zero(dof_), link_name);
-        }
-    
-        VectorXd RobotController::CLIKCubic(const Affine3d& x_target,
-                                            const VectorXd& xdot_target,
-                                            const Affine3d& x_init,
-                                            const VectorXd& xdot_init,
+        VectorXd RobotController::CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                             const double& current_time,
                                             const double& init_time,
                                             const double& duration,
-                                            const VectorXd& null_qdot,
-                                            const std::string& link_name)
+                                            const VectorXd& null_qdot)
         {
-            Affine3d x_desired;
-            VectorXd xdot_desired;
-            DyrosMath::getTaskSpaceCubic(x_target, xdot_target, x_init, xdot_init, current_time, init_time, duration, x_desired, xdot_desired);
-            return CLIKStep(x_desired, xdot_desired, null_qdot, link_name);
-        }
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                TaskSpaceData task_data_result = task_data;
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                link_task_data_result[link_name] = task_data_result;
+            }
 
-        VectorXd RobotController::CLIKCubic(const Affine3d& x_target,
-                                            const VectorXd& xdot_target,
-                                            const Affine3d& x_init,
-                                            const VectorXd& xdot_init,
+            return CLIKStep(link_task_data_result, null_qdot);
+        }
+        
+        VectorXd RobotController::CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                             const double& current_time,
                                             const double& init_time,
-                                            const double& duration,
-                                            const std::string& link_name)
+                                            const double& duration)
         {
-            return CLIKCubic(x_target, xdot_target, x_init, xdot_init, current_time, init_time, duration, VectorXd::Zero(dof_), link_name);
+            return CLIKCubic(link_task_data, current_time, init_time, duration, VectorXd::Zero(dof_));
         }
-    
-        VectorXd RobotController::OSF(const VectorXd& xddot_target, 
-                                      const VectorXd& null_torque,
-                                      const std::string& link_name)
+
+        VectorXd RobotController::OSF(const std::map<std::string, Vector6d>& link_xddot_target, const VectorXd& null_torque)
         {
-            MatrixXd J = robot_data_->getJacobian(link_name);
-            MatrixXd J_T = J.transpose();
-            MatrixXd M_inv = robot_data_->getMassMatrixInv();
+            MatrixXd J_total;
+            J_total.setZero(6*link_xddot_target.size(), dof_);
+
+            VectorXd x_ddot_target_total;
+            x_ddot_target_total.setZero(6*link_xddot_target.size());
+
+            int i=0;
+            for (auto &[link_name, xddot_target] : link_xddot_target)
+            {
+                J_total.block(6*i, 0, 6, dof_) = robot_data_->getJacobian(link_name);
+                x_ddot_target_total.segment(6*i, 6) = xddot_target;
+                i++;
+            }
+
+            const MatrixXd J_total_T = J_total.transpose();
+            const MatrixXd M_inv = robot_data_->getMassMatrixInv();
     
-            MatrixXd M_task = DyrosMath::PinvCOD(J * M_inv * J_T); 
-            MatrixXd J_T_pinv = M_task * J * M_inv;
-            MatrixXd null_proj = MatrixXd::Identity(dof_, dof_) - (J_T * J_T_pinv);
+            const MatrixXd M_task_total = DyrosMath::PinvCOD(J_total * M_inv * J_total_T); 
+            const MatrixXd J_total_T_pinv = M_task_total * J_total * M_inv;
+            const MatrixXd null_proj = MatrixXd::Identity(dof_, dof_) - (J_total_T * J_total_T_pinv);
             
-            VectorXd force_desired = M_task * xddot_target;
+            const VectorXd force_desired = M_task_total * x_ddot_target_total;
             
-            return J_T * force_desired + null_proj * null_torque + robot_data_->getGravity();
+            return J_total_T * force_desired + null_proj * null_torque + robot_data_->getGravity();
         }
-    
-        VectorXd RobotController::OSF(const VectorXd& xddot_target,
-                                      const std::string& link_name)
+
+        VectorXd RobotController::OSF(const std::map<std::string, TaskSpaceData>& link_task_data, 
+                                      const VectorXd& null_torque)
         {
-            return OSF(xddot_target, VectorXd::Zero(dof_), link_name);
+            std::map<std::string, Vector6d> link_xddot_target;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                link_xddot_target[link_name] = task_data.xddot_desired;
+            }
+            
+            return OSF(link_xddot_target, null_torque);
         }
-    
-        VectorXd RobotController::OSFStep(const Affine3d& x_target, 
-                                          const VectorXd& xdot_target,
-                                          const VectorXd& null_torque,
-                                          const std::string& link_name)
+        
+        VectorXd RobotController::OSF(const std::map<std::string, TaskSpaceData>& link_task_data)
         {
-            VectorXd x_error, xdot_error;
-            DyrosMath::getTaskSpaceError(x_target, xdot_target, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
-            VectorXd xddot_target = Kp_task_.asDiagonal() * x_error + Kv_task_.asDiagonal() * xdot_error;
-            return OSF(xddot_target, null_torque, link_name);
+            return OSF(link_task_data, VectorXd::Zero(dof_));
         }
-    
-        VectorXd RobotController::OSFStep(const Affine3d& x_target, 
-                                          const VectorXd& xdot_target,
-                                          const std::string& link_name)
+
+        VectorXd RobotController::OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                          const VectorXd& null_torque)
         {
-            return OSFStep(x_target, xdot_target, VectorXd::Zero(dof_), link_name);
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                Vector6d x_error, xdot_error;
+                DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+
+                Vector6d Kp_task; Kp_task.setOnes(); 
+                Vector6d Kv_task; Kv_task.setOnes(); 
+                auto iter_kp = link_Kp_task_.find(link_name);
+                if(iter_kp != link_Kp_task_.end()) Kp_task = iter_kp->second;
+                auto iter_kv = link_Kv_task_.find(link_name);
+                if(iter_kv != link_Kv_task_.end()) Kv_task = iter_kv->second;
+
+                link_task_data_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
+            }
+            return OSF(link_task_data_result, null_torque);
         }
-    
-        VectorXd RobotController::OSFCubic(const Affine3d& x_target,
-                                           const VectorXd& xdot_target,
-                                           const Affine3d& x_init,
-                                           const VectorXd& xdot_init,
+        
+        VectorXd RobotController::OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data)
+        {
+            return OSFStep(link_task_data, VectorXd::Zero(dof_));
+        }
+
+        VectorXd RobotController::OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                            const double& current_time,
                                            const double& init_time,
                                            const double& duration,
-                                           const VectorXd& null_torque,
-                                           const std::string& link_name)
+                                           const VectorXd& null_torque)
         {
-            Affine3d x_desired;
-            VectorXd xdot_desired;
-            DyrosMath::getTaskSpaceCubic(x_target, xdot_target, x_init, xdot_init, current_time, init_time, duration, x_desired, xdot_desired);
-            return OSFStep(x_desired, xdot_desired, null_torque, link_name);
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                TaskSpaceData task_data_result = task_data;
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                link_task_data_result[link_name] = task_data_result;
+            }
+            return OSFStep(link_task_data_result, null_torque);
         }
-    
-        VectorXd RobotController::OSFCubic(const Affine3d& x_target,
-                                           const VectorXd& xdot_target,
-                                           const Affine3d& x_init,
-                                           const VectorXd& xdot_init,
+      
+        VectorXd RobotController::OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                            const double& current_time,
                                            const double& init_time,
-                                           const double& duration,
-                                           const std::string& link_name)
+                                           const double& duration)
         {
-            return OSFCubic(x_target, xdot_target, x_init, xdot_init, current_time, init_time, duration, VectorXd::Zero(dof_), link_name);
+            return OSFCubic(link_task_data, current_time, init_time, duration, VectorXd::Zero(dof_));
         }
-    
-        VectorXd RobotController::QPIK(const VectorXd& xdot_target,
-                                       const std::string& link_name)
-        {  
-            QP_mani_IK_->setDesiredTaskVel(xdot_target, link_name);
+
+        VectorXd RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target, const bool time_verbose)
+        {
+            QP_mani_IK_->setDesiredTaskVel(link_xdot_target);
             VectorXd opt_qdot = VectorXd::Zero(dof_);
-            QP::TimeDuration tmp;
-            if(!QP_mani_IK_->getOptJointVel(opt_qdot, tmp))
+            QP::TimeDuration time_duration;
+            if(!QP_mani_IK_->getOptJointVel(opt_qdot, time_duration))
             {
                 std::cerr << "QP IK failed to compute optimal joint velocity." << std::endl;
                 opt_qdot.setZero(dof_);
+            }
+
+            if(time_verbose)
+            {
+                std::cout << "============ QPIK Time Information ==============" << std::endl;
+                std::cout << "Duration for total [ms]: " << (time_duration.set_qp + time_duration.set_solver + time_duration.solve_qp)*1000 << std::endl;
+                std::cout << "\tDuration for set up QP problem [ms]: " << time_duration.set_qp*1000 << std::endl;
+                std::cout << "\t\tDuration for set up cost [ms]      : " << time_duration.set_cost*1000 << std::endl;
+                std::cout << "\t\tDuration for set up constraint [ms]: " << time_duration.set_constraint*1000 << std::endl;
+                std::cout << "\t\t\tDuration for set up bound [ms]: " << time_duration.set_bound*1000 << std::endl;
+                std::cout << "\t\t\tDuration for set up ineq [ms] : " << time_duration.set_ineq*1000 << std::endl;
+                std::cout << "\t\t\tDuration for set up eq [ms]   : " << time_duration.set_eq*1000 << std::endl;
+                std::cout << "\tDuration for set up QP solver [ms] : " << time_duration.set_solver*1000 << std::endl;
+                std::cout << "\tDuration for solve QP [ms]         : " << time_duration.solve_qp*1000 << std::endl;
+                std::cout << "=================================================" << std::endl;
             }
         
             return opt_qdot;
         }
 
-        VectorXd RobotController::QPIKStep(const Affine3d& x_target, 
-                                           const VectorXd& xdot_target,
-                                           const std::string& link_name)
-        {
-            VectorXd x_error, xdot_error;
-            DyrosMath::getTaskSpaceError(x_target, xdot_target, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
-            
-            return QPIK(Kp_task_.asDiagonal() * x_error + Kv_task_.asDiagonal() * xdot_error, link_name);
-        }
-    
-    
-        VectorXd RobotController::QPIKCubic(const Affine3d& x_target,
-                                            const VectorXd& xdot_target,
-                                            const Affine3d& x_init,
-                                            const VectorXd& xdot_init,
-                                            const double& current_time,
-                                            const double& init_time,
-                                            const double& duration,
-                                            const std::string& link_name)
-        {
-            Affine3d x_desired;
-            VectorXd xdot_desired;
-            DyrosMath::getTaskSpaceCubic(x_target, xdot_target, x_init, xdot_init, current_time, init_time, duration, x_desired, xdot_desired);
-    
-            return QPIKStep(x_desired, xdot_desired, link_name);
+        VectorXd RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
+        {  
+            std::map<std::string, Vector6d> link_xdot_target;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                link_xdot_target[link_name] = task_data.xdot_desired;
+            }
+        
+            return QPIK(link_xdot_target, time_verbose);
         }
 
-        VectorXd RobotController::QPID(const VectorXd& xddot_target,
-                                       const std::string& link_name)
+        VectorXd RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
         {
-            QP_mani_ID_->setDesiredTaskAcc(xddot_target, link_name);
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                Vector6d x_error, xdot_error;
+                DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+
+                Vector6d Kp_task; Kp_task.setOnes(); 
+                auto iter = link_Kp_task_.find(link_name);
+                if(iter != link_Kp_task_.end()) Kp_task = iter->second;
+
+                link_task_data_result[link_name].xdot_desired = Kp_task.asDiagonal() * x_error + task_data.xdot_desired;
+            }
+            return QPIK(link_task_data_result, time_verbose);
+        }
+    
+        VectorXd RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                            const double& current_time,
+                                            const double& init_time,
+                                            const double& duration, 
+                                            const bool time_verbose)
+        {
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                TaskSpaceData task_data_result = task_data;
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                link_task_data_result[link_name] = task_data_result;
+            }
+    
+            return QPIKStep(link_task_data_result, time_verbose);
+        }
+
+        VectorXd RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target, const bool time_verbose)
+        {
+            QP_mani_ID_->setDesiredTaskAcc(link_xddot_target);
             VectorXd opt_qddot = VectorXd::Zero(dof_);
             VectorXd opt_torque = VectorXd::Zero(dof_);
-            QP::TimeDuration tmp;
-            if(!QP_mani_ID_->getOptJoint(opt_qddot, opt_torque, tmp))
+            QP::TimeDuration time_duration;
+            if(!QP_mani_ID_->getOptJoint(opt_qddot, opt_torque, time_duration))
             {
                 std::cerr << "QP ID failed to compute optimal joint torque." << std::endl;
                 opt_torque = robot_data_->getGravity();
             }
 
+            if(time_verbose)
+            {
+                std::cout << "============ QPID Time Information ==============" << std::endl;
+                std::cout << "Duration for total [ms]: " << (time_duration.set_qp + time_duration.set_solver + time_duration.solve_qp)*1000 << std::endl;
+                std::cout << "\tDuration for set up QP problem [ms]: " << time_duration.set_qp*1000 << std::endl;
+                std::cout << "\t\tDuration for set up cost [ms]      : " << time_duration.set_cost*1000 << std::endl;
+                std::cout << "\t\tDuration for set up constraint [ms]: " << time_duration.set_constraint*1000 << std::endl;
+                std::cout << "\t\t\tDuration for set up bound [ms]: " << time_duration.set_bound*1000 << std::endl;
+                std::cout << "\t\t\tDuration for set up ineq [ms] : " << time_duration.set_ineq*1000 << std::endl;
+                std::cout << "\t\t\tDuration for set up eq [ms]   : " << time_duration.set_eq*1000 << std::endl;
+                std::cout << "\tDuration for set up QP solver [ms] : " << time_duration.set_solver*1000 << std::endl;
+                std::cout << "\tDuration for solve QP [ms]         : " << time_duration.solve_qp*1000 << std::endl;
+                std::cout << "=================================================" << std::endl;
+            }
+        
             return opt_torque;
         }
 
-        VectorXd RobotController::QPIDStep(const Affine3d& x_target, 
-                                           const VectorXd& xdot_target,
-                                           const std::string& link_name)
+        VectorXd RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
         {
-            VectorXd x_error, xdot_error;
-            DyrosMath::getTaskSpaceError(x_target, xdot_target, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+            std::map<std::string, Vector6d> link_xddot_target;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                link_xddot_target[link_name] = task_data.xddot_desired;
+            }
+
+            return QPID(link_xddot_target, time_verbose);
+        }
+
+        VectorXd RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
+        {
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                Vector6d x_error, xdot_error;
+                DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+
+                Vector6d Kp_task; Kp_task.setOnes(); 
+                Vector6d Kv_task; Kv_task.setOnes(); 
+                auto iter_kp = link_Kp_task_.find(link_name);
+                if(iter_kp != link_Kp_task_.end()) Kp_task = iter_kp->second;
+                auto iter_kv = link_Kv_task_.find(link_name);
+                if(iter_kv != link_Kv_task_.end()) Kv_task = iter_kv->second;
+
+                link_task_data_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
+            }
             
-            return QPID(Kp_task_.asDiagonal() * x_error + Kv_task_.asDiagonal() * xdot_error, link_name);
+            return QPID(link_task_data_result, time_verbose);
         }
     
     
-        VectorXd RobotController::QPIDCubic(const Affine3d& x_target,
-                                            const VectorXd& xdot_target,
-                                            const Affine3d& x_init,
-                                            const VectorXd& xdot_init,
+        VectorXd RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                             const double& current_time,
                                             const double& init_time,
-                                            const double& duration,
-                                            const std::string& link_name)
+                                            const double& duration, 
+                                            const bool time_verbose)
         {
-            Affine3d x_desired;
-            VectorXd xdot_desired;
-            DyrosMath::getTaskSpaceCubic(x_target, xdot_target, x_init, xdot_init, current_time, init_time, duration, x_desired, xdot_desired);
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (auto &[link_name, task_data] : link_task_data)
+            {
+                TaskSpaceData task_data_result = task_data;
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                link_task_data_result[link_name] = task_data_result;
+            }
     
-            return QPIDStep(x_desired, xdot_desired, link_name);
+            return QPIDStep(link_task_data_result, time_verbose);
         }
     } // namespace Manipulator
 } // namespace drc
