@@ -31,6 +31,48 @@ typedef MobileManipulator::RobotController MM_RC;
 
 namespace
 {
+    static Eigen::MatrixXd get_T(const drc::TaskSpaceData& t) 
+    {
+        Eigen::MatrixXd M(4,4);
+        M = t.x.matrix();
+        return M;
+    }
+
+    static void set_T(drc::TaskSpaceData& t, const Eigen::MatrixXd& M) 
+    {
+        if(M.rows()!=4 || M.cols()!=4) throw std::runtime_error("x must be (4,4)");
+        Eigen::Matrix4d M4 = M;
+        t.x = Eigen::Affine3d(M4);
+    }
+
+    static Eigen::MatrixXd get_T_init(const drc::TaskSpaceData& t) 
+    {
+        Eigen::MatrixXd M(4,4);
+        M = t.x_init.matrix();
+        return M;
+    }
+
+    static void set_T_init(drc::TaskSpaceData& t, const Eigen::MatrixXd& M) 
+    {
+        if(M.rows()!=4 || M.cols()!=4) throw std::runtime_error("x_init must be (4,4)");
+        Eigen::Matrix4d M4 = M;
+        t.x_init = Eigen::Affine3d(M4);
+    }
+
+    static Eigen::MatrixXd get_T_des(const drc::TaskSpaceData& t) 
+    {
+        Eigen::MatrixXd M(4,4);
+        M = t.x_desired.matrix();
+        return M;
+    }
+
+    static void set_T_des(drc::TaskSpaceData& t, const Eigen::MatrixXd& M) 
+    {
+        if(M.rows()!=4 || M.cols()!=4) throw std::runtime_error("x_desired must be (4,4)");
+        Eigen::Matrix4d M4 = M;
+        t.x_desired = Eigen::Affine3d(M4);
+    }
+
     bp::tuple MM_RC_QPIK_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qdot_mobi, qdot_mani;
@@ -318,13 +360,51 @@ struct TaskMapFromPython
     }
 };
 
+struct VecStrToPython
+{
+    static PyObject *convert(const std::vector<std::string> &v)
+    {
+        bp::list l;
+        for (const auto &e : v) l.append(bp::object(e));
+        return bp::incref(l.ptr());
+    }
+};
+
+struct VecStrFromPython
+{
+    VecStrFromPython()
+    {
+        bp::converter::registry::push_back(&convertible, &construct, bp::type_id<std::vector<std::string>>());
+    }
+
+    static void *convertible(PyObject *obj_ptr)
+    { 
+        return PySequence_Check(obj_ptr) ? obj_ptr : nullptr; 
+    }
+
+    static void construct(PyObject *obj_ptr, bp::converter::rvalue_from_python_stage1_data *data)
+    {
+        void *storage = ((bp::converter::rvalue_from_python_storage<std::vector<std::string>> *)data)->storage.bytes;
+        new (storage) std::vector<std::string>();
+        auto *vec = static_cast<std::vector<std::string> *>(storage);
+        const Py_ssize_t len = PySequence_Size(obj_ptr);
+        vec->reserve(len);
+        for (Py_ssize_t i = 0; i < len; ++i)
+        {
+            bp::object item(bp::handle<>(PySequence_GetItem(obj_ptr, i)));
+            vec->emplace_back(bp::extract<std::string>(item));
+        }
+        data->convertible = storage;
+    }
+};
 
 BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
 {
     eigenpy::enableEigenPy();
     eigenpy::enableEigenPySpecific<Matrix<double, Dynamic, Dynamic>>();
     eigenpy::enableEigenPySpecific<Matrix<double, Dynamic, 1>>();
-    eigenpy::enableEigenPySpecific<Matrix4d>();
+    eigenpy::enableEigenPySpecific<Vector6d>();
+    eigenpy::enableEigenPySpecific<Vector3d>();
 
     bp::to_python_converter<std::pair<VectorXd, VectorXd>, PairVectorXdToPython>();
     bp::to_python_converter<Affine3d, Affine3dToPython>();
@@ -332,12 +412,14 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
     bp::to_python_converter<std::vector<Vector2d>, Vec2dToPython>();
     bp::to_python_converter<std::map<std::string, Vector6d>, MapStrVec6dToPython>();
     bp::to_python_converter<std::map<std::string, TaskSpaceData>, TaskMapToPython>();
+    bp::to_python_converter<std::vector<std::string>, VecStrToPython>();
     
     static VecDoubleFromPython   _reg_vecdouble_from_python;
     static Vec2dFromPython       _reg_vec2d_from_python;
     static Affine3dFromNumpy     _reg_affine3d_from_numpy;
     static MapStrVec6dFromPython _reg_mapstrv6d_from_python;
     static TaskMapFromPython     _reg_taskmap_from_python;
+    static VecStrFromPython      _reg_vecstr_from_python;
 
     bp::enum_<Mobile::DriveType>("DriveType")
         .value("Differential", Mobile::DriveType::Differential)
@@ -387,13 +469,13 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
 
     bp::class_<TaskSpaceData>("TaskSpaceData")
         .def(bp::init<>())
-        .def_readwrite("x",             &TaskSpaceData::x)
+        .add_property("x",         &get_T,      &set_T)
+        .add_property("x_init",    &get_T_init, &set_T_init)
+        .add_property("x_desired", &get_T_des,  &set_T_des)
         .def_readwrite("xdot",          &TaskSpaceData::xdot)
         .def_readwrite("xddot",         &TaskSpaceData::xddot)
-        .def_readwrite("x_init",        &TaskSpaceData::x_init)
         .def_readwrite("xdot_init",     &TaskSpaceData::xdot_init)
         .def_readwrite("xddot_init",    &TaskSpaceData::xddot_init)
-        .def_readwrite("x_desired",     &TaskSpaceData::x_desired)
         .def_readwrite("xdot_desired",  &TaskSpaceData::xdot_desired)
         .def_readwrite("xddot_desired", &TaskSpaceData::xddot_desired)
         .def("setZero",                 &TaskSpaceData::setZero)
@@ -427,6 +509,14 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("computeVelocity",              &MN_RD::computeVelocity)
         .def("computeMinDistance",           &MN_RD::computeMinDistance)
         .def("computeManipulability",        &MN_RD::computeManipulability)
+        .def("getURDFPath",         +[](const MN_RD& self){ return self.getURDFPath(); })
+        .def("getSRDFPath",         +[](const MN_RD& self){ return self.getSRDFPath(); })
+        .def("getPackagePath",      +[](const MN_RD& self){ return self.getPackagePath(); })
+        .def("getRootLinkName",     +[](const MN_RD& self){ return self.getRootLinkName(); })
+        .def("getLinkFrameVector",  +[](const MN_RD& self){ return self.getLinkFrameVector(); })
+        .def("getJointFrameVector", +[](const MN_RD& self){ return self.getJointFrameVector(); })
+        .def("hasLinkFrame",                 &MN_RD::hasLinkFrame)
+        .def("hasJointFrame",                &MN_RD::hasJointFrame)
         .def("getDof",                       &MN_RD::getDof)
         .def("getJointPosition",             &MN_RD::getJointPosition)
         .def("getJointVelocity",             &MN_RD::getJointVelocity)
@@ -477,6 +567,14 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("computeManipulability",                     Man5(&MM_RD::computeManipulability))
         .def("computeMobileFKJacobian",                        &MM_RD::computeMobileFKJacobian)
         .def("computeMobileBaseVel",                           &MM_RD::computeMobileBaseVel)
+        .def("getURDFPath",                           +[](const MM_RD& self){ return self.getURDFPath(); })
+        .def("getSRDFPath",                           +[](const MM_RD& self){ return self.getSRDFPath(); })
+        .def("getPackagePath",                        +[](const MM_RD& self){ return self.getPackagePath(); })
+        .def("getRootLinkName",                       +[](const MM_RD& self){ return self.getRootLinkName(); })
+        .def("getLinkFrameVector",                    +[](const MM_RD& self){ return self.getLinkFrameVector(); })
+        .def("getJointFrameVector",                   +[](const MM_RD& self){ return self.getJointFrameVector(); })
+        .def("hasLinkFrame",                                   &MM_RD::hasLinkFrame)
+        .def("hasJointFrame",                                  &MM_RD::hasJointFrame)
         .def("getActuatordDof",                                &MM_RD::getActuatordDof)
         .def("getManipulatorDof",                              &MM_RD::getManipulatorDof)
         .def("getMobileDof",                                   &MM_RD::getMobileDof)
@@ -547,7 +645,11 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("setTaskKvGain",                                                                                                &MM_RC::setTaskKvGain)
         .def("setQPIKGain",                                                                                                  &MM_RC::setQPIKGain)
         .def("setQPIDGain",                                                                                                  &MM_RC::setQPIDGain)
+        .def("computeMobileWheelVel",                                                                                        &MM_RC::computeMobileWheelVel)
+        .def("computeMobileIKJacobian",                                                                                      &MM_RC::computeMobileIKJacobian)
+        .def("MobileVelocityCommand",                                                                                        &MM_RC::MobileVelocityCommand)
         .def("moveManipulatorJointPositionCubic",                                                                            &MM_RC::moveManipulatorJointPositionCubic)
+        .def("moveManipulatorJointVelocityCubic",                                                                            &MM_RC::moveManipulatorJointVelocityCubic)
         .def("moveManipulatorJointTorqueStep",                  static_cast<VectorXd(MM_RC::*)(const VectorXd&, const bool)>(&MM_RC::moveManipulatorJointTorqueStep))
         .def("moveManipulatorJointTorqueStep", static_cast<VectorXd(MM_RC::*)(const VectorXd&, const VectorXd&, const bool)>(&MM_RC::moveManipulatorJointTorqueStep))
         .def("moveManipulatorJointTorqueCubic",                                                                              &MM_RC::moveManipulatorJointTorqueCubic)
