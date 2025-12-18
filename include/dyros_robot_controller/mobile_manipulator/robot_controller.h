@@ -122,7 +122,24 @@ namespace drc
                                                                    const double& current_time,
                                                                    const double& init_time,
                                                                    const double& duration);
-
+                /**
+                 * @brief Perform cubic interpolation between the initial and desired manipulator joint configurations over the given duration.
+                 * @param q_target      (Eigen::VectorXd) Desired manipulator joint positions at the end of the segment.
+                 * @param qdot_target   (Eigen::VectorXd) Desired manipulator joint velocities at the end of the segment.
+                 * @param q_init        (Eigen::VectorXd) Initial manipulator joint positions at the start of the segment.
+                 * @param qdot_init     (Eigen::VectorXd) Initial manipulator joint velocities at the start of the segment.
+                 * @param current_time  (double) Current time.
+                 * @param init_time     (double) Start time of the segment.
+                 * @param duration      (double) Time duration
+                 * @return (Eigen::VectorXd) Desired manipulator joint velocities.
+                 */                                        
+                virtual VectorXd moveManipulatorJointVelocityCubic(const VectorXd& q_target,
+                                                                   const VectorXd& qdot_target,
+                                                                   const VectorXd& q_init,
+                                                                   const VectorXd& qdot_init,
+                                                                   const double& current_time,
+                                                                   const double& init_time,
+                                                                   const double& duration);
                 /**
                  * @brief Computes joint torques to achieve desired manipulator joint accelerations using equations of motion about manipulator.
                  * @param qddot_mani_target (Eigen::VectorXd) Desired joint accelerations.
