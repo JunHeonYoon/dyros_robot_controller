@@ -105,6 +105,29 @@ namespace drc
             return q_mani_desired;
         }
 
+        VectorXd RobotController::moveManipulatorJointVelocityCubic(const VectorXd& q_mani_target,
+                                                                    const VectorXd& qdot_mani_target,
+                                                                    const VectorXd& q_mani_init,
+                                                                    const VectorXd& qdot_mani_init,
+                                                                    const double& current_time,
+                                                                    const double& init_time,
+                                                                    const double& duration)
+        {
+            assert(q_mani_target.size() == mani_dof_ && 
+                   qdot_mani_target.size() == mani_dof_ &&
+                   q_mani_init.size() == mani_dof_ &&
+                   qdot_mani_init.size() == mani_dof_);
+
+            const VectorXd qdot_mani_desired =  DyrosMath::cubicDotVector(current_time,
+                                                                          init_time,
+                                                                          init_time + duration,
+                                                                          q_mani_init,
+                                                                          q_mani_target,
+                                                                          qdot_mani_init,
+                                                                          qdot_mani_target);
+            return qdot_mani_desired;
+        }
+
         VectorXd RobotController::moveManipulatorJointTorqueStep(const VectorXd& qddot_mani_target, const bool use_mass)
         {
             assert(qddot_mani_target.size() == mani_dof_);
