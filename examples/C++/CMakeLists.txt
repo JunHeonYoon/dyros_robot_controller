@@ -30,6 +30,7 @@ add_executable(${PROJECT_NAME}
 target_sources(${PROJECT_NAME} PRIVATE
   src/fr3_controller.cpp
   src/xls_controller.cpp
+  src/fr3_xls_controller.cpp
 )
 
 # Link the dyros controller (PRIMARY dependency)

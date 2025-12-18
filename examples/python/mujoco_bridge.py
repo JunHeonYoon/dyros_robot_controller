@@ -24,7 +24,9 @@ def load_controller(name: str):
         → gets class "FR3Controller"
     """
     mod = importlib.import_module(f"{name}_controller")
-    cls_name = f"{name.upper()}Controller"
+    # cls_name = f"{name.upper()}Controller"
+    cls_core = "".join(part.upper() for part in name.split("_"))
+    cls_name = f"{cls_core}Controller"
     return getattr(mod, cls_name)
 
 class MujocoBridge():
@@ -72,12 +74,25 @@ class MujocoBridge():
         
     def update_joint_state(self):
         """Read current joint positions/velocities from MuJoCo."""
-        qpos_dict = {}
-        qvel_dict = {}
+        qpos_dict, qvel_dict = {}, {}
+
         for jname, jidx in self.joint_dict.items():
-            qpos_dict[jname] = self.mujoco_data.qpos[jidx]
-            qvel_dict[jname] = self.mujoco_data.qvel[jidx]
+            qpos_adr = self.mujoco_model.jnt_qposadr[jidx]
+            dof_adr  = self.mujoco_model.jnt_dofadr[jidx]
+            jtype    = self.mujoco_model.jnt_type[jidx]
+
+            if jtype == mujoco.mjtJoint.mjJNT_FREE:
+                qpos_dict[jname] = self.mujoco_data.qpos[qpos_adr:qpos_adr+7].copy()
+                qvel_dict[jname] = self.mujoco_data.qvel[dof_adr:dof_adr+6].copy()
+            elif jtype == mujoco.mjtJoint.mjJNT_BALL:
+                qpos_dict[jname] = self.mujoco_data.qpos[qpos_adr:qpos_adr+4].copy()
+                qvel_dict[jname] = self.mujoco_data.qvel[dof_adr:dof_adr+3].copy()
+            else:  # HINGE or SLIDE
+                qpos_dict[jname] = float(self.mujoco_data.qpos[qpos_adr])
+                qvel_dict[jname] = float(self.mujoco_data.qvel[dof_adr])
+
         return qpos_dict, qvel_dict
+
     
     def command_ctrl(self, ctrl_dict: Dict):
         """Write controller outputs into MuJoCo actuators."""
