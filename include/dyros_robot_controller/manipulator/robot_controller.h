@@ -227,7 +227,7 @@ namespace drc
                 virtual VectorXd OSF(const std::map<std::string, TaskSpaceData>& link_task_data);
                 /**
                  * @brief Computes joint torque to achieve desired position (x_desired) & velocity (xdot_desired) of a link using operational space control, projecting null_torque into null space to exploit redundancy.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Desired position of a link.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Desired position of a link; it must include (x_desired, xdot_desired).
                  * @param null_torque           (Eigen::VectorXd) Desired joint torque to be projected on null space.
                  * @return (Eigen::VectorXd) Desired joint torques.
                  */                     
@@ -235,7 +235,7 @@ namespace drc
                                          const VectorXd& null_torque);
                 /**
                  * @brief Computes joint torque to achieve desired position (x_desired) & velocity (xdot_desired) of a link using operational space control.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Desired position of a link.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Desired position of a link; it must include (x_desired, xdot_desired).
                  * @return (Eigen::VectorXd) Desired joint torques.
                  */                     
                 virtual VectorXd OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data);
@@ -280,8 +280,8 @@ namespace drc
                 */                      
                 virtual VectorXd QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose=false);
                 /**
-                 * @brief Perform cubic interpolation between the initial and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint velocities using QP to follow the resulting trajectory.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+                 * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint velocities using QP to follow the resulting trajectory.
+                 * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time         (double) Current time.
                  * @param init_time            (double) Start time of the segment.
                  * @param duration             (double) Time duration
