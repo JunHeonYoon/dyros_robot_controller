@@ -1,9 +1,9 @@
 from typing import Tuple
 import numpy as np
-import dyros_robot_controller_cpp_wrapper as drc
+import dyros_robot_controller_cpp_wrapper as drc_cpp
 
 
-class RobotData(drc.ManipulatorRobotData):
+class RobotData(drc_cpp.ManipulatorRobotData):
     """
     A Python wrapper for the C++ RobotData::Manipulator::ManipulatorBase class.
     
@@ -21,6 +21,7 @@ class RobotData(drc.ManipulatorRobotData):
             packages_path : (str) Path to the packages directory.
         """
         super().__init__(urdf_path, srdf_path, packages_path)
+        self.dof = super().getDof()
         
     def get_verbose(self) -> str:
         """
@@ -42,6 +43,10 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (bool) True if state update is successful.
         """
+        q = q.reshape(-1)
+        qdot = qdot.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
+        assert qdot.size == self.dof, f"Size of qot {qdot.size} is not equal to dof {self.dof}, 1"
         return super().updateState(q, qdot)
 
     # ================================ Compute Functions ================================
@@ -56,6 +61,8 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (np.ndarray) Mass matrix of the manipulator.
         """
+        q = q.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
         return super().computeMassMatrix(q)
 
     def compute_gravity(self, q: np.ndarray) -> np.ndarray:
@@ -68,6 +75,8 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (np.ndarray) Gravity vector of the manipulator.
         """
+        q = q.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
         return super().computeGravity(q)
 
     def compute_coriolis(self, q: np.ndarray, qdot: np.ndarray) -> np.ndarray:
@@ -81,6 +90,10 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (np.ndarray) Coriolis vector of the manipulator.
         """
+        q = q.reshape(-1)
+        qdot = qdot.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
+        assert qdot.size == self.dof, f"Size of qot {qdot.size} is not equal to dof {self.dof}, 1"
         return super().computeCoriolis(q, qdot)
 
     def compute_nonlinear_effects(self, q: np.ndarray, qdot: np.ndarray) -> np.ndarray:
@@ -94,6 +107,10 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (np.ndarray) Nonlinear effects vector of the manipulator.
         """
+        q = q.reshape(-1)
+        qdot = qdot.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
+        assert qdot.size == self.dof, f"Size of qot {qdot.size} is not equal to dof {self.dof}, 1"
         return super().computeNonlinearEffects(q, qdot)
 
     # Task space
@@ -108,6 +125,8 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (np.ndarray) Pose of the link in the task space.
         """
+        q = q.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
         return super().computePose(q, link_name)
 
     def compute_jacobian(self, q: np.ndarray, link_name: str) -> np.ndarray:
@@ -121,6 +140,8 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (np.ndarray) Jacobian of the link.
         """
+        q = q.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
         return super().computeJacobian(q, link_name)
 
     def compute_jacobian_time_variation(self, q: np.ndarray, qdot: np.ndarray, link_name: str) -> np.ndarray:
@@ -135,6 +156,10 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (np.ndarray) Jacobian time variation of the link.
         """
+        q = q.reshape(-1)
+        qdot = qdot.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
+        assert qdot.size == self.dof, f"Size of qot {qdot.size} is not equal to dof {self.dof}, 1"
         return super().computeJacobianTimeVariation(q, qdot, link_name)
 
     def compute_velocity(self, q: np.ndarray, qdot: np.ndarray, link_name: str) -> np.ndarray:
@@ -149,6 +174,10 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (np.ndarray) Velocity of the link in the task space.
         """
+        q = q.reshape(-1)
+        qdot = qdot.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
+        assert qdot.size == self.dof, f"Size of qot {qdot.size} is not equal to dof {self.dof}, 1"
         return super().computeVelocity(q, qdot, link_name)
     
     def compute_min_distance(self, q: np.ndarray, qdot: np.ndarray, with_grad: bool, with_graddot: bool) -> Tuple[float, np.ndarray, np.ndarray]:
@@ -164,6 +193,10 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (Tuple[float, np.ndarray, np.ndarray]) Minimum distance, its gradient, and its gradient time variation.
         """
+        q = q.reshape(-1)
+        qdot = qdot.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
+        assert qdot.size == self.dof, f"Size of qot {qdot.size} is not equal to dof {self.dof}, 1"
         min_result = super().computeMinDistance(q, qdot, with_grad, with_graddot)
         return min_result.distance, min_result.grad, min_result.grad_dot
     
@@ -181,10 +214,31 @@ class RobotData(drc.ManipulatorRobotData):
         Return:
             (Tuple[float, np.ndarray, np.ndarray]) Manipulability, its gradient, and its gradient time variation.
         """
+        q = q.reshape(-1)
+        qdot = qdot.reshape(-1)
+        assert q.size == self.dof, f"Size of q {q.size} is not equal to dof {self.dof}"
+        assert qdot.size == self.dof, f"Size of qot {qdot.size} is not equal to dof {self.dof}, 1"
         mani_result = super().computeManipulability(q, qdot, with_grad, with_graddot, link_name)
         return mani_result.manipulability, mani_result.grad, mani_result.grad_dot
 
     # ================================ Get Functions ================================
+    def get_urdf_path(self) -> str:
+        return super().getURDFPath()
+    def get_srdf_path(self) -> str:
+        return super().getSRDFPath()
+    def get_packages_path(self) -> str:
+        return super().getPackagePath()
+    def get_root_link_name(self) -> str:
+        return super().getRootLinkName()
+    def get_link_frame_vector(self) -> list:
+        return super().getLinkFrameVector()
+    def get_joint_frame_vector(self) -> list:
+        return super().getJointFrameVector()
+    def has_link_frame(self, name:str) -> bool:
+        return super.hasLinkFrame(name)
+    def has_joint_frame(self, name:str) -> bool:
+        return super.hasJointFrame(name)
+    
     def get_dof(self) -> int:
         """
         Get the degrees of freedom of the manipulator.

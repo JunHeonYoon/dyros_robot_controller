@@ -1,9 +1,9 @@
 import numpy as np
-import dyros_robot_controller_cpp_wrapper as drc
+import dyros_robot_controller_cpp_wrapper as drc_cpp
 from .robot_data import RobotData
 
 
-class RobotController(drc.MobileRobotController):
+class RobotController(drc_cpp.MobileRobotController):
     """
     A Python wrapper for the C++ RobotController::Mobile::MobileBase class.
     
@@ -37,6 +37,8 @@ class RobotController(drc.MobileRobotController):
         Returns:
             (np.ndarray) Computed wheel velocities [rad/s], size = number of wheels.
         """
+        base_vel = base_vel.reshape(-1)
+        assert base_vel.size == 3, f"Size of {base_vel.size} is not equal to 3."
         return super().computeWheelVel(base_vel)
 
     def compute_IK_jacobian(self) -> np.ndarray:
@@ -58,4 +60,6 @@ class RobotController(drc.MobileRobotController):
         Returns:
             (np.ndarray) Wheel velocity command (possibly saturated), size = number of wheels.
         """
+        desired_base_vel = desired_base_vel.reshape(-1)
+        assert desired_base_vel.size == 3, f"Size of {desired_base_vel.size} is not equal to 3."
         return super().VelocityCommand(desired_base_vel)

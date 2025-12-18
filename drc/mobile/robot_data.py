@@ -1,9 +1,9 @@
 import numpy as np
-import dyros_robot_controller_cpp_wrapper as drc
+import dyros_robot_controller_cpp_wrapper as drc_cpp
 from drc import KinematicParam
 
 
-class RobotData(drc.MobileRobotData):
+class RobotData(drc_cpp.MobileRobotData):
     """
     A Python wrapper for the C++ RobotData::Mobile::MobileBase class.
     
@@ -22,6 +22,7 @@ class RobotData(drc.MobileRobotData):
             raise TypeError("param must be a KinematicParam instance")
         self._param = param
         super().__init__(self._param.cpp())
+        self.wheel_num = super().getWheelNum()
     
     def get_verbose(self) -> str:
         """
@@ -43,6 +44,10 @@ class RobotData(drc.MobileRobotData):
         Returns:
             (bool) True if state update is successful.
         """
+        wheel_pos = wheel_pos.reshape(-1)
+        wheel_vel = wheel_vel.reshape(-1)
+        assert wheel_pos.size == self.wheel_num, f"Size of wheel_pos {wheel_pos.size} is not equal to # of Wheels {self.wheel_num}."
+        assert wheel_vel.size == self.wheel_num, f"Size of wheel_vel {wheel_vel.size} is not equal to # of Wheels {self.wheel_num}."
         return bool(super().updateState(np.asarray(wheel_pos), np.asarray(wheel_vel)))
     
     # ================================ Compute Functions ================================
@@ -57,6 +62,10 @@ class RobotData(drc.MobileRobotData):
         Returns:
             (np.ndarray) Base velocity vector [vx, vy, wz].
         """
+        wheel_pos = wheel_pos.reshape(-1)
+        wheel_vel = wheel_vel.reshape(-1)
+        assert wheel_pos.size == self.wheel_num, f"Size of wheel_pos {wheel_pos.size} is not equal to # of Wheels {self.wheel_num}."
+        assert wheel_vel.size == self.wheel_num, f"Size of wheel_vel {wheel_vel.size} is not equal to # of Wheels {self.wheel_num}."
         return np.asarray(super().computeBaseVel(np.asarray(wheel_pos), np.asarray(wheel_vel)))
 
     def compute_fk_jacobian(self, wheel_pos: np.ndarray) -> np.ndarray:
@@ -70,6 +79,8 @@ class RobotData(drc.MobileRobotData):
         Returns:
             (np.ndarray) Base velocity Jacobian matrix.
         """
+        wheel_pos = wheel_pos.reshape(-1)
+        assert wheel_pos.size == self.wheel_num, f"Size of wheel_pos {wheel_pos.size} is not equal to # of Wheels {self.wheel_num}."
         return np.asarray(super().computeFKJacobian(np.asarray(wheel_pos)))
     
     # ================================ Get Functions ================================
