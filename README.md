@@ -51,6 +51,8 @@ Documentation of the **Dyros Robot Controller** is available [here](https://www.
 ## Installation
 
 ```bash
+sudo apt install ros-$ROS_DISTRO-rmw-cyclonedds-cpp
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 cd ros2_ws
 git clone https://github.com/JunHeonYoon/dyros_robot_controller.git src
 colcon build --symlink-install
