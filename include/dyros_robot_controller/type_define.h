@@ -170,4 +170,99 @@ namespace drc
             int mobi_start;    // Index where mobile wheel actuators start
         };
     } // namespace MobileManipulator
+
+    /**
+     * @brief Task-space state and trajectory information for a robot link or frame.
+     *
+     * This structure stores current, initial, and desired task-space states (pose,
+     * velocity, and acceleration). It is used for task-space control, trajectory
+     * tracking, and logging.
+     *
+     * @param x              (Affine3d)   Current pose of the frame.
+     * @param xdot           (Vector6d)   Current task-space velocity [v, w].
+     * @param xddot          (Vector6d)   Current task-space acceleration.
+     *
+     * @param x_init         (Affine3d)   Initial pose (snapshot taken when motion begins).
+     * @param xdot_init      (Vector6d)   Initial velocity.
+     * @param xddot_init     (Vector6d)   Initial acceleration.
+     *
+     * @param x_desired      (Affine3d)   Desired pose for task-space control.
+     * @param xdot_desired   (Vector6d)   Desired task-space velocity.
+     * @param xddot_desired  (Vector6d)   Desired task-space acceleration.
+     *
+     * @note Use setInit() to store current values into the *_init fields.
+     * @note Use setDesired() to store current values into the *_desired fields.
+     * @note Use setZero() to reset all fields to identity or zero.
+     */
+    struct TaskSpaceData
+    {
+        Affine3d x;
+        Vector6d xdot; // [v, w]
+        Vector6d xddot;
+
+        Affine3d x_init;
+        Vector6d xdot_init;
+        Vector6d xddot_init;
+
+        Affine3d x_desired;
+        Vector6d xdot_desired;
+        Vector6d xddot_desired;
+
+        /**
+         * @brief Reset all pose and derivative data to zero/identity.
+         *
+         * @note Sets x, x_init, x_desired to identity transform.
+         * @note Sets all twist and acceleration vectors to zero.
+         */
+        void setZero()
+        {
+            x.setIdentity();
+            xdot.setZero();
+            xddot.setZero();
+
+            x_init.setIdentity();
+            xdot_init.setZero();
+            xddot_init.setZero();
+
+            x_desired.setIdentity();
+            xdot_desired.setZero();
+            xddot_desired.setZero();
+        }
+
+        /**
+         * @brief Convenience function that returns a zero-initialized TaskSpaceData.
+         *
+         * @return (TaskSpaceData) New instance with all fields zeroed.
+         */
+        static TaskSpaceData Zero()
+        {
+            TaskSpaceData result;
+            result.setZero();
+            return result;
+        }
+
+        /**
+         * @brief Store the current task-space state into the *_init fields.
+         *
+         * @note Typical usage: call at the start of a motion or trajectory.
+         */
+        void setInit()
+        {
+            x_init = x; 
+            xdot_init = xdot; 
+            xddot_init = xddot; 
+        }
+
+        /**
+         * @brief Store the current task-space state into the *_desired fields.
+         *
+         * @note Often used when updating the reference trajectory in controllers.
+         */
+        void setDesired()
+        {
+            x_desired = x; 
+            xdot_desired = xdot; 
+            xddot_desired = xddot; 
+        }
+    };
 } // namespace drc

@@ -4,20 +4,28 @@ namespace drc
 {
     namespace MobileManipulator
     {
-        QPIK::QPIK(std::shared_ptr<MobileManipulator::RobotData> robot_data)
-        : QP::QPBase(), robot_data_(robot_data)
+        QPIK::QPIK(std::shared_ptr<MobileManipulator::RobotData> robot_data, const double dt)
+        : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
             actuator_dof_ = robot_data_->getActuatordDof();
             mani_dof_ = robot_data_->getManipulatorDof();
             mobi_dof_ = robot_data_->getMobileDof();
     
-            si_index_.eta_size            = actuator_dof_;
-            si_index_.con_q_mani_min_size = mani_dof_;
-            si_index_.con_q_mani_max_size = mani_dof_;
-            si_index_.con_sing_size       = 1;
-            si_index_.con_sel_col_size    = 1;
+            si_index_.eta_size              = actuator_dof_;
+            si_index_.slack_q_mani_min_size = mani_dof_;
+            si_index_.slack_q_mani_max_size = mani_dof_;
+            si_index_.slack_sing_size       = 1;
+            si_index_.slack_sel_col_size    = 1;
+            si_index_.con_q_mani_min_size   = mani_dof_;
+            si_index_.con_q_mani_max_size   = mani_dof_;
+            si_index_.con_sing_size         = 1;
+            si_index_.con_sel_col_size      = 1;
     
-            const int nx = si_index_.eta_size; // qdot_actuated
+            const int nx = si_index_.eta_size +
+                           si_index_.slack_q_mani_min_size +
+                           si_index_.slack_q_mani_max_size +
+                           si_index_.slack_sing_size +
+                           si_index_.slack_sel_col_size;
             const int nbound = nx;
             const int nineq = si_index_.con_q_mani_min_size +
                               si_index_.con_q_mani_max_size +
@@ -28,18 +36,23 @@ namespace drc
             QPBase::setQPsize(nx, nbound, nineq, neq);
     
             si_index_.eta_start               = 0;
+            si_index_.slack_q_mani_min_start  = si_index_.eta_start              + si_index_.eta_size;
+            si_index_.slack_q_mani_max_start  = si_index_.slack_q_mani_min_start + si_index_.slack_q_mani_min_size;
+            si_index_.slack_sing_start        = si_index_.slack_q_mani_max_start + si_index_.slack_q_mani_max_size;
+            si_index_.slack_sel_col_start     = si_index_.slack_sing_start       + si_index_.slack_sing_size;
             si_index_.con_q_mani_min_start    = 0;
             si_index_.con_q_mani_max_start    = si_index_.con_q_mani_min_start + si_index_.con_q_mani_min_size;
             si_index_.con_sing_start          = si_index_.con_q_mani_max_start + si_index_.con_q_mani_max_size;
             si_index_.con_sel_col_start       = si_index_.con_sing_start       + si_index_.con_sing_size;
+
+            w_damping_.setOnes(actuator_dof_);
         }
     
-        void QPIK::setDesiredTaskVel(const VectorXd &xdot_desired, const std::string &link_name)
+        void QPIK::setDesiredTaskVel(const std::map<std::string, Vector6d> &link_xdot_desired)
         {
-            xdot_desired_ = xdot_desired;
-            link_name_ = link_name;
+            link_xdot_desired_ = link_xdot_desired;
         }
-    
+
         bool QPIK::getOptJointVel(VectorXd &opt_eta, QP::TimeDuration &time_status)
         {
             MatrixXd sol;
@@ -55,47 +68,82 @@ namespace drc
                 return true;
             }
         }
+        
+        void QPIK::setWeight(const std::map<std::string, Vector6d> link_w_tracking, const VectorXd w_damping)
+        {
+            link_w_tracking_ = link_w_tracking;
+            w_damping_ = w_damping;
+        }
     
         void QPIK::setCost()
         {
-            /*
-                  min     || x_dot_des - J_tilda*eta ||_2^2 + W * || eta ||_2^2
-                  eta
-    
-            =>    min     1/2 * eta.T * (2*J_tilda.T*J_tilda + W) * eta + (-2*J_tilda.T*x_dot_des).T * eta
-                  eta
-            */
-           MatrixXd J_tilda = robot_data_->getJacobianActuated(link_name_);
-    
-           P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) = 2.0 * J_tilda.transpose() * J_tilda;
-           P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) += 0.01*MatrixXd::Identity(si_index_.eta_size,si_index_.eta_size);
-           q_ds_.segment(si_index_.eta_start,si_index_.eta_size) = -2.0 * J_tilda.transpose() * xdot_desired_;
+            P_ds_.setZero(nx_, nx_);
+            q_ds_.setZero(nx_);
+
+            // for task space velocity tracking
+            for(const auto& [link_name, xdot_desired] : link_xdot_desired_)
+            {
+                const MatrixXd J_i_tilda = robot_data_->getJacobianActuated(link_name);
+                Vector6d w_tracking; w_tracking.setConstant(1.0);
+
+                auto iter = link_w_tracking_.find(link_name);
+                if(iter != link_w_tracking_.end()) w_tracking = iter->second;
+
+                P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) += 2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * J_i_tilda;
+                q_ds_.segment(si_index_.eta_start,si_index_.eta_size) += -2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * xdot_desired;
+            }
+
+            // for joint velocity damping
+            P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) += 2.0 * w_damping_.asDiagonal();
+
+            // for slack
+            q_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size) = VectorXd::Constant(si_index_.slack_q_mani_min_size, 1000.0);
+            q_ds_.segment(si_index_.slack_q_mani_max_start,si_index_.slack_q_mani_max_size) = VectorXd::Constant(si_index_.slack_q_mani_max_size, 1000.0);
+            q_ds_(si_index_.slack_sing_start) = 1000.0;
+            q_ds_(si_index_.slack_sel_col_start) = 1000.0;
         }
     
         void QPIK::setBoundConstraint()    
         {
-            // TODO: Bound constraint makes the robot weired
+            l_bound_ds_.setConstant(nbc_,-OSQP_INFTY);
+            u_bound_ds_.setConstant(nbc_,OSQP_INFTY);
+            
             // Manipulator Joint Velocity Limit
-            // l_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-            //                     mani_dof_) = robot_data_->getJointVelocityLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
-            // u_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-            //                     mani_dof_) = robot_data_->getJointVelocityLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            l_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
+                                mani_dof_) = robot_data_->getJointVelocityLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            u_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
+                                mani_dof_) = robot_data_->getJointVelocityLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+
+            // for slack
+            l_bound_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size).setZero();
+            l_bound_ds_.segment(si_index_.slack_q_mani_max_start,si_index_.slack_q_mani_max_size).setZero();
+            l_bound_ds_(si_index_.slack_sing_start) = 0.0;
+            l_bound_ds_(si_index_.slack_sel_col_start) = 0.0;
         }
     
         void QPIK::setIneqConstraint()    
         {
-            double alpha = 50.;
+            A_ineq_ds_.setZero(nineqc_, nx_);
+            l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
+            u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
+
+            const double alpha = 50.;
     
             // Manipulator Joint Angle Limit (CBF)
-            VectorXd q_mani_min = robot_data_->getJointPositionLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
-            VectorXd q_mani_max = robot_data_->getJointPositionLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            const VectorXd q_mani_min = robot_data_->getJointPositionLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            const VectorXd q_mani_max = robot_data_->getJointPositionLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
            
-            VectorXd q_mani = robot_data_->getJointPosition().segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            const VectorXd q_mani = robot_data_->getJointPosition().segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            
                 
             A_ineq_ds_.block(si_index_.con_q_mani_min_start,
                              si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
                              si_index_.con_q_mani_min_size, 
                              mani_dof_) = MatrixXd::Identity(si_index_.con_q_mani_min_size, mani_dof_);
+            A_ineq_ds_.block(si_index_.con_q_mani_min_start,
+                             si_index_.slack_q_mani_min_start,
+                             si_index_.con_q_mani_min_size, 
+                             si_index_.slack_q_mani_min_size) = MatrixXd::Identity(si_index_.con_q_mani_min_size, si_index_.slack_q_mani_min_size);
             l_ineq_ds_.segment(si_index_.con_q_mani_min_start, 
                                si_index_.con_q_mani_min_size) = - alpha*(q_mani - q_mani_min);
     
@@ -103,17 +151,25 @@ namespace drc
                              si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
                              si_index_.con_q_mani_max_size, 
                              mani_dof_) = -MatrixXd::Identity(si_index_.con_q_mani_min_size, mani_dof_);
+            A_ineq_ds_.block(si_index_.con_q_mani_max_start,
+                             si_index_.slack_q_mani_max_start,
+                             si_index_.con_q_mani_max_size, 
+                             si_index_.slack_q_mani_max_size) = MatrixXd::Identity(si_index_.con_q_mani_max_size, si_index_.slack_q_mani_max_size);
             l_ineq_ds_.segment(si_index_.con_q_mani_max_start, 
                                si_index_.con_q_mani_max_size) = - alpha*(q_mani_max - q_mani);
     
             // singularity avoidance (CBF)
-            Manipulator::ManipulabilityResult mani_result = robot_data_->getManipulability(true, false, link_name_);
+            // Manipulator::ManipulabilityResult mani_result = robot_data_->getManipulability(true, false, link_name_);
     
-            A_ineq_ds_.block(si_index_.con_sing_start, 
-                             si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-                             si_index_.con_sing_size, 
-                             mani_dof_) = mani_result.grad.transpose();
-            l_ineq_ds_(si_index_.con_sing_start) = - alpha*(mani_result.manipulability -0.01);
+            // A_ineq_ds_.block(si_index_.con_sing_start, 
+            //                  si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
+            //                  si_index_.con_sing_size, 
+            //                  mani_dof_) = mani_result.grad.transpose();
+            // A_ineq_ds_.block(si_index_.con_sing_start, 
+            //                  si_index_.slack_sing_start,
+            //                  si_index_.con_sing_size, 
+            //                  si_index_.slack_sing_size) = -MatrixXd::Identity(si_index_.con_sing_size, si_index_.slack_sing_size);
+            // l_ineq_ds_(si_index_.con_sing_start) = - alpha*(mani_result.manipulability -0.01);
     
             // self collision avoidance (CBF)
             VectorXd min_dist_grad;
@@ -124,12 +180,17 @@ namespace drc
                              si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
                              si_index_.con_sel_col_size, 
                              mani_dof_) = min_dist_res.grad.transpose();
+            A_ineq_ds_.block(si_index_.con_sel_col_start, 
+                             si_index_.slack_sel_col_start,
+                             si_index_.con_sel_col_size, 
+                             si_index_.slack_sel_col_size) = -MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
             l_ineq_ds_(si_index_.con_sel_col_start) = - alpha*(min_dist_res.distance -0.05);
         }
     
         void QPIK::setEqConstraint()    
         {
-    
+            A_eq_ds_.setZero(neqc_, nx_);
+            b_eq_ds_.setZero(neqc_);
         }
     } // namespace MobileManipulator
 } // namespace drc

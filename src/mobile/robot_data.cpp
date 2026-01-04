@@ -28,7 +28,7 @@ namespace drc
             wheel_vel_.setZero(wheel_num_);
 
             J_mobile_.setZero(3, wheel_num_);
-            base_vel_.setZero(3);
+            base_vel_.setZero();
         }
 
         std::string RobotData::getVerbose() const
@@ -114,7 +114,7 @@ namespace drc
             return true;
         }
 
-        VectorXd RobotData::computeBaseVel(const VectorXd& wheel_pos, const VectorXd& wheel_vel)
+        Vector3d RobotData::computeBaseVel(const VectorXd& wheel_pos, const VectorXd& wheel_vel)
         {
             assert(wheel_pos.size() == wheel_num_ && wheel_vel.size() == wheel_num_);
             return computeFKJacobian(wheel_pos) * wheel_vel; // Return the forward kinematics result as base velocity

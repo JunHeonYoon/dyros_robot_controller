@@ -299,7 +299,7 @@ void UpdateProfiler(mj::Simulate* sim, const mjModel* m, const mjData* d) {
   memset(sim->figcost.linepnt, 0, mjMAXLINE*sizeof(int));
 
   // number of islands that have diagnostics
-  int nisland = mjMAX(1, mjMIN(d->nisland, mjNISLAND));
+  int nisland = d->nefc ? mjMAX(1, mjMIN(d->nisland, mjNISLAND)) : 0;
 
   // iterate over islands
   for (int k=0; k < nisland; k++) {
@@ -403,14 +403,17 @@ void UpdateProfiler(mj::Simulate* sim, const mjModel* m, const mjData* d) {
   mjtNum sqrt_nnz = 0;
   int solver_niter = 0;
   for (int island=0; island < nisland; island++) {
-    sqrt_nnz += mju_sqrt(d->solver_nnz[island]);
+    sqrt_nnz += d->solver_nnz[island];
     solver_niter += d->solver_niter[island];
   }
+  sqrt_nnz = mju_sqrt(sqrt_nnz);
 
-  // get sizes: nv, nbody, nefc, sqrt(nnz), ncont, iter
+  // get sizes: nv, nbody, nefc, sqrt(nnz), ncon, iter
+  int nv = mjENABLED(mjENBL_SLEEP) ? d->nv_awake : m->nv;
+  int nbody = mjENABLED(mjENBL_SLEEP) ? d->nbody_awake : m->nbody;
   float sdata[6] = {
-    static_cast<float>(m->nv),
-    static_cast<float>(m->nbody),
+    static_cast<float>(nv),
+    static_cast<float>(nbody),
     static_cast<float>(d->nefc),
     static_cast<float>(sqrt_nnz),
     static_cast<float>(d->ncon),
@@ -707,7 +710,7 @@ void MakePhysicsSection(mj::Simulate* sim) {
     {mjITEM_EDITNUM,   "Noslip Tol",    2, &(opt->noslip_tolerance),  "1 0 1"},
     {mjITEM_EDITINT,   "CCD Iter",      2, &(opt->ccd_iterations),    "1 0 1000"},
     {mjITEM_EDITNUM,   "CCD Tol",       2, &(opt->ccd_tolerance),     "1 0 1"},
-    {mjITEM_EDITNUM,   "API Rate",      2, &(opt->apirate),           "1 0 1000"},
+    {mjITEM_EDITNUM,   "Sleep Tol",     2, &(opt->sleep_tolerance),   "1 0 1"},
     {mjITEM_EDITINT,   "SDF Iter",      2, &(opt->sdf_iterations),    "1 1 20"},
     {mjITEM_EDITINT,   "SDF Init",      2, &(opt->sdf_initpoints),    "1 1 100"},
     {mjITEM_SEPARATOR, "Physical Parameters", mjPRESERVE},
@@ -2917,7 +2920,7 @@ void Simulate::AddToHistory() {
 }
 
 // inject Brownian noise
-void Simulate::InjectNoise() {
+void Simulate::InjectNoise(int key) {
   // no noise, return
   if (ctrl_noise_std <= 0) {
     return;
@@ -2934,6 +2937,11 @@ void Simulate::InjectNoise() {
       top = m_->actuator_ctrlrange[2*i+1];
       midpoint =  0.5 * (top + bottom);  // target of exponential decay
       halfrange = 0.5 * (top - bottom);  // scales noise
+    }
+
+    // overwrite midpoint with keyframe, if given
+    if (key >= 0) {
+      midpoint = m_->key_ctrl[key*m_->nu+i];
     }
 
     // exponential convergence to midpoint at ctrl_noise_rate

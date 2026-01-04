@@ -7,6 +7,7 @@ namespace drc
         RobotData::RobotData(const std::string& urdf_path, 
                              const std::string& srdf_path, 
                              const std::string& packages_path)
+        : urdf_path_(urdf_path), srdf_path_(srdf_path), packages_path_(packages_path)
         {
             if (std::filesystem::exists(urdf_path))
             {
@@ -67,6 +68,41 @@ namespace drc
             g_.setZero(dof_);
             c_.setZero(dof_);
             NLE_.setZero(dof_);
+
+            link_frame_names_.clear();
+            joint_frame_names_.clear();
+            link_frame_set_.clear();
+            joint_frame_set_.clear();
+            root_link_name_.clear();
+
+            // Collect frames
+            for (pinocchio::FrameIndex i = 0; i < model_.frames.size(); ++i)
+            {
+                const auto& f = model_.frames[i];
+
+                // LINK frames (URDF <link>)
+                if (f.type == pinocchio::FrameType::BODY && f.name != "universe")
+                {
+                    link_frame_names_.push_back(f.name);
+                    link_frame_set_.insert(f.name);
+
+                    // Root link: BODY directly attached to universe joint
+                    if (f.parentJoint == 0 && root_link_name_.empty())
+                        root_link_name_ = f.name;
+                }
+
+                // JOINT frames (URDF <joint>)
+                else if (f.type == pinocchio::FrameType::JOINT)
+                {
+                    joint_frame_names_.push_back(f.name);
+                    joint_frame_set_.insert(f.name);
+                }
+            }
+
+            if (link_frame_names_.empty()) throw std::runtime_error("RobotData: no BODY frames found in model.");
+
+            // Fallback root link
+            if (root_link_name_.empty()) root_link_name_ = link_frame_names_.front();
         }
 
         std::string RobotData::getVerbose() const
@@ -374,6 +410,16 @@ namespace drc
         }
 
         // ================================ Get Functions ================================
+        bool RobotData::hasLinkFrame(const std::string& name) const
+        {
+            return link_frame_set_.count(name) > 0;
+        }
+
+        bool RobotData::hasJointFrame(const std::string& name) const
+        {
+            return joint_frame_set_.count(name) > 0;
+        }
+
         // Task space  
         Affine3d RobotData::getPose(const std::string& link_name) const
         {

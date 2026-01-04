@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release )
 endif()
+add_compile_options(-O3)
 
 find_package(ament_cmake        REQUIRED)
 find_package(ament_cmake_python REQUIRED)

@@ -16,62 +16,68 @@
 
 class FR3Controller 
 {
-public:
-  FR3Controller(const double dt);
-  ~FR3Controller();
+    public:
+        FR3Controller(const double dt);
+        ~FR3Controller();
 
-  void updateModel(const double current_time,
-                   const std::unordered_map<std::string, double>& qpos_dict,
-                   const std::unordered_map<std::string, double>& qvel_dict);
+        void updateModel(const double current_time,
+                         const std::unordered_map<std::string, Eigen::VectorXd>& qpos_dict,
+                         const std::unordered_map<std::string, Eigen::VectorXd>& qvel_dict);
 
-  // Compute control for current mode.
-  // Returns: actuator torque map (joint name -> tau [Nm]).
-  std::unordered_map<std::string, double> compute();
+        // Compute control for current mode.
+        // Returns: actuator torque map (joint name -> tau [Nm]).
+        std::unordered_map<std::string, double> compute();
 
-  void setMode(const std::string& control_mode);
+        void setMode(const std::string& control_mode);
 
-private:
-  const double dt_;
-  int dof_{0};
+    private:
+        const double dt_;
+        int dof_{0};
 
-  // --- Joint-space states (measured / desired / snapshots) ---
-  Eigen::VectorXd q_;            // measured joints
-  Eigen::VectorXd qdot_;         // measured joint velocities
-  Eigen::VectorXd q_desired_;    // desired joints
-  Eigen::VectorXd qdot_desired_; // desired joint velocities
-  Eigen::VectorXd q_init_;       // snapshot at mode entry
-  Eigen::VectorXd qdot_init_;    // snapshot at mode entry
-  Eigen::VectorXd tau_desired_;  // output torques
+        // --- Joint-space states (measured / desired / snapshots) ---
+        Eigen::VectorXd q_;            // measured joints
+        Eigen::VectorXd qdot_;         // measured joint velocities
+        Eigen::VectorXd q_desired_;    // desired joints
+        Eigen::VectorXd qdot_desired_; // desired joint velocities
+        Eigen::VectorXd q_init_;       // snapshot at mode entry
+        Eigen::VectorXd qdot_init_;    // snapshot at mode entry
+        Eigen::VectorXd tau_desired_;  // output torques
 
-  // --- Task-space (end-effector) states (measured / desired / snapshots) ---
-  Eigen::Affine3d x_;            // measured EE pose (4x4)
-  Eigen::Vector6d xdot_;         // measured EE twist [vx, vy, vz, wx, wy, wz]
-  Eigen::Affine3d x_desired_;    // desired EE pose
-  Eigen::Vector6d xdot_desired_; // desired EE twist
-  Eigen::Affine3d x_init_;       // snapshot at mode entry
-  Eigen::Vector6d xdot_init_;    // snapshot at mode entry
-  std::string ee_link_name_{"fr3_link8"}; // EE link name (FR3 URDF)
+        // --- Task-space (end-effector) states (measured / desired / snapshots) ---
+        std::map<std::string, drc::TaskSpaceData> link_ee_task_;
+        std::string ee_link_name_{"fr3_link8"}; // EE link name (FR3 URDF)
 
-  // --- Mode bookkeeping (unified naming with Python example) ---
-  std::string control_mode_{"Home"};
-  bool   is_mode_changed_{true};
-  double sim_time_{0.0};
-  double control_start_time_{0.0};
+        // --- Mode bookkeeping (unified naming with Python example) ---
+        std::string control_mode_{"Home"};
+        bool   is_mode_changed_{true};
+        double sim_time_{0.0};
+        double control_start_time_{0.0};
 
-  // Dyros model/controller handles
-  std::shared_ptr<drc::Manipulator::RobotData>       robot_data_;
-  std::shared_ptr<drc::Manipulator::RobotController> robot_controller_;
+        //  --- Gain
+        Eigen::VectorXd                 joint_kp_;
+        Eigen::VectorXd                 joint_kv_;
+        Eigen::VectorXd                 qpik_damping_;
+        Eigen::VectorXd                 qpid_vel_damping_;
+        Eigen::VectorXd                 qpid_acc_damping_;
+        std::map<std::string, Vector6d> link_task_kp_;
+        std::map<std::string, Vector6d> link_task_kv_;
+        std::map<std::string, Vector6d> link_qpik_tracking_;
+        std::map<std::string, Vector6d> link_qpid_tracking_;
 
-  // --- Keyboard interface (non-blocking; background thread) ---
-  void startKeyListener_();
-  void stopKeyListener_();
-  void keyLoop_();
+        // Dyros model/controller handles
+        std::shared_ptr<drc::Manipulator::RobotData>       robot_data_;
+        std::shared_ptr<drc::Manipulator::RobotController> robot_controller_;
 
-  void setRawMode_();
-  void restoreTerm_();
+        // --- Keyboard interface (non-blocking; background thread) ---
+        void startKeyListener_();
+        void stopKeyListener_();
+        void keyLoop_();
 
-  std::atomic<bool> stop_key_{false};
-  std::thread key_thread_;
-  bool tty_ok_{false};
-  struct termios orig_term_{};
+        void setRawMode_();
+        void restoreTerm_();
+
+        std::atomic<bool> stop_key_{false};
+        std::thread key_thread_;
+        bool tty_ok_{false};
+        struct termios orig_term_{};
 };

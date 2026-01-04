@@ -31,8 +31,8 @@ namespace drc
 
                 /**
                  * @brief Update internal mobile robot data.
-                 * @param wheel_pos (Eigen::VectorXd) Wheel positions [rad].
-                 * @param wheel_vel (Eigen::VectorXd) Wheel velocities [rad/s].
+                 * @param wheel_pos (Eigen::VectorXd) Wheel positions [rad]; its size must be same as wheel_num_.
+                 * @param wheel_vel (Eigen::VectorXd) Wheel velocities [rad/s]; its size must be same as wheel_num_.
                  * @return True if state update is successful.
                 */
                 virtual bool updateState(const VectorXd& wheel_pos, const VectorXd& wheel_vel);
@@ -40,15 +40,15 @@ namespace drc
                 // ================================ Compute Functions ================================
                 /**
                  * @brief Compute the robot base velocity in the base frame.
-                 * @param wheel_pos (Eigen::VectorXd) Wheel positions [rad].
-                 * @param wheel_vel (Eigen::VectorXd) Wheel velocities [rad/s].
-                 * @return (Eigen::VectorXd) Base velocity vector [vx, vy, wz].
+                 * @param wheel_pos (Eigen::VectorXd) Wheel positions [rad]; its size must be same as wheel_num_.
+                 * @param wheel_vel (Eigen::VectorXd) Wheel velocities [rad/s]; its size must be same as wheel_num_.
+                 * @return (Eigen::Vector3d) Base velocity vector [vx, vy, wz].
                 */
-                virtual VectorXd computeBaseVel(const VectorXd& wheel_pos, const VectorXd& wheel_vel);
+                virtual Vector3d computeBaseVel(const VectorXd& wheel_pos, const VectorXd& wheel_vel);
                 /**
                  * @brief Compute the forward kinematics Jacobian of the base.
                  *        Maps wheel velocities to base velocity.
-                 * @param wheel_pos (Eigen::VectorXd) Wheel positions [rad].
+                 * @param wheel_pos (Eigen::VectorXd) Wheel positions [rad]; its size must be same as wheel_num_.
                  * @return (Eigen::MatrixXd) Base velocity Jacobian matrix.
                 */
                 virtual MatrixXd computeFKJacobian(const VectorXd& wheel_pos);
@@ -80,9 +80,9 @@ namespace drc
 
                 /**
                  * @brief Get the last computed base velocity.
-                 * @return (Eigen::VectorXd) Base velocity vector [vx, vy, wz].
+                 * @return (Eigen::Vector3d) Base velocity vector [vx, vy, wz].
                 */
-                virtual const VectorXd& getBaseVel() const {return base_vel_;}
+                virtual const Vector3d& getBaseVel() const {return base_vel_;}
 
                 /**
                  * @brief Get the last computed base Jacobian.
@@ -98,7 +98,7 @@ namespace drc
                 VectorXd wheel_vel_;      // Last updated wheel velocities.
 
                 MatrixXd J_mobile_;       // Forward kinematics Jacobian matrix.
-                VectorXd base_vel_;       // Last computed base velocity.
+                Vector3d base_vel_;       // Last computed base velocity.
             private:
                 /**
                  * @brief Compute Jacobian for differential drive base.

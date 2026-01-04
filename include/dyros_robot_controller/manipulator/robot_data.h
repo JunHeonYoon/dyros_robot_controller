@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include <math.h>
 #include <filesystem>
+#include <unordered_set>
 
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/frames.hpp>
@@ -144,6 +145,21 @@ namespace drc
                 virtual ManipulabilityResult computeManipulability(const VectorXd& q, const VectorXd& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name);
                 
                 // ================================ Get Functions ================================
+                const std::string getURDFPath() const {return urdf_path_;}
+                const std::string getSRDFPath() const {return srdf_path_;}
+                const std::string getPackagePath() const {return packages_path_;}
+
+                // Link frames (BODY)
+                const std::vector<std::string>& getLinkFrameVector() const { return link_frame_names_; }
+                bool hasLinkFrame(const std::string& name) const;
+
+                // Joint frames (JOINT)
+                const std::vector<std::string>& getJointFrameVector() const { return joint_frame_names_; }
+                bool hasJointFrame(const std::string& name) const;
+
+                // Root link (base link default)
+                const std::string& getRootLinkName() const { return root_link_name_; }
+
                 /**
                  * @brief Get the degrees of freedom of the manipulator.
                  * @return (int) Degrees of freedom of the manipulator.
@@ -254,12 +270,25 @@ namespace drc
                  * @return (bool) True if the update was successful.
                  */
                 virtual bool updateDynamics(const VectorXd& q, const VectorXd& qdot);
+
+                std::string urdf_path_;
+                std::string srdf_path_;
+                std::string packages_path_;
         
                 // pinocchio data
                 pinocchio::Model model_;                // Robot's structure containing joints, frames, inertias etc.
                 pinocchio::Data data_;                  // Storage for computation results.
                 pinocchio::GeometryModel geom_model_;   // Geometry objects aligned with each link's frames.(static)
                 pinocchio::GeometryData geom_data_;     // Storage for poses of all geometry objects computed from current joint configuration.
+
+                // Cached frame name lists
+                std::vector<std::string> link_frame_names_;   // URDF <link> names
+                std::vector<std::string> joint_frame_names_;  // URDF <joint> names
+
+                std::unordered_set<std::string> link_frame_set_;
+                std::unordered_set<std::string> joint_frame_set_;
+
+                std::string root_link_name_;
 
                 int dof_;           // Total degrees of freedom.
                 

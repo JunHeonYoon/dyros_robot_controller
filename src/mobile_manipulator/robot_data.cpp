@@ -369,7 +369,7 @@ namespace drc
             MatrixXd S;
             S.setZero(dof_,actuated_dof_);
             S.block(joint_idx_.mani_start,actuator_idx_.mani_start,mani_dof_,mani_dof_).setIdentity();
-            S.block(joint_idx_.mobi_start,actuator_idx_.mobi_start,mani_dof_,mani_dof_).setIdentity();
+            S.block(joint_idx_.mobi_start,actuator_idx_.mobi_start,mobi_dof_,mobi_dof_).setIdentity();
             double mobile_yaw = q_virtual(2);
             Matrix3d R_world2Base;
             R_world2Base << cos(mobile_yaw), -sin(mobile_yaw), 0,

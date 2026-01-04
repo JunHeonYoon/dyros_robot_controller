@@ -630,32 +630,32 @@ namespace DyrosMath
 		return result;
 	}
 
-	static void getTaskSpaceError(const Eigen::Affine3d& x_target, 
-						   const Eigen::VectorXd& xdot_target,
-						   const Eigen::Affine3d& x,
-						   const Eigen::VectorXd& xdot,
-						   Eigen::VectorXd& x_error,
-						   Eigen::VectorXd& xdot_error)
+    static void getTaskSpaceError(const Eigen::Affine3d& x_target, 
+						          const Eigen::Vector6d& xdot_target,
+						          const Eigen::Affine3d& x,
+						          const Eigen::Vector6d& xdot,
+						          Eigen::Vector6d& x_error,
+						          Eigen::Vector6d& xdot_error)
 	{
-		x_error.setZero(6);
-		xdot_error.setZero(6);
+		x_error.setZero();
+		xdot_error.setZero();
 		x_error.head(3) = x_target.translation() - x.translation();
 		x_error.tail(3) = getPhi(x_target.rotation(), x.rotation());
 		xdot_error = xdot_target - xdot;
 	}
 
-	static void getTaskSpaceCubic(const Eigen::Affine3d& x_target,
-						   const Eigen::VectorXd& xdot_target,
-						   const Eigen::Affine3d& x_init,
-						   const Eigen::VectorXd& xdot_init,
-						   const double& current_time,
-						   const double& init_time,
-						   const double& duration,
-						   Eigen::Affine3d& x_desired,
-						   Eigen::VectorXd& xdot_desired)
+    static void getTaskSpaceCubic(const Eigen::Affine3d& x_target,
+						          const Eigen::Vector6d& xdot_target,
+						          const Eigen::Affine3d& x_init,
+						          const Eigen::VectorXd& xdot_init,
+						          const double& current_time,
+						          const double& init_time,
+						          const double& duration,
+						          Eigen::Affine3d& x_desired,
+						          Eigen::Vector6d& xdot_desired)
 	{
 		x_desired.setIdentity();
-		xdot_desired.setZero(6);
+		xdot_desired.setZero();
 		x_desired.translation() = cubicVector(current_time,
 											  init_time,
 											  init_time + duration,

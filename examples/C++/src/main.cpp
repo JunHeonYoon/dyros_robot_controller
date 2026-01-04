@@ -32,6 +32,7 @@
 
 #include "fr3_controller.hpp"
 #include "xls_controller.hpp"
+#include "fr3_xls_controller.hpp"
 
 #define MUJOCO_PLUGIN_DIR "mujoco_plugin"
 
@@ -71,8 +72,30 @@ std::unordered_map<std::string, int> joint_idx_;
 std::unordered_map<std::string, int> act_idx_;
 std::unique_ptr<FR3Controller> fr3_controller_;
 std::unique_ptr<XLSController> xls_controller_;
+std::unique_ptr<FR3XLSController> fr3_xls_controller_;
 
 std::string robot_name_ = "fr3";
+
+static inline int qposSizeForJointType(int jtype) {
+  switch (jtype) {
+    case mjJNT_FREE: return 7;  // pos3 + quat4
+    case mjJNT_BALL: return 4;  // quat4
+    case mjJNT_HINGE:
+    case mjJNT_SLIDE: return 1;
+    default: return 1;
+  }
+}
+
+static inline int qvelSizeForJointType(int jtype) {
+  switch (jtype) {
+    case mjJNT_FREE: return 6;  // lin3 + ang3
+    case mjJNT_BALL: return 3;  // ang3
+    case mjJNT_HINGE:
+    case mjJNT_SLIDE: return 1;
+    default: return 1;
+  }
+}
+
 
 
 //---------------------------------------- plugin handling -----------------------------------------
@@ -396,7 +419,7 @@ void PhysicsLoop(mj::Simulate& sim) {
             sim.speed_changed = false;
 
             // inject noise
-            sim.InjectNoise();
+            sim.InjectNoise(sim.key);
 
             // run single step, let next iteration deal with timing
             mj_step(m, d);
@@ -428,16 +451,23 @@ void PhysicsLoop(mj::Simulate& sim) {
               }
 
               // inject noise
-              sim.InjectNoise();
+              sim.InjectNoise(sim.key);
 
               // Build qpos/qvel dicts
-              std::unordered_map<std::string, double> qpos_dict, qvel_dict;
-              for (const auto& [name, jidx] : joint_idx_) {
-                int qadr = m->jnt_qposadr[jidx];
-                int vadr = m->jnt_dofadr[jidx];
-                qpos_dict[name] = d->qpos[qadr];
-                qvel_dict[name] = d->qvel[vadr];
-              }
+              std::unordered_map<std::string, Eigen::VectorXd> qpos_dict, qvel_dict;
+
+             for (const auto& [name, jidx] : joint_idx_) {
+                const int qadr  = m->jnt_qposadr[jidx];
+                const int vadr  = m->jnt_dofadr[jidx];
+                const int jtype = m->jnt_type[jidx];
+
+                const int nq = qposSizeForJointType(jtype);
+                const int nv = qvelSizeForJointType(jtype);
+
+                qpos_dict[name] = Eigen::Map<const Eigen::VectorXd>(d->qpos + qadr, nq);
+                qvel_dict[name] = Eigen::Map<const Eigen::VectorXd>(d->qvel + vadr, nv);
+            }
+
 
               // Controller update & compute
               std::unordered_map<std::string, double> ctrl_map;
@@ -450,6 +480,11 @@ void PhysicsLoop(mj::Simulate& sim) {
               {
                 xls_controller_->updateModel(d->time, qpos_dict, qvel_dict);
                 ctrl_map = xls_controller_->compute();
+              }
+              else if(robot_name_ == "fr3_xls")
+              {
+                fr3_xls_controller_->updateModel(d->time, qpos_dict, qvel_dict);
+                ctrl_map = fr3_xls_controller_->compute();
               }
 
               // Apply to actuators
@@ -544,6 +579,10 @@ void PhysicsThread(mj::Simulate* sim, const char* filename) {
     {
       xls_controller_ = std::make_unique<XLSController>(m->opt.timestep);
     }
+    else if(robot_name_ == "fr3_xls")
+    {
+      fr3_xls_controller_ = std::make_unique<FR3XLSController>(m->opt.timestep);
+    }
   }
 
   PhysicsLoop(*sim);
@@ -604,14 +643,14 @@ int main(int argc, char** argv) {
       &cam, &opt, &pert, /* is_passive = */ false
   );
 
-  const std::vector<std::string> VALID_ROBOT_LIST = {"fr3", "xls"};
+  const std::vector<std::string> VALID_ROBOT_LIST = {"fr3", "xls", "fr3_xls"};
   if (argc >  1) 
   {
     robot_name_ = argv[1];
   }
   if (std::find(VALID_ROBOT_LIST.begin(), VALID_ROBOT_LIST.end(), robot_name_) == VALID_ROBOT_LIST.end()) {
     std::cerr << "Invalid robot name '" << robot_name_ 
-              << "'. Must be one of [fr3, xls]." << std::endl;
+              << "'. Must be one of [fr3, xls, fr3_xls]." << std::endl;
     return 1;
   }
   

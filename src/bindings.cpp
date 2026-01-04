@@ -31,61 +31,97 @@ typedef MobileManipulator::RobotController MM_RC;
 
 namespace
 {
-    bp::tuple MM_RC_QPIK_tuple(MM_RC& self, const VectorXd& xdot_target, const std::string& link_name)
+    static Eigen::MatrixXd get_T(const drc::TaskSpaceData& t) 
+    {
+        Eigen::MatrixXd M(4,4);
+        M = t.x.matrix();
+        return M;
+    }
+
+    static void set_T(drc::TaskSpaceData& t, const Eigen::MatrixXd& M) 
+    {
+        if(M.rows()!=4 || M.cols()!=4) throw std::runtime_error("x must be (4,4)");
+        Eigen::Matrix4d M4 = M;
+        t.x = Eigen::Affine3d(M4);
+    }
+
+    static Eigen::MatrixXd get_T_init(const drc::TaskSpaceData& t) 
+    {
+        Eigen::MatrixXd M(4,4);
+        M = t.x_init.matrix();
+        return M;
+    }
+
+    static void set_T_init(drc::TaskSpaceData& t, const Eigen::MatrixXd& M) 
+    {
+        if(M.rows()!=4 || M.cols()!=4) throw std::runtime_error("x_init must be (4,4)");
+        Eigen::Matrix4d M4 = M;
+        t.x_init = Eigen::Affine3d(M4);
+    }
+
+    static Eigen::MatrixXd get_T_des(const drc::TaskSpaceData& t) 
+    {
+        Eigen::MatrixXd M(4,4);
+        M = t.x_desired.matrix();
+        return M;
+    }
+
+    static void set_T_des(drc::TaskSpaceData& t, const Eigen::MatrixXd& M) 
+    {
+        if(M.rows()!=4 || M.cols()!=4) throw std::runtime_error("x_desired must be (4,4)");
+        Eigen::Matrix4d M4 = M;
+        t.x_desired = Eigen::Affine3d(M4);
+    }
+
+    bp::tuple MM_RC_QPIK_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qdot_mobi, qdot_mani;
-        self.QPIK(xdot_target, link_name, qdot_mobi, qdot_mani);
+        self.QPIK(link_task_data, qdot_mobi, qdot_mani, time_verbose);
         return bp::make_tuple( qdot_mobi, qdot_mani );
     }
     
-    bp::tuple MM_RC_QPIKStep_tuple(MM_RC& self, const Affine3d& x_target, const VectorXd& xdot_target, const std::string& link_name)
+    bp::tuple MM_RC_QPIKStep_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qdot_mobi, qdot_mani;
-        self.QPIKStep(x_target, xdot_target, link_name, qdot_mobi, qdot_mani);
+        self.QPIKStep(link_task_data, qdot_mobi, qdot_mani, time_verbose);
         return bp::make_tuple( qdot_mobi, qdot_mani );
     }
     
     bp::tuple MM_RC_QPIKCubic_tuple(MM_RC& self, 
-                                    const Affine3d& x_target,
-                                    const VectorXd& xdot_target,
-                                    const Affine3d& x_init,
-                                    const VectorXd& xdot_init,
+                                    const std::map<std::string, TaskSpaceData>& link_task_data,
                                     const double& current_time,
                                     const double& init_time,
                                     const double& duration,
-                                    const std::string& link_name)
+                                    const bool time_verbose)
     {
         VectorXd qdot_mobi, qdot_mani;
-        self.QPIKCubic(x_target, xdot_target, x_init, xdot_init, current_time, init_time, duration, link_name, qdot_mobi, qdot_mani);
+        self.QPIKCubic(link_task_data, current_time, init_time, duration, qdot_mobi, qdot_mani, time_verbose);
         return bp::make_tuple( qdot_mobi, qdot_mani );
     }
 
-    bp::tuple MM_RC_QPID_tuple(MM_RC& self, const VectorXd& xddot_target, const std::string& link_name)
+    bp::tuple MM_RC_QPID_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qddot_mobi, torque_mani;
-        self.QPID(xddot_target, link_name, qddot_mobi, torque_mani);
+        self.QPID(link_task_data, qddot_mobi, torque_mani, time_verbose);
         return bp::make_tuple( qddot_mobi, torque_mani );
     }
     
-    bp::tuple MM_RC_QPIDStep_tuple(MM_RC& self, const Affine3d& x_target, const VectorXd& xdot_target, const std::string& link_name)
+    bp::tuple MM_RC_QPIDStep_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qddot_mobi, torque_mani;
-        self.QPIDStep(x_target, xdot_target, link_name, qddot_mobi, torque_mani);
+        self.QPIDStep(link_task_data, qddot_mobi, torque_mani, time_verbose);
         return bp::make_tuple( qddot_mobi, torque_mani );
     }
     
     bp::tuple MM_RC_QPIDCubic_tuple(MM_RC& self, 
-                                    const Affine3d& x_target,
-                                    const VectorXd& xdot_target,
-                                    const Affine3d& x_init,
-                                    const VectorXd& xdot_init,
+                                    const std::map<std::string, TaskSpaceData>& link_task_data,
                                     const double& current_time,
                                     const double& init_time,
                                     const double& duration,
-                                    const std::string& link_name)
+                                    const bool time_verbose)
     {
         VectorXd qddot_mobi, torque_mani;
-        self.QPIDCubic(x_target, xdot_target, x_init, xdot_init, current_time, init_time, duration, link_name, qddot_mobi, torque_mani);
+        self.QPIDCubic(link_task_data, current_time, init_time, duration, qddot_mobi, torque_mani, time_verbose);
         return bp::make_tuple( qddot_mobi, torque_mani );
     }
 }
@@ -216,21 +252,174 @@ struct Affine3dFromNumpy
     }
 };
 
+struct MapStrVec6dToPython
+{
+    static PyObject* convert(const std::map<std::string, Vector6d>& m)
+    {
+        bp::dict d;
+        for (const auto& kv : m)
+        {
+            // key: std::string, value: Vector6d
+            d[kv.first] = kv.second;
+        }
+        return bp::incref(d.ptr());
+    }
+};
+
+struct MapStrVec6dFromPython
+{
+    MapStrVec6dFromPython()
+    {
+        bp::converter::registry::push_back(&convertible, &construct, bp::type_id<std::map<std::string, Vector6d>>());
+    }
+
+    static void* convertible(PyObject* obj_ptr)
+    {
+        if (!PyDict_Check(obj_ptr)) return nullptr;
+        return obj_ptr;
+    }
+
+    static void construct(
+        PyObject* obj_ptr,
+        bp::converter::rvalue_from_python_stage1_data* data)
+    {
+        void* storage = ((bp::converter::rvalue_from_python_storage<std::map<std::string, Vector6d>>*) data)->storage.bytes;
+
+        new (storage) std::map<std::string, Vector6d>();
+        std::map<std::string, Vector6d>* m = (std::map<std::string, Vector6d>*)storage;
+
+        PyObject *key, *value;
+        Py_ssize_t pos = 0;
+
+        while (PyDict_Next(obj_ptr, &pos, &key, &value))
+        {
+            bp::object key_obj(bp::handle<>(bp::borrowed(key)));
+            bp::object val_obj(bp::handle<>(bp::borrowed(value)));
+
+            std::string k = bp::extract<std::string>(key_obj);
+            Vector6d    v = bp::extract<Vector6d>(val_obj);
+
+            (*m)[k] = v;
+        }
+
+        data->convertible = storage;
+    }
+};
+
+struct TaskMapToPython
+{
+    static PyObject* convert(const std::map<std::string, TaskSpaceData>& m)
+    {
+        bp::dict d;
+        for (const auto& kv : m)
+        {
+            // kv.first: std::string, kv.second: TaskSpaceData
+            d[kv.first] = kv.second;
+        }
+        return bp::incref(d.ptr());
+    }
+};
+
+struct TaskMapFromPython
+{
+    TaskMapFromPython()
+    {
+        bp::converter::registry::push_back(&convertible, &construct, bp::type_id<std::map<std::string, TaskSpaceData>>());
+    }
+
+    static void* convertible(PyObject* obj_ptr)
+    {
+        if (!PyDict_Check(obj_ptr)) return nullptr;
+        return obj_ptr;
+    }
+
+    static void construct(
+        PyObject* obj_ptr,
+        bp::converter::rvalue_from_python_stage1_data* data)
+    {
+        void* storage = ((bp::converter::rvalue_from_python_storage<std::map<std::string, TaskSpaceData>>*)data)->storage.bytes;
+
+        new (storage) std::map<std::string, TaskSpaceData>();
+        std::map<std::string, TaskSpaceData>* m = (std::map<std::string, TaskSpaceData>*)storage;
+
+        PyObject *key, *value;
+        Py_ssize_t pos = 0;
+
+        while (PyDict_Next(obj_ptr, &pos, &key, &value))
+        {
+            bp::object key_obj(bp::handle<>(bp::borrowed(key)));
+            bp::object val_obj(bp::handle<>(bp::borrowed(value)));
+
+            std::string k   = bp::extract<std::string>(key_obj);
+            TaskSpaceData v = bp::extract<TaskSpaceData>(val_obj);
+
+            (*m)[k] = v;
+        }
+
+        data->convertible = storage;
+    }
+};
+
+struct VecStrToPython
+{
+    static PyObject *convert(const std::vector<std::string> &v)
+    {
+        bp::list l;
+        for (const auto &e : v) l.append(bp::object(e));
+        return bp::incref(l.ptr());
+    }
+};
+
+struct VecStrFromPython
+{
+    VecStrFromPython()
+    {
+        bp::converter::registry::push_back(&convertible, &construct, bp::type_id<std::vector<std::string>>());
+    }
+
+    static void *convertible(PyObject *obj_ptr)
+    { 
+        return PySequence_Check(obj_ptr) ? obj_ptr : nullptr; 
+    }
+
+    static void construct(PyObject *obj_ptr, bp::converter::rvalue_from_python_stage1_data *data)
+    {
+        void *storage = ((bp::converter::rvalue_from_python_storage<std::vector<std::string>> *)data)->storage.bytes;
+        new (storage) std::vector<std::string>();
+        auto *vec = static_cast<std::vector<std::string> *>(storage);
+        const Py_ssize_t len = PySequence_Size(obj_ptr);
+        vec->reserve(len);
+        for (Py_ssize_t i = 0; i < len; ++i)
+        {
+            bp::object item(bp::handle<>(PySequence_GetItem(obj_ptr, i)));
+            vec->emplace_back(bp::extract<std::string>(item));
+        }
+        data->convertible = storage;
+    }
+};
+
 BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
 {
     eigenpy::enableEigenPy();
     eigenpy::enableEigenPySpecific<Matrix<double, Dynamic, Dynamic>>();
     eigenpy::enableEigenPySpecific<Matrix<double, Dynamic, 1>>();
-    eigenpy::enableEigenPySpecific<Matrix4d>();
+    eigenpy::enableEigenPySpecific<Vector6d>();
+    eigenpy::enableEigenPySpecific<Vector3d>();
 
     bp::to_python_converter<std::pair<VectorXd, VectorXd>, PairVectorXdToPython>();
     bp::to_python_converter<Affine3d, Affine3dToPython>();
     bp::to_python_converter<std::vector<double>, VecDoubleToPython>();
     bp::to_python_converter<std::vector<Vector2d>, Vec2dToPython>();
+    bp::to_python_converter<std::map<std::string, Vector6d>, MapStrVec6dToPython>();
+    bp::to_python_converter<std::map<std::string, TaskSpaceData>, TaskMapToPython>();
+    bp::to_python_converter<std::vector<std::string>, VecStrToPython>();
     
-    static VecDoubleFromPython _reg_vecdouble_from_python;
-    static Vec2dFromPython     _reg_vec2d_from_python;
-    static Affine3dFromNumpy   _reg_affine3d_from_numpy;
+    static VecDoubleFromPython   _reg_vecdouble_from_python;
+    static Vec2dFromPython       _reg_vec2d_from_python;
+    static Affine3dFromNumpy     _reg_affine3d_from_numpy;
+    static MapStrVec6dFromPython _reg_mapstrv6d_from_python;
+    static TaskMapFromPython     _reg_taskmap_from_python;
+    static VecStrFromPython      _reg_vecstr_from_python;
 
     bp::enum_<Mobile::DriveType>("DriveType")
         .value("Differential", Mobile::DriveType::Differential)
@@ -277,6 +466,23 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def_readwrite("mani_start", &MobileManipulator::ActuatorIndex::mani_start)
         .def_readwrite("mobi_start", &MobileManipulator::ActuatorIndex::mobi_start);
 
+
+    bp::class_<TaskSpaceData>("TaskSpaceData")
+        .def(bp::init<>())
+        .add_property("x",         &get_T,      &set_T)
+        .add_property("x_init",    &get_T_init, &set_T_init)
+        .add_property("x_desired", &get_T_des,  &set_T_des)
+        .def_readwrite("xdot",          &TaskSpaceData::xdot)
+        .def_readwrite("xddot",         &TaskSpaceData::xddot)
+        .def_readwrite("xdot_init",     &TaskSpaceData::xdot_init)
+        .def_readwrite("xddot_init",    &TaskSpaceData::xddot_init)
+        .def_readwrite("xdot_desired",  &TaskSpaceData::xdot_desired)
+        .def_readwrite("xddot_desired", &TaskSpaceData::xddot_desired)
+        .def("setZero",                 &TaskSpaceData::setZero)
+        .def("setInit",                 &TaskSpaceData::setInit)
+        .def("setDesired",              &TaskSpaceData::setDesired)
+        .def("Zero",                    &TaskSpaceData::Zero).staticmethod("Zero");
+
     bp::class_<MO_RD, boost::noncopyable>("MobileRobotData", bp::init<const Mobile::KinematicParam&>())
         .def("getVerbose",        &MO_RD::getVerbose)
         .def("updateState",       &MO_RD::updateState)
@@ -303,6 +509,14 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("computeVelocity",              &MN_RD::computeVelocity)
         .def("computeMinDistance",           &MN_RD::computeMinDistance)
         .def("computeManipulability",        &MN_RD::computeManipulability)
+        .def("getURDFPath",         +[](const MN_RD& self){ return self.getURDFPath(); })
+        .def("getSRDFPath",         +[](const MN_RD& self){ return self.getSRDFPath(); })
+        .def("getPackagePath",      +[](const MN_RD& self){ return self.getPackagePath(); })
+        .def("getRootLinkName",     +[](const MN_RD& self){ return self.getRootLinkName(); })
+        .def("getLinkFrameVector",  +[](const MN_RD& self){ return self.getLinkFrameVector(); })
+        .def("getJointFrameVector", +[](const MN_RD& self){ return self.getJointFrameVector(); })
+        .def("hasLinkFrame",                 &MN_RD::hasLinkFrame)
+        .def("hasJointFrame",                &MN_RD::hasJointFrame)
         .def("getDof",                       &MN_RD::getDof)
         .def("getJointPosition",             &MN_RD::getJointPosition)
         .def("getJointVelocity",             &MN_RD::getJointVelocity)
@@ -353,6 +567,14 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("computeManipulability",                     Man5(&MM_RD::computeManipulability))
         .def("computeMobileFKJacobian",                        &MM_RD::computeMobileFKJacobian)
         .def("computeMobileBaseVel",                           &MM_RD::computeMobileBaseVel)
+        .def("getURDFPath",                           +[](const MM_RD& self){ return self.getURDFPath(); })
+        .def("getSRDFPath",                           +[](const MM_RD& self){ return self.getSRDFPath(); })
+        .def("getPackagePath",                        +[](const MM_RD& self){ return self.getPackagePath(); })
+        .def("getRootLinkName",                       +[](const MM_RD& self){ return self.getRootLinkName(); })
+        .def("getLinkFrameVector",                    +[](const MM_RD& self){ return self.getLinkFrameVector(); })
+        .def("getJointFrameVector",                   +[](const MM_RD& self){ return self.getJointFrameVector(); })
+        .def("hasLinkFrame",                                   &MM_RD::hasLinkFrame)
+        .def("hasJointFrame",                                  &MM_RD::hasJointFrame)
         .def("getActuatordDof",                                &MM_RD::getActuatordDof)
         .def("getManipulatorDof",                              &MM_RD::getManipulatorDof)
         .def("getMobileDof",                                   &MM_RD::getMobileDof)
@@ -383,66 +605,59 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("computeWheelVel",   &MO_RC::computeWheelVel)
         .def("computeIKJacobian", &MO_RC::computeIKJacobian)
         .def("VelocityCommand",   &MO_RC::VelocityCommand);
-    
-    typedef VectorXd (MN_RC::*CLIKStep1)(const Affine3d&, const VectorXd&, const VectorXd&, const std::string&);
-    typedef VectorXd (MN_RC::*CLIKStep2)(const Affine3d&, const VectorXd&, const std::string&);
-    typedef VectorXd (MN_RC::*CLIKCub1)(const Affine3d&, const VectorXd&, const Affine3d&, const VectorXd&, const double&, const double&, const double&, const VectorXd&, const std::string&);
-    typedef VectorXd (MN_RC::*CLIKCub2)(const Affine3d&, const VectorXd&, const Affine3d&, const VectorXd&, const double&, const double&, const double&, const std::string&);
-    typedef VectorXd (MN_RC::*OSF1)(const VectorXd&, const VectorXd&, const std::string&);
-    typedef VectorXd (MN_RC::*OSF2)(const VectorXd&, const std::string&);
-    typedef VectorXd (MN_RC::*OSFStep1)(const Affine3d&, const VectorXd&, const VectorXd&, const std::string&);
-    typedef VectorXd (MN_RC::*OSFStep2)(const Affine3d&, const VectorXd&, const std::string&);
-    typedef VectorXd (MN_RC::*OSFCub1)(const Affine3d&, const VectorXd&, const Affine3d&, const VectorXd&, const double&, const double&, const double&, const VectorXd&, const std::string&);
-    typedef VectorXd (MN_RC::*OSFCub2)(const Affine3d&, const VectorXd&, const Affine3d&, const VectorXd&, const double&, const double&, const double&, const std::string&);
 
     bp::class_<MN_RC, boost::noncopyable >("ManipulatorRobotController", bp::init<const double&, std::shared_ptr<MN_RD>>())
-        .def("setJointGain",                                                                               &MN_RC::setJointGain)
-        .def("setJointKpGain",                                                                             &MN_RC::setJointKpGain)
-        .def("setJointKvGain",                                                                             &MN_RC::setJointKvGain)
-        .def("setTaskGain",                                                                                &MN_RC::setTaskGain)
-        .def("setTaskKpGain",                                                                              &MN_RC::setTaskKpGain)
-        .def("setTaskKvGain",                                                                              &MN_RC::setTaskKvGain)
-        .def("moveJointPositionCubic",                                                                     &MN_RC::moveJointPositionCubic)
-        .def("moveJointVelocityCubic",                                                                     &MN_RC::moveJointVelocityCubic)
-        .def("moveJointTorqueStep",                      static_cast<VectorXd (MN_RC::*)(const VectorXd&)>(&MN_RC::moveJointTorqueStep))
-        .def("moveJointTorqueStep",     static_cast<VectorXd (MN_RC::*)(const VectorXd&, const VectorXd&)>(&MN_RC::moveJointTorqueStep))
-        .def("moveJointTorqueCubic",                                                                       &MN_RC::moveJointTorqueCubic)
-        .def("CLIKStep",                                                            static_cast<CLIKStep1>(&MN_RC::CLIKStep))
-        .def("CLIKStep",                                                            static_cast<CLIKStep2>(&MN_RC::CLIKStep))
-        .def("CLIKCubic",                                                            static_cast<CLIKCub1>(&MN_RC::CLIKCubic))
-        .def("CLIKCubic",                                                            static_cast<CLIKCub2>(&MN_RC::CLIKCubic))
-        .def("OSF",                                                                      static_cast<OSF1>(&MN_RC::OSF))
-        .def("OSF",                                                                      static_cast<OSF2>(&MN_RC::OSF))
-        .def("OSFStep",                                                              static_cast<OSFStep1>(&MN_RC::OSFStep))
-        .def("OSFStep",                                                              static_cast<OSFStep2>(&MN_RC::OSFStep))
-        .def("OSFCubic",                                                              static_cast<OSFCub1>(&MN_RC::OSFCubic))
-        .def("OSFCubic",                                                              static_cast<OSFCub2>(&MN_RC::OSFCubic))
-        .def("QPIK",                                                                                       &MN_RC::QPIK)
-        .def("QPIKStep",                                                                                   &MN_RC::QPIKStep)
-        .def("QPIKCubic",                                                                                  &MN_RC::QPIKCubic)
-        .def("QPID",                                                                                       &MN_RC::QPID)
-        .def("QPIDStep",                                                                                   &MN_RC::QPIDStep)
-        .def("QPIDCubic",                                                                                  &MN_RC::QPIDCubic)
+        .def("setJointGain",                                                                                                                                          &MN_RC::setJointGain)
+        .def("setJointKpGain",                                                                                                                                        &MN_RC::setJointKpGain)
+        .def("setJointKvGain",                                                                                                                                        &MN_RC::setJointKvGain)
+        .def("setTaskGain",                                                                                                                                           &MN_RC::setTaskGain)
+        .def("setTaskKpGain",                                                                                                                                         &MN_RC::setTaskKpGain)
+        .def("setTaskKvGain",                                                                                                                                         &MN_RC::setTaskKvGain)
+        .def("setQPIKGain",                                                                                                                                           &MN_RC::setQPIKGain)
+        .def("setQPIDGain",                                                                                                                                           &MN_RC::setQPIDGain)
+        .def("moveJointPositionCubic",                                                                                                                                &MN_RC::moveJointPositionCubic)
+        .def("moveJointVelocityCubic",                                                                                                                                &MN_RC::moveJointVelocityCubic)
+        .def("moveJointTorqueStep",                                                                     static_cast<VectorXd (MN_RC::*)(const VectorXd&, const bool)>(&MN_RC::moveJointTorqueStep))
+        .def("moveJointTorqueStep",                                                    static_cast<VectorXd (MN_RC::*)(const VectorXd&, const VectorXd&, const bool)>(&MN_RC::moveJointTorqueStep))
+        .def("moveJointTorqueCubic",                                                                                                                                  &MN_RC::moveJointTorqueCubic)
+        .def("CLIK",                                                   static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const VectorXd&)>(&MN_RC::CLIK))
+        .def("CLIKStep",                                               static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const VectorXd&)>(&MN_RC::CLIKStep))
+        .def("CLIKCubic", static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const double&, const double&, const double&, const VectorXd&)>(&MN_RC::CLIKCubic))
+        .def("OSF",                                                    static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const VectorXd&)>(&MN_RC::OSF))
+        .def("OSFStep",                                                static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const VectorXd&)>(&MN_RC::OSFStep))
+        .def("OSFCubic",  static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const double&, const double&, const double&, const VectorXd&)>(&MN_RC::OSFCubic))
+        .def("QPIK",                                                        static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const bool)>(&MN_RC::QPIK))
+        .def("QPIKStep",                                                                                                                                              &MN_RC::QPIKStep)
+        .def("QPIKCubic",                                                                                                                                             &MN_RC::QPIKCubic)
+        .def("QPID",                                                        static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const bool)>(&MN_RC::QPID))
+        .def("QPIDStep",                                                                                                                                              &MN_RC::QPIDStep)
+        .def("QPIDCubic",                                                                                                                                             &MN_RC::QPIDCubic)
         ;
 
     typedef VectorXd (MN_RC::*CLIKStep1)(const Affine3d&, const VectorXd&, const VectorXd&, const std::string&);
 
     bp::class_<MM_RC, boost::noncopyable>("MobileManipulatorRobotController", bp::init<const double&, std::shared_ptr<MM_RD>>())
-        .def("setManipulatorJointGain",                                                                                &MM_RC::setManipulatorJointGain)
-        .def("setManipulatorJointKpGain",                                                                              &MM_RC::setManipulatorJointKpGain)
-        .def("setManipulatorJointKvGain",                                                                              &MM_RC::setManipulatorJointKvGain)
-        .def("setTaskGain",                                                                                            &MM_RC::setTaskGain)
-        .def("setTaskKpGain",                                                                                          &MM_RC::setTaskKpGain)
-        .def("setTaskKvGain",                                                                                          &MM_RC::setTaskKvGain)
-        .def("moveManipulatorJointPositionCubic",                                                                      &MM_RC::moveManipulatorJointPositionCubic)
-        .def("moveManipulatorJointTorqueStep",                        static_cast<VectorXd(MM_RC::*)(const VectorXd&)>(&MM_RC::moveManipulatorJointTorqueStep))
-        .def("moveManipulatorJointTorqueStep",       static_cast<VectorXd(MM_RC::*)(const VectorXd&, const VectorXd&)>(&MM_RC::moveManipulatorJointTorqueStep))
-        .def("moveManipulatorJointTorqueCubic",                                                                        &MM_RC::moveManipulatorJointTorqueCubic)
-        .def("QPIK",                                                                                                   &MM_RC_QPIK_tuple)
-        .def("QPIKStep",                                                                                               &MM_RC_QPIKStep_tuple)
-        .def("QPIKCubic",                                                                                              &MM_RC_QPIKCubic_tuple)
-        .def("QPID",                                                                                                   &MM_RC_QPID_tuple)
-        .def("QPIDStep",                                                                                               &MM_RC_QPIDStep_tuple)
-        .def("QPIDCubic",                                                                                              &MM_RC_QPIDCubic_tuple)
+        .def("setManipulatorJointGain",                                                                                      &MM_RC::setManipulatorJointGain)
+        .def("setManipulatorJointKpGain",                                                                                    &MM_RC::setManipulatorJointKpGain)
+        .def("setManipulatorJointKvGain",                                                                                    &MM_RC::setManipulatorJointKvGain)
+        .def("setTaskGain",                                                                                                  &MM_RC::setTaskGain)
+        .def("setTaskKpGain",                                                                                                &MM_RC::setTaskKpGain)
+        .def("setTaskKvGain",                                                                                                &MM_RC::setTaskKvGain)
+        .def("setQPIKGain",                                                                                                  &MM_RC::setQPIKGain)
+        .def("setQPIDGain",                                                                                                  &MM_RC::setQPIDGain)
+        .def("computeMobileWheelVel",                                                                                        &MM_RC::computeMobileWheelVel)
+        .def("computeMobileIKJacobian",                                                                                      &MM_RC::computeMobileIKJacobian)
+        .def("MobileVelocityCommand",                                                                                        &MM_RC::MobileVelocityCommand)
+        .def("moveManipulatorJointPositionCubic",                                                                            &MM_RC::moveManipulatorJointPositionCubic)
+        .def("moveManipulatorJointVelocityCubic",                                                                            &MM_RC::moveManipulatorJointVelocityCubic)
+        .def("moveManipulatorJointTorqueStep",                  static_cast<VectorXd(MM_RC::*)(const VectorXd&, const bool)>(&MM_RC::moveManipulatorJointTorqueStep))
+        .def("moveManipulatorJointTorqueStep", static_cast<VectorXd(MM_RC::*)(const VectorXd&, const VectorXd&, const bool)>(&MM_RC::moveManipulatorJointTorqueStep))
+        .def("moveManipulatorJointTorqueCubic",                                                                              &MM_RC::moveManipulatorJointTorqueCubic)
+        .def("QPIK",                                                                                                         &MM_RC_QPIK_tuple)
+        .def("QPIKStep",                                                                                                     &MM_RC_QPIKStep_tuple)
+        .def("QPIKCubic",                                                                                                    &MM_RC_QPIKCubic_tuple)
+        .def("QPID",                                                                                                         &MM_RC_QPID_tuple)
+        .def("QPIDStep",                                                                                                     &MM_RC_QPIDStep_tuple)
+        .def("QPIDCubic",                                                                                                    &MM_RC_QPIDCubic_tuple)
         ;
 }

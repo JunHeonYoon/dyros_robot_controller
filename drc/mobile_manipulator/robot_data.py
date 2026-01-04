@@ -1,10 +1,10 @@
 from typing import Tuple
 import numpy as np
 from drc import KinematicParam, JointIndex, ActuatorIndex
-import dyros_robot_controller_cpp_wrapper as drc
+import dyros_robot_controller_cpp_wrapper as drc_cpp
 
 
-class RobotData(drc.MobileManipulatorRobotData):
+class RobotData(drc_cpp.MobileManipulatorRobotData):
     """
     A Python wrapper for the C++ RobotData::MobileManipulator::MobileManipulatorBase class.
     
@@ -14,23 +14,23 @@ class RobotData(drc.MobileManipulatorRobotData):
     It supports a mobile manipulator with a floating base, manipulator joints, and mobile wheel joints.
     """
     def __init__(self,
-                mobile_param: KinematicParam,
-                joint_idx: JointIndex,
-                actuator_idx: ActuatorIndex,
-                urdf_path: str,
-                srdf_path: str="",
-                packages_path: str="",
-                ):
+                 mobile_param: KinematicParam,
+                 joint_idx: JointIndex,
+                 actuator_idx: ActuatorIndex,
+                 urdf_path: str,
+                 srdf_path: str="",
+                 packages_path: str="",
+                 ):
         """
         Constructor.
 
         Parameters:
             mobile_param  : (KinematicParam) Kinematic parameter instance containing drive type and geometry.
+            joint_idx     : (JointIndex) Joint index structure containing starting indices for virtual, manipulator, and mobile joints.
+            actuator_idx  : (ActuatorIndex) Actuator index structure containing starting indices for manipulator and mobile actuators.
             urdf_path     : (str) Path to the URDF file.
             srdf_path     : (str) Path to the SRDF file.
             packages_path : (str) Path to the packages directory.
-            joint_idx     : (JointIndex) Joint index structure containing starting indices for virtual, manipulator, and mobile joints.
-            actuator_idx  : (ActuatorIndex) Actuator index structure containing starting indices for manipulator and mobile actuators.
         """
         self._mobile_kine_param = mobile_param
         self._joint_idx = joint_idx
@@ -42,6 +42,10 @@ class RobotData(drc.MobileManipulatorRobotData):
                          srdf_path,
                          packages_path,
                          )
+        self.mani_dof     = int(super().getManipulatorDof())
+        self.mobi_dof     = int(super().getMobileDof())
+        self.virtual_dof  = 3
+        self.actuated_dof = int(super().getActuatordDof())
         
     def get_verbose(self) -> str:
         """
@@ -74,6 +78,18 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (bool) True if state update is successful.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        qdot_virtual = qdot_virtual.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert qdot_virtual.size == self.virtual_dof, f"Size of qdot_virtual {qdot_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().updateState(q_virtual,
                                    q_mobile,
                                    q_mani,
@@ -96,6 +112,12 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Mass matrix of the whole body.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeMassMatrix(q_virtual, q_mobile, q_mani)
 
     def compute_gravity(self, q_virtual: np.ndarray, q_mobile: np.ndarray, q_mani: np.ndarray) -> np.ndarray:
@@ -110,6 +132,12 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Gravity vector of the whole body.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeGravity(q_virtual, q_mobile, q_mani)
 
     def compute_coriolis(self,
@@ -134,6 +162,18 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Coriolis vector of the whole body.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        qdot_virtual = qdot_virtual.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert qdot_virtual.size == self.virtual_dof, f"Size of qdot_virtual {qdot_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeCoriolis(q_virtual, q_mobile, q_mani, qdot_virtual, qdot_mobile, qdot_mani)
 
     def compute_nonlinear_effects(self,
@@ -158,6 +198,18 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Nonlinear effects vector of the whole body.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        qdot_virtual = qdot_virtual.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert qdot_virtual.size == self.virtual_dof, f"Size of qdot_virtual {qdot_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeNonlinearEffects(q_virtual, q_mobile, q_mani, qdot_virtual, qdot_mobile, qdot_mani)
 
     def compute_mass_matrix_actuated(self, q_virtual: np.ndarray, q_mobile: np.ndarray, q_mani: np.ndarray) -> np.ndarray:
@@ -172,6 +224,12 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Mass matrix of the actuated joints.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeMassMatrixActuated(q_virtual, q_mobile, q_mani)
 
     def compute_gravity_actuated(self, q_virtual: np.ndarray, q_mobile: np.ndarray, q_mani: np.ndarray) -> np.ndarray:
@@ -186,6 +244,12 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Gravity vector of the actuated joints.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeGravityActuated(q_virtual, q_mobile, q_mani)
 
     def compute_coriolis_actuated(self,
@@ -207,6 +271,16 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Coriolis vector of the actuated joints.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeCoriolisActuated(q_virtual, q_mobile, q_mani, qdot_mobile, qdot_mani)
 
     def compute_nonlinear_effects_actuated(self,
@@ -229,6 +303,16 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Nonlinear effects vector of the actuated joints.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeNonlinearEffectsActuated(q_virtual, q_mobile, q_mani, qdot_mobile, qdot_mani)
 
     # Wholebody task space
@@ -245,6 +329,12 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Pose of the link in the task space.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computePose(q_virtual, q_mobile, q_mani, link_name)
 
     def compute_jacobian(self, q_virtual: np.ndarray, q_mobile: np.ndarray, q_mani: np.ndarray, link_name: str) -> np.ndarray:
@@ -260,6 +350,12 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Jacobian of the link.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeJacobian(q_virtual, q_mobile, q_mani, link_name)
 
     def compute_jacobian_time_variation(self,
@@ -286,6 +382,18 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Jacobian time variation of the link.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        qdot_virtual = qdot_virtual.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert qdot_virtual.size == self.virtual_dof, f"Size of qdot_virtual {qdot_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeJacobianTimeVariation(q_virtual, q_mobile, q_mani, qdot_virtual, qdot_mobile, qdot_mani, link_name)
 
     def compute_velocity(self,
@@ -312,6 +420,18 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Velocity of the link in the task space.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        qdot_virtual = qdot_virtual.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert qdot_virtual.size == self.virtual_dof, f"Size of qdot_virtual {qdot_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeVelocity(q_virtual, q_mobile, q_mani, qdot_virtual, qdot_mobile, qdot_mani, link_name,)
 
     def compute_min_distance(self,
@@ -342,6 +462,18 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (Tuple[float, np.ndarray, np.ndarray]) Minimum distance, its gradient, and its gradient time variation.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        qdot_virtual = qdot_virtual.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert qdot_virtual.size == self.virtual_dof, f"Size of qdot_virtual {qdot_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         min_result = super().computeMinDistance(q_virtual, q_mobile, q_mani, qdot_virtual, qdot_mobile, qdot_mani, with_grad, with_graddot, verbose)
         return min_result.distance, min_result.grad, min_result.grad_dot
     
@@ -356,6 +488,10 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Selection matrix.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
         return super().computeSelectionMatrix(q_virtual, q_mobile)
 
     def compute_jacobian_actuated(self, q_virtual: np.ndarray, q_mobile: np.ndarray, q_mani: np.ndarray, link_name: str) -> np.ndarray:
@@ -371,6 +507,12 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Jacobian of the link for the actuated joints.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
         return  super().computeJacobianActuated(q_virtual, q_mobile, q_mani, link_name)
 
     def compute_jacobian_time_variation_actuated(self,
@@ -397,6 +539,18 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Jacobian time variation of the link for the actuated joints.
         """
+        q_virtual = q_virtual.reshape(-1)
+        q_mobile = q_mobile.reshape(-1)
+        q_mani = q_mani.reshape(-1)
+        qdot_virtual = qdot_virtual.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_virtual.size    == self.virtual_dof, f"Size of q_virtual {q_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert qdot_virtual.size == self.virtual_dof, f"Size of qdot_virtual {qdot_virtual.size} is not equal to virtual_dof {self.virtual_dof}"
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         return super().computeJacobianTimeVariationActuated(q_virtual, q_mobile, q_mani, qdot_virtual, qdot_mobile, qdot_mani, link_name)
 
     # Manipulator taskspace
@@ -419,6 +573,10 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (Tuple[float, np.ndarray, np.ndarray]) Manipulability, its gradient, and its gradient time variation.
         """
+        q_mani = q_mani.reshape(-1)
+        qdot_mani = qdot_mani.reshape(-1)
+        assert q_mani.size       == self.mani_dof, f"Size of q_mani {q_mani.size} is not equal to mani_dof {self.mani_dof}"
+        assert qdot_mani.size    == self.mani_dof, f"Size of qdot_mani {qdot_mani.size} is not equal to mani_dof {self.mani_dof}"
         mani_result = super().computeManipulability(q_mani, qdot_mani, with_grad, with_graddot, link_name)
         return mani_result.manipulability, mani_result.grad, mani_result.grad_dot
 
@@ -433,6 +591,8 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Jacobian of the mobile base.
         """
+        q_mobile = q_mobile.reshape(-1)
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
         return super().computeMobileFKJacobian(q_mobile)
 
     def compute_mobile_base_vel(self, q_mobile: np.ndarray, qdot_mobile: np.ndarray) -> np.ndarray:
@@ -446,9 +606,29 @@ class RobotData(drc.MobileManipulatorRobotData):
         Return:
             (np.ndarray) Base velocity vector [vx, vy, wz].
         """
+        q_mobile = q_mobile.reshape(-1)
+        qdot_mobile = qdot_mobile.reshape(-1)
+        assert q_mobile.size     == self.mobi_dof, f"Size of q_mobile {q_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
+        assert qdot_mobile.size  == self.mobi_dof, f"Size of qdot_mobile {qdot_mobile.size} is not equal to mobi_dof {self.mobi_dof}"
         return super().computeMobileBaseVel(q_mobile, qdot_mobile)
 
     # ================================ Get Functions ================================
+    def get_urdf_path(self) -> str:
+        return super().getURDFPath()
+    def get_srdf_path(self) -> str:
+        return super().getSRDFPath()
+    def get_packages_path(self) -> str:
+        return super().getPackagePath()
+    def get_root_link_name(self) -> str:
+        return super().getRootLinkName()
+    def get_link_frame_vector(self) -> list:
+        return super().getLinkFrameVector()
+    def get_joint_frame_vector(self) -> list:
+        return super().getJointFrameVector()
+    def has_link_frame(self, name:str) -> bool:
+        return super.hasLinkFrame(name)
+    def has_joint_frame(self, name:str) -> bool:
+        return super.hasJointFrame(name)
     def get_dof(self) -> int:
         """
         Get the full degrees of freedom of the robot.

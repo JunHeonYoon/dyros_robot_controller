@@ -23,8 +23,8 @@ public:
   ~XLSController();
 
   void updateModel(const double current_time,
-                   const std::unordered_map<std::string, double>& qpos_dict,
-                   const std::unordered_map<std::string, double>& qvel_dict);
+                   const std::unordered_map<std::string, Eigen::VectorXd>& qpos_dict,
+                   const std::unordered_map<std::string, Eigen::VectorXd>& qvel_dict);
 
   // Compute control for the current mode.
   // Returns: actuator velocity map (wheel joint name -> command).
