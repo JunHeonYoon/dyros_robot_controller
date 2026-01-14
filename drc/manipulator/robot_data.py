@@ -11,16 +11,17 @@ class RobotData(drc_cpp.ManipulatorRobotData):
     It supports state update, forward kinematics, dynamics computation and
     Jacobian, minimum distance and manipulability calculation based on the specified kinematic parameters.
     """
-    def __init__(self, urdf_path: str, srdf_path: str="", packages_path: str=""):
+    def __init__(self, urdf_path: str, srdf_path: str="", packages_path: str="", use_xml: bool=False):
         """
         Constructor.
 
         Parameters:
-            urdf_path     : (str) Path to the URDF file.
-            srdf_path     : (str) Path to the SRDF file.
+            urdf_path     : (str) Path to the URDF file or URDF XML string when use_xml is True.
+            srdf_path     : (str) Path to the SRDF file or SRDF XML string when use_xml is True.
             packages_path : (str) Path to the packages directory.
+            use_xml       : (bool) If True, treat urdf_path/srdf_path as XML strings.
         """
-        super().__init__(urdf_path, srdf_path, packages_path)
+        super().__init__(urdf_path, srdf_path, packages_path, use_xml)
         self.dof = super().getDof()
         
     def get_verbose(self) -> str:

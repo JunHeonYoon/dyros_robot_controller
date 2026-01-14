@@ -497,6 +497,7 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         ;
 
     bp::class_<MN_RD, boost::noncopyable>("ManipulatorRobotData", bp::init<const std::string&, const std::string&, const std::string&>())
+        .def(bp::init<const std::string&, const std::string&, const std::string&, const bool>())
         .def("getVerbose",                   &MN_RD::getVerbose)
         .def("updateState",                  &MN_RD::updateState)
         .def("computeMassMatrix",            &MN_RD::computeMassMatrix)

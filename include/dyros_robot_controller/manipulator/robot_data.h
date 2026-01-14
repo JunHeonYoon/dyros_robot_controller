@@ -50,7 +50,17 @@ namespace drc
                 RobotData(const std::string& urdf_path, 
                           const std::string& srdf_path="", 
                           const std::string& packages_path="");
-
+                /**
+                 * @brief Constructor.
+                 * @param urdf_source   (std::string) URDF file path or URDF XML string (when use_xml is true).
+                 * @param srdf_source   (std::string) SRDF file path or SRDF XML string (when use_xml is true).
+                 * @param packages_path (std::string) Path to the packages directory.
+                 * @param use_xml       (bool) If true, treat URDF/SRDF inputs as XML strings.
+                 */
+                RobotData(const std::string& urdf_source,
+                          const std::string& srdf_source,
+                          const std::string& packages_path,
+                          const bool use_xml);
                 /**
                  * @brief Update the state of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.

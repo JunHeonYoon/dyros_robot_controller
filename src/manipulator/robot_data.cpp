@@ -1,62 +1,119 @@
 #include "dyros_robot_controller/manipulator/robot_data.h"
+#include <sstream>
 
 namespace drc
 {
     namespace Manipulator
     {
-        RobotData::RobotData(const std::string& urdf_path, 
-                             const std::string& srdf_path, 
+        RobotData::RobotData(const std::string& urdf_path,
+                             const std::string& srdf_path,
                              const std::string& packages_path)
-        : urdf_path_(urdf_path), srdf_path_(srdf_path), packages_path_(packages_path)
+        : RobotData(urdf_path, srdf_path, packages_path, false)
         {
-            if (std::filesystem::exists(urdf_path))
+        }
+
+        RobotData::RobotData(const std::string& urdf_source,
+                             const std::string& srdf_source,
+                             const std::string& packages_path,
+                             const bool use_xml)
+        : urdf_path_(urdf_source), srdf_path_(srdf_source), packages_path_(packages_path)
+        {
+            if (use_xml)
             {
-                std::cout << "[dyros_robot_controller] URDF file loaded successfully!: " << urdf_path << std::endl;
+                if (urdf_source.empty())
+                {
+                    std::cerr << "\033[31m" << "[dyros_robot_controller] URDF XML is empty!" << "\033[0m" << std::endl;
+                    std::exit(EXIT_FAILURE);
+                }
+
+                std::cout << "[dyros_robot_controller] URDF XML loaded successfully!" << std::endl;
+                pinocchio::urdf::buildModelFromXML(urdf_source, model_, /*verbose=*/false);
             }
             else
             {
-                std::cerr << "\033[31m" << "[dyros_robot_controller] URDF file does not exist! : " << "\033[0m" << urdf_path << "\033[0m" << std::endl;
-                std::exit(EXIT_FAILURE);
+                if (std::filesystem::exists(urdf_source))
+                {
+                    std::cout << "[dyros_robot_controller] URDF file loaded successfully!: " << urdf_source << std::endl;
+                }
+                else
+                {
+                    std::cerr << "\033[31m" << "[dyros_robot_controller] URDF file does not exist! : " << "\033[0m" << urdf_source << "\033[0m" << std::endl;
+                    std::exit(EXIT_FAILURE);
+                }
+
+                pinocchio::urdf::buildModel(urdf_source, model_, /*verbose=*/false);
             }
 
-            pinocchio::urdf::buildModel(urdf_path, model_, /*verbose=*/false);
             data_ = pinocchio::Data(model_);
 
-            if (std::filesystem::exists(packages_path) && std::filesystem::is_directory(packages_path))
+            if (use_xml)
             {
-                std::cout << "[dyros_robot_controller] Package folder loaded successfully!: " << packages_path << std::endl;
-                pinocchio::urdf::buildGeom(model_, urdf_path, pinocchio::COLLISION, geom_model_, packages_path);
+                std::istringstream urdf_stream(urdf_source);
+                if (std::filesystem::exists(packages_path) && std::filesystem::is_directory(packages_path))
+                {
+                    std::cout << "[dyros_robot_controller] Package folder loaded successfully!: " << packages_path << std::endl;
+                    pinocchio::urdf::buildGeom(model_, urdf_stream, pinocchio::COLLISION, geom_model_, packages_path);
+                }
+                else
+                {
+                    std::clog << "\033[33m" << "[dyros_robot_controller] Packages folder does not exist! : " << "\033[0m" << packages_path << "\033[0m" << std::endl;
+                    std::clog << "\033[33m" << "[dyros_robot_controller] Collision model for the robot may not be perfect!" << "\033[0m" << std::endl;
+                    pinocchio::urdf::buildGeom(model_, urdf_stream, pinocchio::COLLISION, geom_model_);
+                }
             }
             else
             {
-                std::clog << "\033[33m" << "[dyros_robot_controller] Packages folder does not exist! : " << "\033[0m" << packages_path << "\033[0m" << std::endl;
-                std::clog << "\033[33m" << "[dyros_robot_controller] Collision model for the robot may not be perfect!" << "\033[0m" << std::endl;
-                pinocchio::urdf::buildGeom(model_, urdf_path, pinocchio::COLLISION, geom_model_);
+                if (std::filesystem::exists(packages_path) && std::filesystem::is_directory(packages_path))
+                {
+                    std::cout << "[dyros_robot_controller] Package folder loaded successfully!: " << packages_path << std::endl;
+                    pinocchio::urdf::buildGeom(model_, urdf_source, pinocchio::COLLISION, geom_model_, packages_path);
+                }
+                else
+                {
+                    std::clog << "\033[33m" << "[dyros_robot_controller] Packages folder does not exist! : " << "\033[0m" << packages_path << "\033[0m" << std::endl;
+                    std::clog << "\033[33m" << "[dyros_robot_controller] Collision model for the robot may not be perfect!" << "\033[0m" << std::endl;
+                    pinocchio::urdf::buildGeom(model_, urdf_source, pinocchio::COLLISION, geom_model_);
+                }
             }
 
             geom_model_.addAllCollisionPairs();
 
-            
-            if (std::filesystem::exists(srdf_path))
+            if (use_xml)
             {
-                std::cout << "[dyros_robot_controller] SRDF file loaded successfully!: " << srdf_path << std::endl;
-                pinocchio::srdf::removeCollisionPairs(model_, geom_model_, srdf_path);
+                if (!srdf_source.empty())
+                {
+                    std::cout << "[dyros_robot_controller] SRDF XML loaded successfully!" << std::endl;
+                    pinocchio::srdf::removeCollisionPairsFromXML(model_, geom_model_, srdf_source, false/*verbose*/);
+                }
+                else
+                {
+                    std::clog << "\033[33m" << "[dyros_robot_controller] SRDF XML is empty!" << "\033[0m" << std::endl;
+                    std::clog << "\033[33m" << "[dyros_robot_controller] All the collision pairs is activated!" << "\033[0m" << std::endl;
+                }
             }
             else
             {
-                std::clog << "\033[33m" << "[dyros_robot_controller] SRDF file does not exist! : " << "\033[0m" << srdf_path << "\033[0m" << std::endl;
-                std::clog << "\033[33m" << "[dyros_robot_controller] All the collision pairs is activated!" << "\033[0m" << std::endl;
+                if (std::filesystem::exists(srdf_source))
+                {
+                    std::cout << "[dyros_robot_controller] SRDF file loaded successfully!: " << srdf_source << std::endl;
+                    pinocchio::srdf::removeCollisionPairs(model_, geom_model_, srdf_source);
+                }
+                else
+                {
+                    std::clog << "\033[33m" << "[dyros_robot_controller] SRDF file does not exist! : " << "\033[0m" << srdf_source << "\033[0m" << std::endl;
+                    std::clog << "\033[33m" << "[dyros_robot_controller] All the collision pairs is activated!" << "\033[0m" << std::endl;
+                }
             }
 
             geom_data_ = pinocchio::GeometryData(geom_model_);
-            
+
             dof_ = model_.joints.size() - 1; // except world joint
 
             // Initialize joint space state
             q_.setZero(dof_);
             qdot_.setZero(dof_);
 
-            // Set joint state limit 
+            // Set joint state limit
             q_lb_ = model_.lowerPositionLimit;
             q_ub_ = model_.upperPositionLimit;
             qdot_lb_ = -model_.velocityLimit;
