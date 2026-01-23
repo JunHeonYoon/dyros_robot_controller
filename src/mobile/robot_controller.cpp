@@ -1,5 +1,50 @@
 #include "dyros_robot_controller/mobile/robot_controller.h"
 
+
+namespace
+{
+    static inline double clampScalar(double x, double lo, double hi)
+    {
+        return std::min(std::max(x, lo), hi);
+    }
+
+    // value clamp: v in [min_v, max_v]
+    static inline double limitValue(double v, double min_v, double max_v)
+    {
+        return clampScalar(v, min_v, max_v);
+    }
+
+    // first derivative (acc) clamp: dv in [dv_min, dv_max]
+    static inline double limitFirstDerivative(double v, double v0, double dt,
+                                            double min_acc, double max_acc)
+    {
+        const double dv_min = min_acc * dt;
+        const double dv_max = max_acc * dt;
+        const double dv = clampScalar(v - v0, dv_min, dv_max);
+        return v0 + dv;
+    }
+
+    // second derivative (jerk) clamp: only when (dv - dv0)*dv > 0
+    static inline double limitSecondDerivative(double v, double v0, double v1, double dt, double min_jerk, double max_jerk)
+    {
+        const double dv  = v  - v0;
+        const double dv0 = v0 - v1;
+
+        // Same condition as control_toolbox: apply jerk limit only while accelerating or reverse-accelerating
+        if ((dv - dv0) * dv > 0.0)
+        {
+            const double dt2 = dt * dt;
+            const double da_min = min_jerk * dt2;
+            const double da_max = max_jerk * dt2;
+
+            const double da = clampScalar(dv - dv0, da_min, da_max);
+            return v0 + dv0 + da;
+        }
+        return v;
+    }
+
+} // namespace
+
 namespace drc
 {
     namespace Mobile
@@ -13,32 +58,71 @@ namespace drc
 
         VectorXd RobotController::VelocityCommand(const VectorXd& desired_base_vel)
         {
-            assert(desired_base_vel.size() == 3); // Ensure both desired_base_vel has three elements for vx, vy, omega
+            assert(desired_base_vel.size() == 3); // [vx, vy, omega]
 
-            Vector3d saturated_base_vel;
-            saturated_base_vel.setZero();
+            Eigen::Vector3d v_des = desired_base_vel;
 
-            // TODO: acceleration Limit Saturation
-
-            // Velocity Limit Saturation
-            Vector2d desired_lin_vel = desired_base_vel.head(2); // [vx, vy]
-            double desired_lin_speed = desired_lin_vel.norm();
-            Vector2d desired_lin_vel_dir;
-            if(fabs(desired_lin_speed) < 1E-4)
+            // ---- initialize history on first call ----
+            if (!base_cmd_hist_init_)
             {
-                desired_lin_vel_dir.setZero();
+                base_cmd_prev_  = Eigen::Vector3d::Zero();
+                base_cmd_prev2_ = Eigen::Vector3d::Zero();
+                base_cmd_hist_init_ = true;
             }
-            else
+
+            // We will apply per-axis jerk/acc limits first,
+            // then apply linear speed norm limit and angular speed limit.
+
+            Eigen::Vector3d v_limited = v_des;
+
+            // // -------- JERK LIMIT (per-axis) --------
+            // // Linear: use max_lin_jerk on vx, vy (symmetric)
+            // const double min_lin_jerk = -param_.max_lin_jerk;
+            // const double max_lin_jerk =  param_.max_lin_jerk;
+
+            // v_limited(0) = limitSecondDerivative(v_limited(0), base_cmd_prev_(0), base_cmd_prev2_(0),
+            //                                     dt_, min_lin_jerk, max_lin_jerk);
+            // v_limited(1) = limitSecondDerivative(v_limited(1), base_cmd_prev_(1), base_cmd_prev2_(1),
+            //                                     dt_, min_lin_jerk, max_lin_jerk);
+
+            // // Angular: use max_ang_jerk (symmetric)
+            // const double min_ang_jerk = -param_.max_ang_jerk;
+            // const double max_ang_jerk =  param_.max_ang_jerk;
+
+            // v_limited(2) = limitSecondDerivative(v_limited(2), base_cmd_prev_(2), base_cmd_prev2_(2),
+            //                                     dt_, min_ang_jerk, max_ang_jerk);
+
+            // -------- ACC LIMIT (per-axis) --------
+            const double min_lin_acc = -param_.max_lin_acc;
+            const double max_lin_acc =  param_.max_lin_acc;
+
+            v_limited(0) = limitFirstDerivative(v_limited(0), base_cmd_prev_(0), dt_, min_lin_acc, max_lin_acc);
+            v_limited(1) = limitFirstDerivative(v_limited(1), base_cmd_prev_(1), dt_, min_lin_acc, max_lin_acc);
+
+            const double min_ang_acc = -param_.max_ang_acc;
+            const double max_ang_acc =  param_.max_ang_acc;
+
+            v_limited(2) = limitFirstDerivative(v_limited(2), base_cmd_prev_(2), dt_, min_ang_acc, max_ang_acc);
+
+            // -------- VELOCITY LIMIT --------
+            // 1) linear speed norm limit (keep your original policy)
+            Eigen::Vector2d lin = v_limited.head<2>();
+            const double lin_speed = lin.norm();
+            if (lin_speed > param_.max_lin_speed && lin_speed > 1e-9)
             {
-                desired_lin_vel_dir = desired_lin_vel / desired_lin_speed;
+                lin *= (param_.max_lin_speed / lin_speed);
             }
-            desired_lin_speed = std::min(std::max(desired_lin_speed, -param_.max_lin_speed), param_.max_lin_speed);
-            double desired_ang_vel = std::min(std::max(desired_base_vel(2), -param_.max_ang_speed), param_.max_ang_speed);
+            v_limited.head<2>() = lin;
 
-            saturated_base_vel.head(2) = desired_lin_vel_dir * desired_lin_speed;
-            saturated_base_vel(2) = desired_ang_vel;
+            // 2) angular speed scalar limit
+            v_limited(2) = limitValue(v_limited(2), -param_.max_ang_speed, param_.max_ang_speed);
 
-            return computeWheelVel(saturated_base_vel);
+            // ---- update history with the FINAL limited command ----
+            base_cmd_prev2_ = base_cmd_prev_;
+            base_cmd_prev_  = v_limited;
+
+            // Convert base cmd -> wheel cmd
+            return computeWheelVel(v_limited);
         }
 
         VectorXd RobotController::computeWheelVel(const VectorXd& base_vel)
