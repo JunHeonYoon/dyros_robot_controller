@@ -73,6 +73,10 @@ namespace drc
                  * @return (Eigen::MatrixXd) Jacobian [wheel_num x 3].
                 */
                 MatrixXd CasterIKJacobian();
+
+                Eigen::Vector3d base_cmd_prev_  = Eigen::Vector3d::Zero();  // v0 (k-1)
+                Eigen::Vector3d base_cmd_prev2_ = Eigen::Vector3d::Zero();  // v1 (k-2)
+                bool base_cmd_hist_init_ = false;
         };
     } // namespace Mobile
 } // namespace drc
