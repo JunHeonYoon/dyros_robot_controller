@@ -54,7 +54,7 @@ namespace drc
                 /**
                  * @brief Cosntructor.
                  */
-                QPBase(){}
+                QPBase() : solver_initialized_(false), warm_start_ready_(false) {}
                 /**
                  * @brief Set the size and initialize each variables of the QP problem.
                  * @param nx      (int) Number of decision variables.
@@ -65,6 +65,15 @@ namespace drc
                 void setQPsize(const int &nx, const int&nbc, const int &nineqc, const int &neqc)
                 {
                     assert(nbc == nx || nbc == 0);
+
+                    if (solver_initialized_)
+                    {
+                        solver_.clearSolverVariables();
+                        solver_.clearSolver();
+                        solver_initialized_ = false;
+                    }
+
+                    warm_start_ready_ = false;
             
                     nx_ = nx;
                     nbc_ = nbc;
@@ -130,51 +139,61 @@ namespace drc
                     l dense (nc x 1)
                     u dense (nc x 1)
                     */
-                    SparseMatrix<double> P(nx_, nx_);
-                    VectorXd q;
-                    SparseMatrix<double> A(nc_, nx_);
-                    VectorXd l, u;
-                    P = P_ds_.sparseView();
-                    A = A_ds_.sparseView();
-                    q = q_ds_;
-                    l = l_ds_;
-                    u = u_ds_;
-            
-                    OsqpEigen::Solver solver;
-            
-                    // settings
-                    solver.settings()->setWarmStart(false);
-                    // solver.settings()->getSettings()->eps_abs = 1e-4;
-                    // solver.settings()->getSettings()->eps_rel = 1e-5;
-                    solver.settings()->getSettings()->verbose = false;
-            
-                    // set the initial data of the QP solver
-                    solver.data()->setNumberOfVariables(nx_);
-                    solver.data()->setNumberOfConstraints(nc_);
-                    if (!solver.data()->setHessianMatrix(P))           return false;
-                    if (!solver.data()->setGradient(q))                return false;
-                    if (!solver.data()->setLinearConstraintsMatrix(A)) return false;
-                    if (!solver.data()->setLowerBound(l))              return false;
-                    if (!solver.data()->setUpperBound(u))              return false;
-            
-            
-                    // instantiate the solver
-                    if (!solver.initSolver()) return false;
-            
-                    // solve the QP problem
-                    if (solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return false;
-                    qp_status_ = solver.getStatus();
-                    if (solver.getStatus() != OsqpEigen::Status::Solved) return false;
-                    // if (solver.getStatus() != OsqpStatus::Solved && solver.getStatus() != OsqpStatus::SolvedInaccurate) return false;
-            
+                    SparseMatrix<double> P = P_ds_.sparseView();
+                    SparseMatrix<double> A = A_ds_.sparseView();
+
+                    if (!solver_initialized_)
+                    {
+                        // settings
+                        solver_.settings()->setWarmStart(true);
+                        // solver_.settings()->getSettings()->eps_abs = 1e-4;
+                        // solver_.settings()->getSettings()->eps_rel = 1e-5;
+                        solver_.settings()->getSettings()->verbose = false;
+                        solver_.settings()->getSettings()->time_limit = 3e-4;
+
+                        // set the initial data of the QP solver
+                        solver_.data()->setNumberOfVariables(nx_);
+                        solver_.data()->setNumberOfConstraints(nc_);
+                        if (!solver_.data()->setHessianMatrix(P))           return false;
+                        if (!solver_.data()->setGradient(q_ds_))            return false;
+                        if (!solver_.data()->setLinearConstraintsMatrix(A)) return false;
+                        if (!solver_.data()->setLowerBound(l_ds_))          return false;
+                        if (!solver_.data()->setUpperBound(u_ds_))          return false;
+
+                        // instantiate the solver
+                        if (!solver_.initSolver()) return false;
+                        solver_initialized_ = true;
+                    }
+                    else
+                    {
+                        if (!solver_.updateHessianMatrix(P))           return false;
+                        if (!solver_.updateGradient(q_ds_))            return false;
+                        if (!solver_.updateLinearConstraintsMatrix(A)) return false;
+                        if (!solver_.updateBounds(l_ds_, u_ds_))        return false;
+                    }
+
+                    if (warm_start_ready_)
+                    {
+                        solver_.setWarmStart(last_primal_, last_dual_);
+                    }
+
                     time_status.set_solver = timer_.elapsedAndReset();
-            
-                    sol = solver.getSolution();
-            
+
+                    // solve the QP problem
+                    if (solver_.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return false;
+                    qp_status_ = solver_.getStatus();
+                    // if (solver_.getStatus() != OsqpEigen::Status::Solved) return false;
+                    // if (solver.getStatus() != OsqpStatus::Solved && solver.getStatus() != OsqpStatus::SolvedInaccurate) return false;
+                    // TODO: near constraints, QP failed witihin timelimit
+                     if (solver_.getStatus() != OsqpEigen::Status::Solved && solver_.getStatus() != OsqpEigen::Status::TimeLimitReached) return false;
+
                     time_status.solve_qp = timer_.elapsedAndReset();
-            
-                    solver.clearSolverVariables();
-                    solver.clearSolver();
+
+                    sol = solver_.getSolution();
+
+                    last_primal_ = sol;
+                    last_dual_ = solver_.getDualSolution();
+                    warm_start_ready_ = true;
             
                     return true;
                 }
@@ -254,6 +273,13 @@ namespace drc
                 OsqpEigen::Status qp_status_;   // Status of the QP solver
                 SuhanBenchmark timer_;          // Timer for benchmarking
                 TimeDuration time_status_;      // Time durations structure for the QP solving process
+
+                OsqpEigen::Solver solver_;      // Persistent solver instance to avoid re-init
+                bool solver_initialized_;
+
+                VectorXd last_primal_;
+                VectorXd last_dual_;
+                bool warm_start_ready_;
         };
     } // namespace QP
 } // namespace drc
