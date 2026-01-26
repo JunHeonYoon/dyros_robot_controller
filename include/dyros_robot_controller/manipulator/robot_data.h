@@ -43,21 +43,25 @@ namespace drc
                 EIGEN_MAKE_ALIGNED_OPERATOR_NEW
                 /**
                  * @brief Constructor.
+                 * @param dt            (double) Control loop time step in seconds.
                  * @param urdf_path     (std::string) Path to the URDF file.
                  * @param srdf_path     (std::string) Path to the SRDF file.
                  * @param packages_path (std::string) Path to the packages directory.
                  */
-                RobotData(const std::string& urdf_path, 
+                RobotData(const double dt,
+                          const std::string& urdf_path, 
                           const std::string& srdf_path="", 
                           const std::string& packages_path="");
                 /**
                  * @brief Constructor.
+                 * @param dt            (double) Control loop time step in seconds.
                  * @param urdf_source   (std::string) URDF file path or URDF XML string (when use_xml is true).
                  * @param srdf_source   (std::string) SRDF file path or SRDF XML string (when use_xml is true).
                  * @param packages_path (std::string) Path to the packages directory.
                  * @param use_xml       (bool) If true, treat URDF/SRDF inputs as XML strings.
                  */
-                RobotData(const std::string& urdf_source,
+                RobotData(const double dt,
+                          const std::string& urdf_source,
                           const std::string& srdf_source,
                           const std::string& packages_path,
                           const bool use_xml);
@@ -158,6 +162,7 @@ namespace drc
                 const std::string getURDFPath() const {return urdf_path_;}
                 const std::string getSRDFPath() const {return srdf_path_;}
                 const std::string getPackagePath() const {return packages_path_;}
+                double getDt() const {return dt_;}
 
                 // Link frames (BODY)
                 const std::vector<std::string>& getLinkFrameVector() const { return link_frame_names_; }
@@ -197,6 +202,11 @@ namespace drc
                  * @return (std::pair<Eigen::VectorXd, Eigen::VectorXd>) Joint velocity limits (lower, upper) of the manipulator.
                  */
                 virtual std::pair<VectorXd,VectorXd> getJointVelocityLimit() const {return std::make_pair(qdot_lb_, qdot_ub_);}
+                /**
+                 * @brief Get lower and upper joint effort limits of the manipulator.
+                 * @return (std::pair<Eigen::VectorXd, Eigen::VectorXd>) Joint torque limits (lower, upper) of the manipulator.
+                 */
+                virtual std::pair<VectorXd,VectorXd> getJointEffortLimit() const {return std::make_pair(torque_lb_, torque_ub_);}
                 /**
                  * @brief Get the mass matrix of the manipulator.
                  * @return (Eigen::MatrixXd) Mass matrix of the manipulator.
@@ -301,6 +311,7 @@ namespace drc
                 std::string root_link_name_;
 
                 int dof_;           // Total degrees of freedom.
+                double dt_;         // Control time step in seconds.
                 
                 // Joint space state
                 VectorXd q_;        // Manipulator joint positions.
@@ -309,6 +320,8 @@ namespace drc
                 VectorXd q_ub_;     // Upper joint position limits of the manipulator.
                 VectorXd qdot_lb_;  // Lower joint velocity limits of the manipulator.
                 VectorXd qdot_ub_;  // Upper joint velocity limits of the manipulator.
+                VectorXd torque_lb_;
+                VectorXd torque_ub_;
 
                 // Joint space Dynamics
                 MatrixXd M_;        // Mass matrix of the manipulator.
