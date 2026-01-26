@@ -20,11 +20,10 @@ namespace drc
                 /**
                  * @brief Constructor.
                  *
-                 * @param dt         (double) Control loop time step in seconds.
                  * @param robot_data (std::shared_ptr<Mobile::RobotData>)
                  *                   Shared pointer to the RobotData class.
                 */
-                RobotController(const double& dt, std::shared_ptr<Mobile::RobotData> robot_data);
+                RobotController(std::shared_ptr<Mobile::RobotData> robot_data);
 
                 /**
                  * @brief Compute wheel velocities from desired base velocity using inverse kinematics.

@@ -11,17 +11,19 @@ class RobotData(drc_cpp.MobileRobotData):
     (e.g., Differential, Mecanum, Caster). It supports state update, forward velocity computation,
     and Jacobian calculation based on the specified kinematic parameters.
     """
-    def __init__(self, param: KinematicParam):
+    def __init__(self, dt: float, param: KinematicParam):
         """
         Constructor.
 
         Parameters:
+            dt : (float) Control loop time step in seconds.
             param : (KinematicParam) Kinematic parameter instance containing drive type and geometry.
         """
+        self._dt = float(dt)
         if not isinstance(param, KinematicParam):
             raise TypeError("param must be a KinematicParam instance")
         self._param = param
-        super().__init__(self._param.cpp())
+        super().__init__(self._dt, self._param.cpp())
         self.wheel_num = super().getWheelNum()
     
     def get_verbose(self) -> str:
@@ -32,6 +34,15 @@ class RobotData(drc_cpp.MobileRobotData):
             (str) Debug information.
         """
         return super().getVerbose()
+
+    def get_dt(self) -> float:
+        """
+        Get the control time step.
+
+        Return:
+            (float) Control loop time step in seconds.
+        """
+        return float(super().getDt())
         
     def update_state(self, wheel_pos: np.ndarray, wheel_vel: np.ndarray) -> bool:
         """

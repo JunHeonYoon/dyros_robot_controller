@@ -43,8 +43,8 @@ FR3XLSController::FR3XLSController(const double dt)
     actuator_idx.mobi_start = 7;
 
     // Instantiate dyros robot model/controller
-    robot_data_ = std::make_shared<drc::MobileManipulator::RobotData>(mobile_param, joint_idx, actuator_idx, urdf, srdf);
-    robot_controller_ = std::make_shared<drc::MobileManipulator::RobotController>(dt_, robot_data_);
+    robot_data_ = std::make_shared<drc::MobileManipulator::RobotData>(dt_, mobile_param, joint_idx, actuator_idx, urdf, srdf);
+    robot_controller_ = std::make_shared<drc::MobileManipulator::RobotController>(robot_data_);
 
     // Degree of freedom
     virtual_dof_ = 3;

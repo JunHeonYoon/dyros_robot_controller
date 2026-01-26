@@ -49,8 +49,8 @@ namespace drc
 {
     namespace Mobile
     {
-        RobotController::RobotController(const double& dt, std::shared_ptr<Mobile::RobotData> robot_data)
-        : dt_(dt), robot_data_(robot_data)
+        RobotController::RobotController(std::shared_ptr<Mobile::RobotData> robot_data)
+        : dt_(robot_data->getDt()), robot_data_(robot_data)
         {
             param_ = robot_data_->getKineParam();
             wheel_num_ = robot_data_->getWheelNum();

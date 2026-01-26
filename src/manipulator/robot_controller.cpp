@@ -4,9 +4,8 @@ namespace drc
 {
     namespace Manipulator
     {
-        RobotController::RobotController(const double& dt,
-                                         std::shared_ptr<Manipulator::RobotData> robot_data)
-        : robot_data_(robot_data), dt_(dt)
+        RobotController::RobotController(std::shared_ptr<Manipulator::RobotData> robot_data)
+        : robot_data_(robot_data), dt_(robot_data->getDt())
         {
             dof_ = robot_data_->getDof();
             Kp_joint_ = VectorXd::Constant(dof_, 400);

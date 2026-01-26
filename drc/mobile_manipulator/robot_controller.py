@@ -12,12 +12,11 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
     Joint space functions compute control inputs of the manipulator to track desired joint positions, velocities, or accelerations.
     Task space functions compute control inputs of the whole body to track desired position or velocity of a link.
     """
-    def __init__(self, dt: float, robot_data: RobotData):
+    def __init__(self, robot_data: RobotData):
         """
         Constructor.
 
         Parameters:
-            dt         : (float) Control loop time step in seconds.
             robot_data : (DataMomaBase) An instance of the Python MobileManipulatorBase wrapper which contains the robot's kinematic and dynamic parameters.
 
         Raises:
@@ -25,9 +24,9 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         """
         if not isinstance(robot_data, RobotData):
             raise TypeError("robot_data must be an instance of the Python MobileManipulatorBase")
-        self._dt = float(dt)
         self._robot_data = robot_data
-        super().__init__(self._dt, self._robot_data)
+        self._dt = float(self._robot_data.get_dt())
+        super().__init__(self._robot_data)
 
     def set_manipulator_joint_gain(self, 
                                    kp: np.ndarray | None = None, 

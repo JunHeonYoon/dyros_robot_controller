@@ -4,14 +4,15 @@ namespace drc
 {
     namespace MobileManipulator
     {
-        RobotData::RobotData(const Mobile::KinematicParam& mobile_param,
+        RobotData::RobotData(const double dt,
+                             const Mobile::KinematicParam& mobile_param,
                              const JointIndex& joint_idx,
                              const ActuatorIndex& actuator_idx,
                              const std::string& urdf_path,
                              const std::string& srdf_path, 
                              const std::string& packages_path)
-        : Mobile::RobotData(mobile_param), 
-          Manipulator::RobotData(urdf_path, srdf_path, packages_path),
+        : Mobile::RobotData(dt, mobile_param), 
+          Manipulator::RobotData(dt, urdf_path, srdf_path, packages_path),
           joint_idx_(joint_idx),
           actuator_idx_(actuator_idx)
         {

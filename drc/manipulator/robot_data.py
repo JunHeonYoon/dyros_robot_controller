@@ -11,17 +11,19 @@ class RobotData(drc_cpp.ManipulatorRobotData):
     It supports state update, forward kinematics, dynamics computation and
     Jacobian, minimum distance and manipulability calculation based on the specified kinematic parameters.
     """
-    def __init__(self, urdf_path: str, srdf_path: str="", packages_path: str="", use_xml: bool=False):
+    def __init__(self, dt: float, urdf_path: str, srdf_path: str="", packages_path: str="", use_xml: bool=False):
         """
         Constructor.
 
         Parameters:
+            dt            : (float) Control loop time step in seconds.
             urdf_path     : (str) Path to the URDF file or URDF XML string when use_xml is True.
             srdf_path     : (str) Path to the SRDF file or SRDF XML string when use_xml is True.
             packages_path : (str) Path to the packages directory.
             use_xml       : (bool) If True, treat urdf_path/srdf_path as XML strings.
         """
-        super().__init__(urdf_path, srdf_path, packages_path, use_xml)
+        self._dt = float(dt)
+        super().__init__(self._dt, urdf_path, srdf_path, packages_path, use_xml)
         self.dof = super().getDof()
         
     def get_verbose(self) -> str:
@@ -32,6 +34,15 @@ class RobotData(drc_cpp.ManipulatorRobotData):
             (str) Debug information.
         """
         return super().getVerbose()
+
+    def get_dt(self) -> float:
+        """
+        Get the control time step.
+
+        Return:
+            (float) Control loop time step in seconds.
+        """
+        return float(super().getDt())
 
     def update_state(self, q: np.ndarray, qdot: np.ndarray) -> bool:
         """

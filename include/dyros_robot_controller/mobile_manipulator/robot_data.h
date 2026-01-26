@@ -45,6 +45,7 @@ namespace drc
                 EIGEN_MAKE_ALIGNED_OPERATOR_NEW
                 /**
                  * @brief Constructor.
+                 * @param dt            (double) Control loop time step in seconds.
                  * @param mobile_param  (RobotData::Mobile::KinematicParam) Kinematic parameter structure of the mobile base containing drive type and geometry.
                  * @param urdf_path     (std::string) Path to the URDF file.
                  * @param srdf_path     (std::string) Path to the SRDF file.
@@ -52,7 +53,8 @@ namespace drc
                  * @param joint_idx     (RobotData::JointIndex) Joint index structure containing starting indices for virtual, manipulator, and mobile joints.
                  * @param actuator_idx  (RobotData::ActuatorIndex) Actuator index structure containing starting indices for manipulator and mobile actuators.
                 */
-                RobotData(const Mobile::KinematicParam& mobile_param,
+                RobotData(const double dt,
+                          const Mobile::KinematicParam& mobile_param,
                           const JointIndex& joint_idx,
                           const ActuatorIndex& actuator_idx,
                           const std::string& urdf_path,
@@ -62,6 +64,7 @@ namespace drc
                 using Manipulator::RobotData::getVerbose;
                 using Mobile::RobotData::getVerbose;
                 std::string getVerbose() const;
+                double getDt() const { return Mobile::RobotData::getDt(); }
                                                
                 using Manipulator::RobotData::updateState; 
                 /**

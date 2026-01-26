@@ -62,12 +62,13 @@ class FR3XLSController:
         actuator_idx = ActuatorIndex(mani_start=0, mobi_start=7)
 
         # Instantiate dyros robot model/controller
-        self.robot_data = RobotData(mobile_param=mobile_param, 
+        self.robot_data = RobotData(dt=self.dt,
+                                    mobile_param=mobile_param, 
                                     joint_idx=joint_idx, 
                                     actuator_idx=actuator_idx, 
                                     urdf_path=urdf_file_path, 
                                     srdf_path=srdf_file_path)
-        self.robot_controller = RobotController(dt=self.dt, robot_data=self.robot_data)
+        self.robot_controller = RobotController(robot_data=self.robot_data)
 
         # Degree of freedom
         self.virual_dof: int = 3

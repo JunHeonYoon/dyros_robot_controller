@@ -5,8 +5,8 @@ namespace drc
 {
     namespace Mobile
     {
-        RobotData::RobotData(const KinematicParam& param)
-        : param_(param)
+        RobotData::RobotData(const double dt, const KinematicParam& param)
+        : param_(param), dt_(dt)
         {
             if(param_.type == DriveType::Differential)
             {
@@ -29,6 +29,8 @@ namespace drc
 
             J_mobile_.setZero(3, wheel_num_);
             base_vel_.setZero();
+
+            base_pose_.setIdentity();
         }
 
         std::string RobotData::getVerbose() const
@@ -110,8 +112,19 @@ namespace drc
             
             J_mobile_ = computeFKJacobian(wheel_pos);
             base_vel_ = J_mobile_ * wheel_vel_;
+            base_pose_ = computeBasePose(wheel_pos, wheel_vel);
 
             return true;
+        }
+
+        void RobotData::initBasePose(double x, double y, double yaw)
+        {
+            base_pose_.setIdentity();
+
+            base_pose_.translation() << x, y;
+
+            Eigen::Rotation2Dd R(yaw);
+            base_pose_.linear() = R.toRotationMatrix();
         }
 
         Vector3d RobotData::computeBaseVel(const VectorXd& wheel_pos, const VectorXd& wheel_vel)
@@ -133,6 +146,68 @@ namespace drc
                 default:
                     throw std::runtime_error("Unknown DriveType");
             }
+        }
+
+        Affine2d RobotData::computeBasePose(const VectorXd& wheel_pos, const VectorXd& wheel_vel)
+        {
+            assert(wheel_pos.size() == wheel_num_);
+            assert(wheel_vel.size() == wheel_num_);
+            assert(dt_ > 1e-6);
+
+            /* 1. Compute base velocity (body frame) */
+            Vector3d v_body = computeBaseVel(wheel_pos, wheel_vel);
+
+            double vx = v_body(0);
+            double vy = v_body(1);
+            double w  = v_body(2);
+
+            /* 2. Current pose */
+            double x = base_pose_.translation()(0);
+            double y = base_pose_.translation()(1);
+            double theta = atan2(base_pose_.linear()(1,0), base_pose_.linear()(0,0));
+
+            /* 3. Integrate */
+            double dtheta = w * dt_;
+            double dx_world, dy_world;
+
+            /* Case 1: Near zero angular velocity */
+            if (std::fabs(w) < 1e-6)
+            {
+                double theta_mid = theta + 0.5 * dtheta;
+
+                dx_world = ( vx * cos(theta_mid) - vy * sin(theta_mid) ) * dt_;
+                dy_world = ( vx * sin(theta_mid) + vy * cos(theta_mid) ) * dt_;
+            }
+            /* Case 2: Exact integration */
+            else
+            {
+                double s = sin(dtheta);
+                double c = cos(dtheta);
+
+                double A = s / w;
+                double B = (1.0 - c) / w;
+
+                double dx_body =  A * vx - B * vy;
+                double dy_body =  B * vx + A * vy;
+
+                dx_world =  cos(theta) * dx_body - sin(theta) * dy_body;
+                dy_world =  sin(theta) * dx_body + cos(theta) * dy_body;
+            }
+
+            /* 4. Update pose */
+            x += dx_world;
+            y += dy_world;
+            theta += dtheta;
+
+            /* 5. Write back to Affine */
+            Eigen::Affine2d base_pose;
+            base_pose.setIdentity();
+            base_pose.translation() << x, y;
+
+            Eigen::Rotation2Dd R(theta);
+            base_pose.linear() = R.toRotationMatrix();
+
+            return base_pose;
         }
 
         MatrixXd RobotData::DifferentialFKJacobian()

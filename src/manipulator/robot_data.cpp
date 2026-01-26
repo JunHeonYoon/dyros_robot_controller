@@ -5,18 +5,20 @@ namespace drc
 {
     namespace Manipulator
     {
-        RobotData::RobotData(const std::string& urdf_path,
+        RobotData::RobotData(const double dt,
+                             const std::string& urdf_path,
                              const std::string& srdf_path,
                              const std::string& packages_path)
-        : RobotData(urdf_path, srdf_path, packages_path, false)
+        : RobotData(dt, urdf_path, srdf_path, packages_path, false)
         {
         }
 
-        RobotData::RobotData(const std::string& urdf_source,
+        RobotData::RobotData(const double dt,
+                             const std::string& urdf_source,
                              const std::string& srdf_source,
                              const std::string& packages_path,
                              const bool use_xml)
-        : urdf_path_(urdf_source), srdf_path_(srdf_source), packages_path_(packages_path)
+        : dt_(dt), urdf_path_(urdf_source), srdf_path_(srdf_source), packages_path_(packages_path)
         {
             if (use_xml)
             {
@@ -118,6 +120,8 @@ namespace drc
             q_ub_ = model_.upperPositionLimit;
             qdot_lb_ = -model_.velocityLimit;
             qdot_ub_ = model_.velocityLimit;
+            torque_lb_ = -model_.effortLimit;
+            torque_ub_ = model_.effortLimit;
 
             // Initialize joint space dynamics
             M_.setZero(dof_,dof_);

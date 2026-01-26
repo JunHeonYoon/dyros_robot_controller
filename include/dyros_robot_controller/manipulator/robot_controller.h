@@ -20,10 +20,9 @@ namespace drc
                 EIGEN_MAKE_ALIGNED_OPERATOR_NEW
                 /**
                  * @brief Constructor.
-                 * @param dt         (double) Control loop time step in seconds.
                  * @param robot_data (std::shared_ptr<Manipulator::RobotData>) Shared pointer to the RobotData class.
                  */
-                RobotController(const double& dt,  std::shared_ptr<Manipulator::RobotData> robot_data);
+                RobotController(std::shared_ptr<Manipulator::RobotData> robot_data);
                 
                 /**
                  * @brief Set joint space PD gains for the manipulator.

@@ -4,11 +4,10 @@ namespace drc
 {
     namespace MobileManipulator
     {
-        RobotController::RobotController(const double& dt,
-                                         std::shared_ptr<MobileManipulator::RobotData> robot_data)
-        : Mobile::RobotController(dt, std::static_pointer_cast<Mobile::RobotData>(robot_data))
+        RobotController::RobotController(std::shared_ptr<MobileManipulator::RobotData> robot_data)
+        : Mobile::RobotController(std::static_pointer_cast<Mobile::RobotData>(robot_data))
+        , dt_(robot_data->getDt())
         , robot_data_(std::move(robot_data))
-        , dt_(dt)
         {
             dof_ = robot_data_->getDof();
             mani_dof_ = robot_data_->getManipulatorDof();

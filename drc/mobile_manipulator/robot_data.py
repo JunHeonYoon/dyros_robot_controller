@@ -14,6 +14,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
     It supports a mobile manipulator with a floating base, manipulator joints, and mobile wheel joints.
     """
     def __init__(self,
+                 dt: float,
                  mobile_param: KinematicParam,
                  joint_idx: JointIndex,
                  actuator_idx: ActuatorIndex,
@@ -25,6 +26,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Constructor.
 
         Parameters:
+            dt            : (float) Control loop time step in seconds.
             mobile_param  : (KinematicParam) Kinematic parameter instance containing drive type and geometry.
             joint_idx     : (JointIndex) Joint index structure containing starting indices for virtual, manipulator, and mobile joints.
             actuator_idx  : (ActuatorIndex) Actuator index structure containing starting indices for manipulator and mobile actuators.
@@ -32,10 +34,12 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             srdf_path     : (str) Path to the SRDF file.
             packages_path : (str) Path to the packages directory.
         """
+        self._dt = float(dt)
         self._mobile_kine_param = mobile_param
         self._joint_idx = joint_idx
         self._actuator_idx = actuator_idx
-        super().__init__(self._mobile_kine_param.cpp(),
+        super().__init__(self._dt,
+                         self._mobile_kine_param.cpp(),
                          self._joint_idx.cpp(),
                          self._actuator_idx.cpp(),
                          urdf_path,
@@ -55,6 +59,15 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             (str) Debug information.
         """
         return super().getVerbose()
+
+    def get_dt(self) -> float:
+        """
+        Get the control time step.
+
+        Return:
+            (float) Control loop time step in seconds.
+        """
+        return float(super().getDt())
 
     def update_state(self,
                      q_virtual: np.ndarray,

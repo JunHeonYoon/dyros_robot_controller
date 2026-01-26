@@ -10,12 +10,11 @@ class RobotController(drc_cpp.MobileRobotController):
     This class computes wheel velocities based on desired base velocity
     using inverse kinematics Jacobians. Supports Differential, Mecanum, and Caster drive types.
     """
-    def __init__(self, dt: float, robot_data: RobotData):
+    def __init__(self, robot_data: RobotData):
         """
         Constructor.
 
         Parameters:
-            dt         : (float) Control loop time step in seconds.
             robot_data : (DataMobileBase) An instance of the Python MobileBase wrapper which contains the robot's kinematic model.
 
         Raises:
@@ -24,8 +23,8 @@ class RobotController(drc_cpp.MobileRobotController):
         if not isinstance(robot_data, RobotData):
             raise TypeError("robot_data must be an instance of the Python MobileBase wrapper")
         self._robot_data = robot_data
-        self._dt = float(dt)
-        super().__init__(self._dt, self._robot_data)
+        self._dt = float(self._robot_data.get_dt())
+        super().__init__(self._robot_data)
 
     def compute_wheel_vel(self, base_vel: np.ndarray) -> np.ndarray:
         """

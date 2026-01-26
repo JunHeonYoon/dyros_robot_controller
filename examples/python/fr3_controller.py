@@ -35,8 +35,8 @@ class FR3Controller:
         srdf_file_path = os.path.join(root, "robots", "fr3", "fr3.srdf")
 
         # Instantiate dyros robot model/controller
-        self.robot_data = RobotData(urdf_path=urdf_file_path, srdf_path=srdf_file_path)
-        self.robot_controller = RobotController(dt=self.dt, robot_data=self.robot_data)
+        self.robot_data = RobotData(dt=self.dt, urdf_path=urdf_file_path, srdf_path=srdf_file_path)
+        self.robot_controller = RobotController(robot_data=self.robot_data)
 
         # Degree of freedom
         self.dof: int = self.robot_data.get_dof()
