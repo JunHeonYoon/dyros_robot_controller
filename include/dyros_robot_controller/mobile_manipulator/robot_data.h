@@ -47,11 +47,11 @@ namespace drc
                  * @brief Constructor.
                  * @param dt            (double) Control loop time step in seconds.
                  * @param mobile_param  (RobotData::Mobile::KinematicParam) Kinematic parameter structure of the mobile base containing drive type and geometry.
+                 * @param joint_idx     (RobotData::JointIndex) Joint index structure containing starting indices for virtual, manipulator, and mobile joints.
+                 * @param actuator_idx  (RobotData::ActuatorIndex) Actuator index structure containing starting indices for manipulator and mobile actuators.
                  * @param urdf_path     (std::string) Path to the URDF file.
                  * @param srdf_path     (std::string) Path to the SRDF file.
                  * @param packages_path (std::string) Path to the packages directory.
-                 * @param joint_idx     (RobotData::JointIndex) Joint index structure containing starting indices for virtual, manipulator, and mobile joints.
-                 * @param actuator_idx  (RobotData::ActuatorIndex) Actuator index structure containing starting indices for manipulator and mobile actuators.
                 */
                 RobotData(const double dt,
                           const Mobile::KinematicParam& mobile_param,
@@ -60,6 +60,26 @@ namespace drc
                           const std::string& urdf_path,
                           const std::string& srdf_path="", 
                           const std::string& packages_path="");
+
+                /**
+                 * @brief Constructor.
+                 * @param dt            (double) Control loop time step in seconds.
+                 * @param mobile_param  (RobotData::Mobile::KinematicParam) Kinematic parameter structure of the mobile base containing drive type and geometry.
+                 * @param joint_idx     (RobotData::JointIndex) Joint index structure containing starting indices for virtual, manipulator, and mobile joints.
+                 * @param actuator_idx  (RobotData::ActuatorIndex) Actuator index structure containing starting indices for manipulator and mobile actuators.
+                 * @param urdf_source   (std::string) URDF file path or URDF XML string (when use_xml is true).
+                 * @param srdf_source   (std::string) SRDF file path or SRDF XML string (when use_xml is true).
+                 * @param packages_path (std::string) Path to the packages directory.
+                 * @param use_xml       (bool) If true, treat URDF/SRDF inputs as XML strings.
+                 */
+                RobotData(const double dt,
+                          const Mobile::KinematicParam& mobile_param,
+                          const JointIndex& joint_idx,
+                          const ActuatorIndex& actuator_idx,
+                          const std::string& urdf_source,
+                          const std::string& srdf_source,
+                          const std::string& packages_path,
+                          const bool use_xml);
 
                 using Manipulator::RobotData::getVerbose;
                 using Mobile::RobotData::getVerbose;
