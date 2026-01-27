@@ -186,7 +186,6 @@ namespace drc
             const bool qp_success = QP_moma_IK_->getOptJointVel(opt_qdot, time_duration);
             if(!qp_success)
             {
-                std::cerr << "QP IK failed to compute optimal joint velocity." << std::endl;
                 opt_qdot.setZero(dof_);
             }
         
@@ -276,13 +275,12 @@ namespace drc
                                    const bool time_verbose)
         {
             QP_moma_ID_->setDesiredTaskAcc(link_xddot_target);
-            VectorXd opt_qddot = VectorXd::Zero(dof_);
-            VectorXd opt_torque = VectorXd::Zero(dof_);
+            VectorXd opt_qddot = VectorXd::Zero(actuator_dof_);
+            VectorXd opt_torque = VectorXd::Zero(actuator_dof_);
             QP::TimeDuration time_duration;
             const bool qp_success = QP_moma_ID_->getOptJoint(opt_qddot, opt_torque, time_duration);
             if(!qp_success)
             {
-                std::cerr << "QP ID failed to compute optimal joint torque." << std::endl;
                 opt_torque = robot_data_->getGravity();
                 opt_qddot.setZero();
             }
