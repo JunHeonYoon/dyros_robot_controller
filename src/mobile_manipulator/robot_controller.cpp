@@ -180,6 +180,15 @@ namespace drc
                                    Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                    const bool time_verbose)
         {
+            if(opt_qdot_mobile.size() != mobi_dof_ || opt_qdot_manipulator.size() != mani_dof_)
+            {
+                std::cerr << "Size of opt_qdot_mobile(" << opt_qdot_mobile.size() << ") or opt_qdot_manipulator(" << opt_qdot_manipulator.size() 
+                          << ") are not same as mobi_dof_(" << mobi_dof_ << ") and mani_dof_(" << mani_dof_ << ")" << std::endl;
+                return false;
+            }
+            opt_qdot_mobile.setZero();
+            opt_qdot_manipulator.setZero();
+
             QP_moma_IK_->setDesiredTaskVel(link_xdot_target);
             VectorXd opt_qdot = VectorXd::Zero(actuator_dof_);
             QP::TimeDuration time_duration;
@@ -189,13 +198,6 @@ namespace drc
                 opt_qdot.setZero(dof_);
             }
         
-            if(opt_qdot_mobile.size() != mobi_dof_ || opt_qdot_manipulator.size() != mani_dof_)
-            {
-                std::cerr << "QPIK output size mismatch." << std::endl;
-                return false;
-            }
-            opt_qdot_mobile.setZero();
-            opt_qdot_manipulator.setZero();
             opt_qdot_mobile = opt_qdot.segment(robot_data_->getActuatorIndex().mobi_start, mobi_dof_);
             opt_qdot_manipulator = opt_qdot.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_);
 
@@ -274,6 +276,15 @@ namespace drc
                                    Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                    const bool time_verbose)
         {
+            if(opt_qddot_mobile.size() != mobi_dof_ || opt_torque_manipulator.size() != mani_dof_)
+            {
+                std::cerr << "Size of opt_qddot_mobile(" << opt_qddot_mobile.size() << ") or opt_torque_manipulator(" << opt_torque_manipulator.size() 
+                          << ") are not same as mobi_dof_(" << mobi_dof_ << ") and mani_dof_(" << mani_dof_ << ")" << std::endl;
+                return false;
+            }
+            opt_qddot_mobile.setZero();
+            opt_torque_manipulator.setZero();
+            
             QP_moma_ID_->setDesiredTaskAcc(link_xddot_target);
             VectorXd opt_qddot = VectorXd::Zero(actuator_dof_);
             VectorXd opt_torque = VectorXd::Zero(actuator_dof_);
@@ -285,13 +296,6 @@ namespace drc
                 opt_qddot.setZero();
             }
 
-            if(opt_qddot_mobile.size() != mobi_dof_ || opt_torque_manipulator.size() != mani_dof_)
-            {
-                std::cerr << "QPID output size mismatch." << std::endl;
-                return false;
-            }
-            opt_qddot_mobile.setZero();
-            opt_torque_manipulator.setZero();
             opt_qddot_mobile = opt_qddot.segment(robot_data_->getActuatorIndex().mobi_start, mobi_dof_);
             opt_torque_manipulator = opt_torque.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_);
 

@@ -56,12 +56,14 @@ namespace drc
         {
             if(opt_qdot.size() != joint_dof_)
             {
+                std::cerr << "Size of opt_qdot(" << opt_qdot.size() << ") is not same as joint_dof_(" << joint_dof_ << ")" << std::endl;
                 time_status.setZero();
                 return false;
             }
             MatrixXd sol;
             if(!solveQP(sol, time_status))
             {
+                std::cerr << "QP IK failed to compute optimal joint velocity." << std::endl;
                 opt_qdot.setZero();
                 time_status.setZero();
                 return false;

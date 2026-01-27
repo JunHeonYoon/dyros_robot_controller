@@ -57,12 +57,14 @@ namespace drc
         {
             if(opt_eta.size() != actuator_dof_)
             {
+                std::cerr << "Size of opt_eta(" << opt_eta.size() << ") is not same as actuator_dof_(" << actuator_dof_ << ")" << std::endl;
                 time_status.setZero();
                 return false;
             }
             MatrixXd sol;
             if(!solveQP(sol, time_status))
             {
+                std::cerr << "QP IK failed to compute optimal joint velocity." << std::endl;
                 opt_eta.setZero();
                 time_status.setZero();
                 return false;

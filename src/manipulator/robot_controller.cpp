@@ -332,18 +332,18 @@ namespace drc
                                    Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                    const bool time_verbose)
         {
-            QP_mani_IK_->setDesiredTaskVel(link_xdot_target);
             if(opt_qdot.size() != dof_)
             {
-                std::cerr << "QPIK output size mismatch." << std::endl;
+                std::cerr << "Size of opt_qdot(" << opt_qdot.size() << ") is not same as dof_(" << dof_ << ")" << std::endl;
                 return false;
             }
             opt_qdot.setZero();
+
+            QP_mani_IK_->setDesiredTaskVel(link_xdot_target);
             QP::TimeDuration time_duration;
             const bool qp_success = QP_mani_IK_->getOptJointVel(opt_qdot, time_duration);
             if(!qp_success)
             {
-                std::cerr << "QP IK failed to compute optimal joint velocity." << std::endl;
                 opt_qdot.setZero();
             }
 
@@ -423,7 +423,7 @@ namespace drc
             VectorXd opt_qddot = VectorXd::Zero(dof_);
             if(opt_torque.size() != dof_)
             {
-                std::cerr << "QPID output size mismatch." << std::endl;
+                std::cerr << "Size of opt_torque(" << opt_torque.size() << ") is not same as dof_(" << dof_ << ")" << std::endl;
                 return false;
             }
             opt_torque.setZero();
@@ -431,7 +431,6 @@ namespace drc
             const bool qp_success = QP_mani_ID_->getOptJoint(opt_qddot, opt_torque, time_duration);
             if(!qp_success)
             {
-                std::cerr << "QP ID failed to compute optimal joint torque." << std::endl;
                 opt_torque = robot_data_->getGravity();
             }
 

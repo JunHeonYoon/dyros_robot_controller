@@ -73,12 +73,14 @@ namespace drc
         {
             if(opt_qddot.size() != joint_dof_ || opt_torque.size() != joint_dof_)
             {
+                std::cerr << "Size of opt_qddot(" << opt_qddot.size() << ") or opt_torque(" << opt_torque.size() << ") are not same as joint_dof_(" << joint_dof_ << ")" << std::endl;
                 time_status.setZero();
                 return false;
             }
             MatrixXd sol;
             if(!solveQP(sol, time_status))
             {
+                std::cerr << "QP ID failed to compute optimal joint torque." << std::endl;
                 opt_qddot.setZero();
                 opt_torque.setZero();
                 time_status.setZero();
