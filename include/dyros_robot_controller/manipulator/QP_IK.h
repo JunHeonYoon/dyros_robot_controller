@@ -30,7 +30,8 @@ namespace drc
                  * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  */
                 // TODO: add document to notion
-                void setWeight(const std::map<std::string, Vector6d> link_w_tracking, const VectorXd w_damping);
+                void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                               const Eigen::Ref<const VectorXd>& w_damping);
                 /**
                  * @brief Set the desired task space velocity for the link.
                  * @param link_xdot_desired (std::map<std::string, Vector6d>) Desired task space velocity (6D twist) per links.
@@ -43,7 +44,7 @@ namespace drc
                  * @param time_status (TimeDuration) Time durations structure for the QP solving process.
                  * @return (bool) True if the problem was solved successfully.
                  */
-                bool getOptJointVel(VectorXd &opt_qdot, QP::TimeDuration &time_status);
+                bool getOptJointVel(Eigen::Ref<Eigen::VectorXd> opt_qdot, QP::TimeDuration &time_status);
 
             private:
                 /**

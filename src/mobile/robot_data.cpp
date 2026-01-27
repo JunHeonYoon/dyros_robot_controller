@@ -103,7 +103,7 @@ namespace drc
             return oss.str();
         }
 
-        bool RobotData::updateState(const VectorXd& wheel_pos, const VectorXd& wheel_vel)
+        bool RobotData::updateState(const Eigen::Ref<const VectorXd>& wheel_pos, const Eigen::Ref<const VectorXd>& wheel_vel)
         {
             assert(wheel_pos.size() == wheel_num_ && wheel_vel.size() == wheel_num_);
             
@@ -127,13 +127,13 @@ namespace drc
             base_pose_.linear() = R.toRotationMatrix();
         }
 
-        Vector3d RobotData::computeBaseVel(const VectorXd& wheel_pos, const VectorXd& wheel_vel)
+        Vector3d RobotData::computeBaseVel(const Eigen::Ref<const VectorXd>& wheel_pos, const Eigen::Ref<const VectorXd>& wheel_vel)
         {
             assert(wheel_pos.size() == wheel_num_ && wheel_vel.size() == wheel_num_);
             return computeFKJacobian(wheel_pos) * wheel_vel; // Return the forward kinematics result as base velocity
         }
 
-        MatrixXd RobotData::computeFKJacobian(const VectorXd& wheel_pos)
+        MatrixXd RobotData::computeFKJacobian(const Eigen::Ref<const VectorXd>& wheel_pos)
         {
             switch (param_.type) 
             {
@@ -148,7 +148,7 @@ namespace drc
             }
         }
 
-        Affine2d RobotData::computeBasePose(const VectorXd& wheel_pos, const VectorXd& wheel_vel)
+        Affine2d RobotData::computeBasePose(const Eigen::Ref<const VectorXd>& wheel_pos, const Eigen::Ref<const VectorXd>& wheel_vel)
         {
             assert(wheel_pos.size() == wheel_num_);
             assert(wheel_vel.size() == wheel_num_);
@@ -251,7 +251,7 @@ namespace drc
         }
 
         // Holmberg, Robert, and Oussama Khatib. "A POWERED-CASTER HOLONOMIC ROBOTIC VEHICLE FOR MOBILE MANIPULATION TASKS."    
-        MatrixXd RobotData::CasterFKJacobian(const VectorXd& wheel_pos)
+        MatrixXd RobotData::CasterFKJacobian(const Eigen::Ref<const VectorXd>& wheel_pos)
         {        
             VectorXd steer_angle(int(wheel_num_/2));
             for(size_t i=0; i<steer_angle.size(); i++) steer_angle(i) = wheel_pos(2*i);

@@ -31,7 +31,7 @@ namespace drc
                  * @param base_vel (Eigen::VectorXd) Desired base velocity [vx, vy, wz], size = 3.
                  * @return (Eigen::VectorXd) Computed wheel velocities [rad/s], size = number of wheels.
                 */
-                virtual VectorXd computeWheelVel(const VectorXd& base_vel);
+                virtual VectorXd computeWheelVel(const Eigen::Ref<const VectorXd>& base_vel);
 
                 /**
                  * @brief Compute inverse kinematics Jacobian (maps base velocity to wheel velocity).
@@ -46,7 +46,7 @@ namespace drc
                  * @param desired_base_vel (Eigen::VectorXd) Desired base velocity [vx, vy, wz], size = 3.
                  * @return (Eigen::VectorXd) Wheel velocity command (possibly saturated), size = number of wheels.
                 */
-                virtual VectorXd VelocityCommand(const VectorXd& desired_base_vel);
+                virtual VectorXd VelocityCommand(const Eigen::Ref<const VectorXd>& desired_base_vel);
 
             protected:
                 double dt_;                                                  // Control time step in seconds.

@@ -185,7 +185,7 @@ namespace drc
             return oss.str();
         }
 
-        bool RobotData::updateState(const VectorXd& q, const VectorXd& qdot)
+        bool RobotData::updateState(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         {
             q_ = q;
             qdot_ = qdot;
@@ -195,7 +195,7 @@ namespace drc
             return true;
         }
 
-        bool RobotData::updateKinematics(const VectorXd& q, const VectorXd& qdot)
+        bool RobotData::updateKinematics(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         {
             pinocchio::computeJointJacobians(model_, data_, q);
             pinocchio::computeJointJacobiansTimeVariation(model_, data_, q, qdot);
@@ -203,7 +203,7 @@ namespace drc
             return true;
         }
         
-        bool RobotData::updateDynamics(const VectorXd& q, const VectorXd& qdot)
+        bool RobotData::updateDynamics(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         {
             pinocchio::crba(model_, data_, q);
             pinocchio::computeGeneralizedGravity(model_, data_, q);
@@ -222,7 +222,7 @@ namespace drc
 
         // ================================ Compute Functions ================================
         // Joint space  
-        MatrixXd RobotData::computeMassMatrix(const VectorXd& q)
+        MatrixXd RobotData::computeMassMatrix(const Eigen::Ref<const VectorXd>& q)
         {      
             pinocchio::Data data = pinocchio::Data(model_);
             pinocchio::crba(model_, data, q);
@@ -231,7 +231,7 @@ namespace drc
             return data.M;
         }
         
-        VectorXd RobotData::computeGravity(const VectorXd& q)
+        VectorXd RobotData::computeGravity(const Eigen::Ref<const VectorXd>& q)
         {      
             pinocchio::Data data = pinocchio::Data(model_);
             pinocchio::computeGeneralizedGravity(model_, data, q);
@@ -239,7 +239,7 @@ namespace drc
             return data.g;
         }
         
-        VectorXd RobotData::computeCoriolis(const VectorXd& q, const VectorXd& qdot)
+        VectorXd RobotData::computeCoriolis(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         { 
             pinocchio::Data data = pinocchio::Data(model_);
             pinocchio::computeCoriolisMatrix(model_, data, q, qdot);
@@ -247,7 +247,7 @@ namespace drc
             return data.C * qdot;
         }
         
-        VectorXd RobotData::computeNonlinearEffects(const VectorXd& q, const VectorXd& qdot)
+        VectorXd RobotData::computeNonlinearEffects(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         {
             pinocchio::Data data = pinocchio::Data(model_);
             pinocchio::nonLinearEffects(model_, data, q, qdot);
@@ -256,7 +256,7 @@ namespace drc
         }
         
         // Task space
-        Affine3d RobotData::computePose(const VectorXd& q, const std::string& link_name)
+        Affine3d RobotData::computePose(const Eigen::Ref<const VectorXd>& q, const std::string& link_name)
         {
             pinocchio::FrameIndex link_index = model_.getFrameId(link_name);
             if (link_index == static_cast<pinocchio::FrameIndex>(-1))  
@@ -272,7 +272,7 @@ namespace drc
             return link_pose;
         }
         
-        MatrixXd RobotData::computeJacobian(const VectorXd& q, const std::string& link_name)
+        MatrixXd RobotData::computeJacobian(const Eigen::Ref<const VectorXd>& q, const std::string& link_name)
         {
             pinocchio::FrameIndex link_index = model_.getFrameId(link_name);
             if (link_index == static_cast<pinocchio::FrameIndex>(-1))  
@@ -289,7 +289,7 @@ namespace drc
             return J;
         }
         
-        MatrixXd RobotData::computeJacobianTimeVariation(const VectorXd& q, const VectorXd& qdot, const std::string& link_name)
+        MatrixXd RobotData::computeJacobianTimeVariation(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const std::string& link_name)
         {
             pinocchio::FrameIndex link_index = model_.getFrameId(link_name);
             if (link_index == static_cast<pinocchio::FrameIndex>(-1))  
@@ -306,14 +306,14 @@ namespace drc
             return Jdot;
         }
         
-        VectorXd RobotData::computeVelocity(const VectorXd& q, const VectorXd& qdot, const std::string& link_name)
+        VectorXd RobotData::computeVelocity(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const std::string& link_name)
         {
             MatrixXd J = computeJacobian(q, link_name);
             
             return J * qdot;
         }
         
-        MinDistResult RobotData::computeMinDistance(const VectorXd& q, const VectorXd& qdot, const bool& with_grad, const bool& with_graddot, const bool verbose)
+        MinDistResult RobotData::computeMinDistance(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const bool& with_grad, const bool& with_graddot, const bool verbose)
         {
             MinDistResult result;
             result.setZero(q.size());
@@ -414,7 +414,7 @@ namespace drc
             return result;  
         }
         
-        ManipulabilityResult RobotData::computeManipulability(const VectorXd& q, const VectorXd& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name)
+        ManipulabilityResult RobotData::computeManipulability(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name)
         {
             ManipulabilityResult result;
             result.setZero(q.size());

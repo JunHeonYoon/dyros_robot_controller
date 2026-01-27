@@ -20,20 +20,20 @@ namespace drc
             QP_moma_ID_ = std::make_unique<MobileManipulator::QPID>(robot_data_, dt_);
         }
 
-        void RobotController::setManipulatorJointGain(const VectorXd& Kp, const VectorXd& Kv)
+        void RobotController::setManipulatorJointGain(const Eigen::Ref<const VectorXd>& Kp, const Eigen::Ref<const VectorXd>& Kv)
         {
             assert(Kp.size() == mani_dof_ && Kv.size() != mani_dof_);
             Kp_mani_joint_ = Kp;
             Kv_mani_joint_ = Kv;
         }
 
-        void RobotController::setManipulatorJointKpGain(const VectorXd& Kp)
+        void RobotController::setManipulatorJointKpGain(const Eigen::Ref<const VectorXd>& Kp)
         {
             assert(Kp.size() == mani_dof_);
             Kp_mani_joint_ = Kp;
         }
 
-        void RobotController::setManipulatorJointKvGain(const VectorXd& Kv)
+        void RobotController::setManipulatorJointKvGain(const Eigen::Ref<const VectorXd>& Kv)
         {
             assert(Kv.size() == mani_dof_);
             Kv_mani_joint_ = Kv;
@@ -55,13 +55,13 @@ namespace drc
             link_Kv_task_ = link_Kv;
         }
 
-        void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_damping)
+        void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping)
         {
             assert(w_damping.size() == actuator_dof_);
             QP_moma_IK_->setWeight(link_w_tracking, w_damping);
         }
 
-        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_vel_damping, const VectorXd& w_acc_damping)
+        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             QP_moma_ID_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
         }
@@ -81,10 +81,10 @@ namespace drc
             return Mobile::RobotController::VelocityCommand(desired_base_vel);
         }
 
-        VectorXd RobotController::moveManipulatorJointPositionCubic(const VectorXd& q_mani_target,
-                                                                    const VectorXd& qdot_mani_target,
-                                                                    const VectorXd& q_mani_init,
-                                                                    const VectorXd& qdot_mani_init,
+        VectorXd RobotController::moveManipulatorJointPositionCubic(const Eigen::Ref<const VectorXd>& q_mani_target,
+                                                                    const Eigen::Ref<const VectorXd>& qdot_mani_target,
+                                                                    const Eigen::Ref<const VectorXd>& q_mani_init,
+                                                                    const Eigen::Ref<const VectorXd>& qdot_mani_init,
                                                                     const double& current_time,
                                                                     const double& init_time,
                                                                     const double& duration)
@@ -104,10 +104,10 @@ namespace drc
             return q_mani_desired;
         }
 
-        VectorXd RobotController::moveManipulatorJointVelocityCubic(const VectorXd& q_mani_target,
-                                                                    const VectorXd& qdot_mani_target,
-                                                                    const VectorXd& q_mani_init,
-                                                                    const VectorXd& qdot_mani_init,
+        VectorXd RobotController::moveManipulatorJointVelocityCubic(const Eigen::Ref<const VectorXd>& q_mani_target,
+                                                                    const Eigen::Ref<const VectorXd>& qdot_mani_target,
+                                                                    const Eigen::Ref<const VectorXd>& q_mani_init,
+                                                                    const Eigen::Ref<const VectorXd>& qdot_mani_init,
                                                                     const double& current_time,
                                                                     const double& init_time,
                                                                     const double& duration)
@@ -127,7 +127,7 @@ namespace drc
             return qdot_mani_desired;
         }
 
-        VectorXd RobotController::moveManipulatorJointTorqueStep(const VectorXd& qddot_mani_target, const bool use_mass)
+        VectorXd RobotController::moveManipulatorJointTorqueStep(const Eigen::Ref<const VectorXd>& qddot_mani_target, const bool use_mass)
         {
             assert(qddot_mani_target.size() == mani_dof_);
             const MatrixXd M_mani = robot_data_->getMassMatrix().block(robot_data_->getJointIndex().mani_start,robot_data_->getJointIndex().mani_start,mani_dof_,mani_dof_);
@@ -136,8 +136,8 @@ namespace drc
             else         return qddot_mani_target + g_mani;
         }
 
-        VectorXd RobotController::moveManipulatorJointTorqueStep(const VectorXd& q_mani_target,
-                                                                 const VectorXd& qdot_mani_target,
+        VectorXd RobotController::moveManipulatorJointTorqueStep(const Eigen::Ref<const VectorXd>& q_mani_target,
+                                                                 const Eigen::Ref<const VectorXd>& qdot_mani_target,
                                                                  const bool use_mass)
         {
             const VectorXd q_mani = robot_data_->getJointPosition().segment(robot_data_->getJointIndex().mani_start,mani_dof_);
@@ -146,10 +146,10 @@ namespace drc
             return moveManipulatorJointTorqueStep(qddot_mani_desired, use_mass);
         }
 
-        VectorXd RobotController::moveManipulatorJointTorqueCubic(const VectorXd& q_mani_target,
-                                                                  const VectorXd& qdot_mani_target,
-                                                                  const VectorXd& q_mani_init,
-                                                                  const VectorXd& qdot_mani_init,
+        VectorXd RobotController::moveManipulatorJointTorqueCubic(const Eigen::Ref<const VectorXd>& q_mani_target,
+                                                                  const Eigen::Ref<const VectorXd>& qdot_mani_target,
+                                                                  const Eigen::Ref<const VectorXd>& q_mani_init,
+                                                                  const Eigen::Ref<const VectorXd>& qdot_mani_init,
                                                                   const double& current_time,
                                                                   const double& init_time,
                                                                   const double& duration,
@@ -176,8 +176,8 @@ namespace drc
 
 
         bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
-                                   VectorXd& opt_qdot_mobile,
-                                   VectorXd& opt_qdot_manipulator,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                    const bool time_verbose)
         {
             QP_moma_IK_->setDesiredTaskVel(link_xdot_target);
@@ -190,8 +190,13 @@ namespace drc
                 opt_qdot.setZero(dof_);
             }
         
-            opt_qdot_mobile.setZero(mobi_dof_);
-            opt_qdot_manipulator.setZero(mani_dof_);
+            if(opt_qdot_mobile.size() != mobi_dof_ || opt_qdot_manipulator.size() != mani_dof_)
+            {
+                std::cerr << "QPIK output size mismatch." << std::endl;
+                return false;
+            }
+            opt_qdot_mobile.setZero();
+            opt_qdot_manipulator.setZero();
             opt_qdot_mobile = opt_qdot.segment(robot_data_->getActuatorIndex().mobi_start, mobi_dof_);
             opt_qdot_manipulator = opt_qdot.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_);
 
@@ -213,8 +218,8 @@ namespace drc
         }
 
         bool RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                   VectorXd& opt_qdot_mobile,
-                                   VectorXd& opt_qdot_manipulator,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                    const bool time_verbose)
         {
             std::map<std::string, Vector6d> link_xdot_target;
@@ -226,8 +231,8 @@ namespace drc
         }
 
         bool RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       VectorXd& opt_qdot_mobile,
-                                       VectorXd& opt_qdot_manipulator,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                        const bool time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -250,8 +255,8 @@ namespace drc
                                         const double& current_time,
                                         const double& init_time,
                                         const double& duration,
-                                        VectorXd& opt_qdot_mobile,
-                                        VectorXd& opt_qdot_manipulator,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                         const bool time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -266,8 +271,8 @@ namespace drc
         }
 
         bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
-                                   VectorXd& opt_qddot_mobile,
-                                   VectorXd& opt_torque_manipulator,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                    const bool time_verbose)
         {
             QP_moma_ID_->setDesiredTaskAcc(link_xddot_target);
@@ -282,8 +287,13 @@ namespace drc
                 opt_qddot.setZero();
             }
 
-            opt_qddot_mobile.setZero(mobi_dof_);
-            opt_torque_manipulator.setZero(mani_dof_);
+            if(opt_qddot_mobile.size() != mobi_dof_ || opt_torque_manipulator.size() != mani_dof_)
+            {
+                std::cerr << "QPID output size mismatch." << std::endl;
+                return false;
+            }
+            opt_qddot_mobile.setZero();
+            opt_torque_manipulator.setZero();
             opt_qddot_mobile = opt_qddot.segment(robot_data_->getActuatorIndex().mobi_start, mobi_dof_);
             opt_torque_manipulator = opt_torque.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_);
 
@@ -305,8 +315,8 @@ namespace drc
         }
 
         bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                   VectorXd& opt_qddot_mobile,
-                                   VectorXd& opt_torque_manipulator,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                    const bool time_verbose)
         {
             std::map<std::string, Vector6d> link_xddot_target;
@@ -318,8 +328,8 @@ namespace drc
         }
 
         bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       VectorXd& opt_qddot_mobile,
-                                       VectorXd& opt_torque_manipulator,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                        const bool time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -344,8 +354,8 @@ namespace drc
                                         const double& current_time,
                                         const double& init_time,
                                         const double& duration,
-                                        VectorXd& opt_qddot_mobile,
-                                        VectorXd& opt_torque_manipulator,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                         const bool time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;

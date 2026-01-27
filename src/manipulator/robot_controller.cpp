@@ -15,20 +15,20 @@ namespace drc
             QP_mani_ID_ = std::make_unique<Manipulator::QPID>(robot_data_, dt_);
         }
     
-        void RobotController::setJointGain(const VectorXd& Kp, const VectorXd& Kv)
+        void RobotController::setJointGain(const Eigen::Ref<const VectorXd>& Kp, const Eigen::Ref<const VectorXd>& Kv)
         {
             assert(Kp.size() == dof_ && Kv.size() != dof_);
             Kp_joint_ = Kp;
             Kv_joint_ = Kv;
         }
 
-        void RobotController::setJointKpGain(const VectorXd& Kp)
+        void RobotController::setJointKpGain(const Eigen::Ref<const VectorXd>& Kp)
         {
             assert(Kp.size() == dof_);
             Kp_joint_ = Kp;
         }
 
-        void RobotController::setJointKvGain(const VectorXd& Kv)
+        void RobotController::setJointKvGain(const Eigen::Ref<const VectorXd>& Kv)
         {
             assert(Kv.size() == dof_);
             Kv_joint_ = Kv;
@@ -50,21 +50,21 @@ namespace drc
             link_Kv_task_ = link_Kv;
         }
 
-        void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_damping)
+        void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping)
         {
             assert(w_damping.size() == dof_);
             QP_mani_IK_->setWeight(link_w_tracking, w_damping);
         }
 
-        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_vel_damping, const VectorXd& w_acc_damping)
+        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             QP_mani_ID_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
         }
 
-        VectorXd RobotController::moveJointPositionCubic(const VectorXd& q_target,
-                                                         const VectorXd& qdot_target,
-                                                         const VectorXd& q_init,
-                                                         const VectorXd& qdot_init,
+        VectorXd RobotController::moveJointPositionCubic(const Eigen::Ref<const VectorXd>& q_target,
+                                                         const Eigen::Ref<const VectorXd>& qdot_target,
+                                                         const Eigen::Ref<const VectorXd>& q_init,
+                                                         const Eigen::Ref<const VectorXd>& qdot_init,
                                                          const double& current_time,
                                                          const double& init_time,
                                                          const double& duration)
@@ -80,10 +80,10 @@ namespace drc
             return q_desired;
         }
 
-        VectorXd RobotController::moveJointVelocityCubic(const VectorXd& q_target,
-                                                         const VectorXd& qdot_target,
-                                                         const VectorXd& q_init,
-                                                         const VectorXd& qdot_init,
+        VectorXd RobotController::moveJointVelocityCubic(const Eigen::Ref<const VectorXd>& q_target,
+                                                         const Eigen::Ref<const VectorXd>& qdot_target,
+                                                         const Eigen::Ref<const VectorXd>& q_init,
+                                                         const Eigen::Ref<const VectorXd>& qdot_init,
                                                          const double& current_time,
                                                          const double& init_time,
                                                          const double& duration)
@@ -99,24 +99,24 @@ namespace drc
             return qdot_desired;
         }
 
-        VectorXd RobotController::moveJointTorqueStep(const VectorXd& qddot_target, const bool use_mass)
+        VectorXd RobotController::moveJointTorqueStep(const Eigen::Ref<const VectorXd>& qddot_target, const bool use_mass)
         {
             if(use_mass) return robot_data_->getMassMatrix() * qddot_target + robot_data_->getGravity();
             else         return qddot_target + robot_data_->getGravity();
         }
 
-        VectorXd RobotController::moveJointTorqueStep(const VectorXd& q_target,
-                                                      const VectorXd& qdot_target,
+        VectorXd RobotController::moveJointTorqueStep(const Eigen::Ref<const VectorXd>& q_target,
+                                                      const Eigen::Ref<const VectorXd>& qdot_target,
                                                       const bool use_mass)
         {
             const VectorXd qddot_desired = Kp_joint_.asDiagonal() * (q_target - robot_data_->getJointPosition()) + Kv_joint_.asDiagonal() * (qdot_target - robot_data_->getJointVelocity());
             return moveJointTorqueStep(qddot_desired, use_mass);
         }
     
-        VectorXd RobotController::moveJointTorqueCubic(const VectorXd& q_target,
-                                                       const VectorXd& qdot_target,
-                                                       const VectorXd& q_init,
-                                                       const VectorXd& qdot_init,
+        VectorXd RobotController::moveJointTorqueCubic(const Eigen::Ref<const VectorXd>& q_target,
+                                                       const Eigen::Ref<const VectorXd>& qdot_target,
+                                                       const Eigen::Ref<const VectorXd>& q_init,
+                                                       const Eigen::Ref<const VectorXd>& qdot_init,
                                                        const double& current_time,
                                                        const double& init_time,
                                                        const double& duration,
@@ -141,7 +141,7 @@ namespace drc
             return moveJointTorqueStep(q_desired, qdot_desired, use_mass);
         }
     
-        VectorXd RobotController::CLIK(const std::map<std::string, Vector6d>& link_xdot_target, const VectorXd& null_qdot)
+        VectorXd RobotController::CLIK(const std::map<std::string, Vector6d>& link_xdot_target, const Eigen::Ref<const VectorXd>& null_qdot)
         {
             MatrixXd J_total;
             J_total.setZero(6*link_xdot_target.size(), dof_);
@@ -163,7 +163,7 @@ namespace drc
             return J_total_pinv * x_dot_target_total + null_proj * null_qdot;
         }
 
-        VectorXd RobotController::CLIK(const std::map<std::string, TaskSpaceData>& link_task_data, const VectorXd& null_qdot)
+        VectorXd RobotController::CLIK(const std::map<std::string, TaskSpaceData>& link_task_data, const Eigen::Ref<const VectorXd>& null_qdot)
         {
             std::map<std::string, Vector6d> link_xdot_target;
             for (auto &[link_name, task_data] : link_task_data)
@@ -175,11 +175,12 @@ namespace drc
         
         VectorXd RobotController::CLIK(const std::map<std::string, TaskSpaceData>& link_task_data)
         {
-            return CLIK(link_task_data, VectorXd::Zero(dof_));
+            VectorXd null_qdot = VectorXd::Zero(dof_);
+            return CLIK(link_task_data, null_qdot);
         }
     
         VectorXd RobotController::CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                           const VectorXd& null_qdot)
+                                           const Eigen::Ref<const VectorXd>& null_qdot)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
@@ -199,14 +200,15 @@ namespace drc
     
         VectorXd RobotController::CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data)
         {
-            return CLIKStep(link_task_data, VectorXd::Zero(dof_));
+            VectorXd null_qdot = VectorXd::Zero(dof_);
+            return CLIKStep(link_task_data, null_qdot);
         }
 
         VectorXd RobotController::CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                             const double& current_time,
                                             const double& init_time,
                                             const double& duration,
-                                            const VectorXd& null_qdot)
+                                            const Eigen::Ref<const VectorXd>& null_qdot)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
@@ -224,10 +226,11 @@ namespace drc
                                             const double& init_time,
                                             const double& duration)
         {
-            return CLIKCubic(link_task_data, current_time, init_time, duration, VectorXd::Zero(dof_));
+            VectorXd null_qdot = VectorXd::Zero(dof_);
+            return CLIKCubic(link_task_data, current_time, init_time, duration, null_qdot);
         }
 
-        VectorXd RobotController::OSF(const std::map<std::string, Vector6d>& link_xddot_target, const VectorXd& null_torque)
+        VectorXd RobotController::OSF(const std::map<std::string, Vector6d>& link_xddot_target, const Eigen::Ref<const VectorXd>& null_torque)
         {
             MatrixXd J_total;
             J_total.setZero(6*link_xddot_target.size(), dof_);
@@ -256,7 +259,7 @@ namespace drc
         }
 
         VectorXd RobotController::OSF(const std::map<std::string, TaskSpaceData>& link_task_data, 
-                                      const VectorXd& null_torque)
+                                      const Eigen::Ref<const VectorXd>& null_torque)
         {
             std::map<std::string, Vector6d> link_xddot_target;
             for (auto &[link_name, task_data] : link_task_data)
@@ -269,11 +272,12 @@ namespace drc
         
         VectorXd RobotController::OSF(const std::map<std::string, TaskSpaceData>& link_task_data)
         {
-            return OSF(link_task_data, VectorXd::Zero(dof_));
+            VectorXd null_torque = VectorXd::Zero(dof_);
+            return OSF(link_task_data, null_torque);
         }
 
         VectorXd RobotController::OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                          const VectorXd& null_torque)
+                                          const Eigen::Ref<const VectorXd>& null_torque)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
@@ -295,14 +299,15 @@ namespace drc
         
         VectorXd RobotController::OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data)
         {
-            return OSFStep(link_task_data, VectorXd::Zero(dof_));
+            VectorXd null_torque = VectorXd::Zero(dof_);
+            return OSFStep(link_task_data, null_torque);
         }
 
         VectorXd RobotController::OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                            const double& current_time,
                                            const double& init_time,
                                            const double& duration,
-                                           const VectorXd& null_torque)
+                                           const Eigen::Ref<const VectorXd>& null_torque)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
@@ -319,21 +324,27 @@ namespace drc
                                            const double& init_time,
                                            const double& duration)
         {
-            return OSFCubic(link_task_data, current_time, init_time, duration, VectorXd::Zero(dof_));
+            VectorXd null_torque = VectorXd::Zero(dof_);
+            return OSFCubic(link_task_data, current_time, init_time, duration, null_torque);
         }
 
         bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
-                                   VectorXd& opt_qdot,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                    const bool time_verbose)
         {
             QP_mani_IK_->setDesiredTaskVel(link_xdot_target);
-            opt_qdot.setZero(dof_);
+            if(opt_qdot.size() != dof_)
+            {
+                std::cerr << "QPIK output size mismatch." << std::endl;
+                return false;
+            }
+            opt_qdot.setZero();
             QP::TimeDuration time_duration;
             const bool qp_success = QP_mani_IK_->getOptJointVel(opt_qdot, time_duration);
             if(!qp_success)
             {
                 std::cerr << "QP IK failed to compute optimal joint velocity." << std::endl;
-                opt_qdot.setZero(dof_);
+                opt_qdot.setZero();
             }
 
             if(time_verbose)
@@ -355,7 +366,7 @@ namespace drc
         }
 
         bool RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                   VectorXd& opt_qdot,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                    const bool time_verbose)
         {  
             std::map<std::string, Vector6d> link_xdot_target;
@@ -368,7 +379,7 @@ namespace drc
         }
 
         bool RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       VectorXd& opt_qdot,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                        const bool time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -390,7 +401,7 @@ namespace drc
                                         const double& current_time,
                                         const double& init_time,
                                         const double& duration,
-                                        VectorXd& opt_qdot,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                         const bool time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -405,12 +416,17 @@ namespace drc
         }
 
         bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
-                                   VectorXd& opt_torque,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
                                    const bool time_verbose)
         {
             QP_mani_ID_->setDesiredTaskAcc(link_xddot_target);
             VectorXd opt_qddot = VectorXd::Zero(dof_);
-            opt_torque.setZero(dof_);
+            if(opt_torque.size() != dof_)
+            {
+                std::cerr << "QPID output size mismatch." << std::endl;
+                return false;
+            }
+            opt_torque.setZero();
             QP::TimeDuration time_duration;
             const bool qp_success = QP_mani_ID_->getOptJoint(opt_qddot, opt_torque, time_duration);
             if(!qp_success)
@@ -438,7 +454,7 @@ namespace drc
         }
 
         bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                   VectorXd& opt_torque,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
                                    const bool time_verbose)
         {
             std::map<std::string, Vector6d> link_xddot_target;
@@ -451,7 +467,7 @@ namespace drc
         }
 
         bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       VectorXd& opt_torque,
+                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
                                        const bool time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -478,7 +494,7 @@ namespace drc
                                         const double& current_time,
                                         const double& init_time,
                                         const double& duration,
-                                        VectorXd& opt_torque,
+                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
                                         const bool time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;

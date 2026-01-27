@@ -72,8 +72,13 @@ namespace drc
             link_xddot_desired_ = link_xddot_desired;
         }
     
-        bool QPID::getOptJoint(VectorXd &opt_etadot, VectorXd &opt_torque, QP::TimeDuration &time_status)
+        bool QPID::getOptJoint(Eigen::Ref<Eigen::VectorXd> opt_etadot, Eigen::Ref<Eigen::VectorXd> opt_torque, QP::TimeDuration &time_status)
         {
+            if(opt_etadot.size() != actuator_dof_ || opt_torque.size() != actuator_dof_)
+            {
+                time_status.setZero();
+                return false;
+            }
             MatrixXd sol;
             if(!solveQP(sol, time_status))
             {
@@ -90,7 +95,9 @@ namespace drc
             }
         }
 
-        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking, const VectorXd w_vel_damping, const VectorXd w_acc_damping)
+        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
             w_vel_damping_ = w_vel_damping;
@@ -118,10 +125,24 @@ namespace drc
                 q_ds_.segment(si_index_.eta_dot_start,si_index_.eta_dot_size) += -2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * (xddot_desired - J_i_tilda_dot * eta);
             }
             
-            // for joint velocity/acceleration damping
-            P_ds_.block(si_index_.eta_dot_start,si_index_.eta_dot_start,si_index_.eta_dot_size,si_index_.eta_dot_size) += 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix();// +
-                                                                                                                          //2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
-            q_ds_.segment(si_index_.eta_dot_start,si_index_.eta_dot_size) += 2.0 * dt_ * eta;
+            const auto actuator_idx = robot_data_->getActuatorIndex();
+            const int mani_start = actuator_idx.mani_start;
+            const int mobi_start = actuator_idx.mobi_start;
+
+            const VectorXd eta_mani = eta.segment(mani_start, mani_dof_);
+            P_ds_.block(si_index_.eta_dot_start + mani_start,
+                        si_index_.eta_dot_start + mani_start,
+                        mani_dof_,
+                        mani_dof_) += 2.0 * w_acc_damping_.segment(mani_start, mani_dof_).asDiagonal().toDenseMatrix();
+            q_ds_.segment(si_index_.eta_dot_start + mani_start, mani_dof_) += 2.0 * dt_ * eta_mani;
+
+            const MatrixXd J_mobile = robot_data_->getMobileFKJacobian();
+            const VectorXd base_vel = robot_data_->getMobileBaseVel();
+            P_ds_.block(si_index_.eta_dot_start + mobi_start,
+                        si_index_.eta_dot_start + mobi_start,
+                        mobi_dof_,
+                        mobi_dof_) += 2.0 * J_mobile.transpose() * J_mobile;
+            q_ds_.segment(si_index_.eta_dot_start + mobi_start, mobi_dof_) += 2.0 * dt_ * J_mobile.transpose() * base_vel;
 
             // for slack
             q_ds_.segment(si_index_.slack_q_mani_min_start,   si_index_.slack_q_mani_min_size)    = VectorXd::Constant(si_index_.slack_q_mani_min_size,    1000.0);

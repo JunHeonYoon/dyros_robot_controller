@@ -94,12 +94,12 @@ namespace drc
 
         }
 
-        bool RobotData::updateState(const VectorXd& q_virtual,
-                                    const VectorXd& q_mobile,
-                                    const VectorXd& q_mani,
-                                    const VectorXd& qdot_virtual,
-                                    const VectorXd& qdot_mobile,
-                                    const VectorXd& qdot_mani)
+        bool RobotData::updateState(const Eigen::Ref<const VectorXd>& q_virtual,
+                                    const Eigen::Ref<const VectorXd>& q_mobile,
+                                    const Eigen::Ref<const VectorXd>& q_mani,
+                                    const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                    const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                    const Eigen::Ref<const VectorXd>& qdot_mani)
         {
             q_virtual_ = q_virtual;
             q_mobile_ = q_mobile;
@@ -118,12 +118,12 @@ namespace drc
             return true;
         }
 
-        bool RobotData::updateKinematics(const VectorXd& q_virtual,
-                                         const VectorXd& q_mobile,
-                                         const VectorXd& q_mani,
-                                         const VectorXd& qdot_virtual,
-                                         const VectorXd& qdot_mobile,
-                                         const VectorXd& qdot_mani)
+        bool RobotData::updateKinematics(const Eigen::Ref<const VectorXd>& q_virtual,
+                                         const Eigen::Ref<const VectorXd>& q_mobile,
+                                         const Eigen::Ref<const VectorXd>& q_mani,
+                                         const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                         const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                         const Eigen::Ref<const VectorXd>& qdot_mani)
         {
             if(!Mobile::RobotData::updateState(q_mobile, qdot_mobile)) return false;
             double mobile_yaw = q_virtual(2);
@@ -137,12 +137,12 @@ namespace drc
             return Manipulator::RobotData::updateKinematics(q, qdot);
         }
 
-        bool RobotData::updateDynamics(const VectorXd& q_virtual,
-                                       const VectorXd& q_mobile,
-                                       const VectorXd& q_mani,
-                                       const VectorXd& qdot_virtual,
-                                       const VectorXd& qdot_mobile,
-                                       const VectorXd& qdot_mani)
+        bool RobotData::updateDynamics(const Eigen::Ref<const VectorXd>& q_virtual,
+                                       const Eigen::Ref<const VectorXd>& q_mobile,
+                                       const Eigen::Ref<const VectorXd>& q_mani,
+                                       const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                       const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                       const Eigen::Ref<const VectorXd>& qdot_mani)
         {
             VectorXd q = getJointVector(q_virtual, q_mobile, q_mani);
             VectorXd qdot = getJointVector(qdot_virtual, qdot_mobile, qdot_mani);
@@ -157,40 +157,40 @@ namespace drc
             return true;
         }
 
-        MatrixXd RobotData::computeMassMatrix(const VectorXd& q_virtual,
-                                              const VectorXd& q_mobile,
-                                              const VectorXd& q_mani)
+        MatrixXd RobotData::computeMassMatrix(const Eigen::Ref<const VectorXd>& q_virtual,
+                                              const Eigen::Ref<const VectorXd>& q_mobile,
+                                              const Eigen::Ref<const VectorXd>& q_mani)
         {
             VectorXd q = getJointVector(q_virtual, q_mobile, q_mani);
             return Manipulator::RobotData::computeMassMatrix(q);
         }
 
-        VectorXd RobotData::computeGravity(const VectorXd& q_virtual,
-                                           const VectorXd& q_mobile,
-                                           const VectorXd& q_mani)
+        VectorXd RobotData::computeGravity(const Eigen::Ref<const VectorXd>& q_virtual,
+                                           const Eigen::Ref<const VectorXd>& q_mobile,
+                                           const Eigen::Ref<const VectorXd>& q_mani)
         {
             VectorXd q = getJointVector(q_virtual, q_mobile, q_mani);
             return Manipulator::RobotData::computeGravity(q);
         }
 
-        VectorXd RobotData::computeCoriolis(const VectorXd& q_virtual,
-                                            const VectorXd& q_mobile,
-                                            const VectorXd& q_mani,
-                                            const VectorXd& qdot_virtual,
-                                            const VectorXd& qdot_mobile,
-                                            const VectorXd& qdot_mani)
+        VectorXd RobotData::computeCoriolis(const Eigen::Ref<const VectorXd>& q_virtual,
+                                            const Eigen::Ref<const VectorXd>& q_mobile,
+                                            const Eigen::Ref<const VectorXd>& q_mani,
+                                            const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                            const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                            const Eigen::Ref<const VectorXd>& qdot_mani)
         {
             VectorXd q = getJointVector(q_virtual, q_mobile, q_mani);
             VectorXd qdot = getJointVector(qdot_virtual, qdot_mobile, qdot_mani);
             return Manipulator::RobotData::computeCoriolis(q,qdot);
         }
 
-        VectorXd RobotData::computeNonlinearEffects(const VectorXd& q_virtual,
-                                                    const VectorXd& q_mobile,
-                                                    const VectorXd& q_mani,
-                                                    const VectorXd& qdot_virtual,
-                                                    const VectorXd& qdot_mobile,
-                                                    const VectorXd& qdot_mani)
+        VectorXd RobotData::computeNonlinearEffects(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                    const Eigen::Ref<const VectorXd>& q_mobile,
+                                                    const Eigen::Ref<const VectorXd>& q_mani,
+                                                    const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                    const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                    const Eigen::Ref<const VectorXd>& qdot_mani)
         {
             VectorXd q = getJointVector(q_virtual, q_mobile, q_mani);
             VectorXd qdot = getJointVector(qdot_virtual, qdot_mobile, qdot_mani);
@@ -198,72 +198,76 @@ namespace drc
         }
 
 
-        MatrixXd RobotData::computeMassMatrixActuated(const VectorXd& q_virtual,
-                                                      const VectorXd& q_mobile,
-                                                      const VectorXd& q_mani)
+        MatrixXd RobotData::computeMassMatrixActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                      const Eigen::Ref<const VectorXd>& q_mobile,
+                                                      const Eigen::Ref<const VectorXd>& q_mani)
         {
-            VectorXd q = getJointVector(VectorXd::Zero(virtual_dof_), q_mobile, q_mani);
+            const VectorXd q_virtual_zero = VectorXd::Zero(virtual_dof_);
+            VectorXd q = getJointVector(q_virtual_zero, q_mobile, q_mani);
             MatrixXd S = computeSelectionMatrix(q_virtual, q_mobile);
             return S.transpose() * Manipulator::RobotData::computeMassMatrix(q) * S;
         }
 
-        VectorXd RobotData::computeGravityActuated(const VectorXd& q_virtual,
-                                                   const VectorXd& q_mobile,
-                                                   const VectorXd& q_mani)
+        VectorXd RobotData::computeGravityActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                   const Eigen::Ref<const VectorXd>& q_mobile,
+                                                   const Eigen::Ref<const VectorXd>& q_mani)
         {
-            VectorXd q = getJointVector(VectorXd::Zero(virtual_dof_), q_mobile, q_mani);
+            const VectorXd q_virtual_zero = VectorXd::Zero(virtual_dof_);
+            VectorXd q = getJointVector(q_virtual_zero, q_mobile, q_mani);
             MatrixXd S = computeSelectionMatrix(q_virtual, q_mobile);
             return S.transpose() * Manipulator::RobotData::computeGravity(q);
         }
 
-        VectorXd RobotData::computeCoriolisActuated(const VectorXd& q_virtual,
-                                                    const VectorXd& q_mobile,
-                                                    const VectorXd& q_mani,
-                                                    const VectorXd& qdot_mobile,
-                                                    const VectorXd& qdot_mani)
+        VectorXd RobotData::computeCoriolisActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                    const Eigen::Ref<const VectorXd>& q_mobile,
+                                                    const Eigen::Ref<const VectorXd>& q_mani,
+                                                    const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                    const Eigen::Ref<const VectorXd>& qdot_mani)
         {
-            VectorXd q = getJointVector(VectorXd::Zero(virtual_dof_), q_mobile, q_mani);
-            VectorXd qdot = getJointVector(VectorXd::Zero(virtual_dof_), qdot_mobile, qdot_mani);
+            const VectorXd q_virtual_zero = VectorXd::Zero(virtual_dof_);
+            VectorXd q = getJointVector(q_virtual_zero, q_mobile, q_mani);
+            VectorXd qdot = getJointVector(q_virtual_zero, qdot_mobile, qdot_mani);
             MatrixXd S = computeSelectionMatrix(q_virtual, q_mobile);
             return S.transpose() * (Manipulator::RobotData::computeNonlinearEffects(q, qdot) - Manipulator::RobotData::computeGravity(q));
         }
 
-        VectorXd RobotData::computeNonlinearEffectsActuated(const VectorXd& q_virtual,
-                                                            const VectorXd& q_mobile,
-                                                            const VectorXd& q_mani,
-                                                            const VectorXd& qdot_mobile,
-                                                            const VectorXd& qdot_mani)
+        VectorXd RobotData::computeNonlinearEffectsActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                            const Eigen::Ref<const VectorXd>& q_mobile,
+                                                            const Eigen::Ref<const VectorXd>& q_mani,
+                                                            const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                            const Eigen::Ref<const VectorXd>& qdot_mani)
         {
-            VectorXd q = getJointVector(VectorXd::Zero(virtual_dof_), q_mobile, q_mani);
-            VectorXd qdot = getJointVector(VectorXd::Zero(virtual_dof_), qdot_mobile, qdot_mani);
+            const VectorXd q_virtual_zero = VectorXd::Zero(virtual_dof_);
+            VectorXd q = getJointVector(q_virtual_zero, q_mobile, q_mani);
+            VectorXd qdot = getJointVector(q_virtual_zero, qdot_mobile, qdot_mani);
             MatrixXd S = computeSelectionMatrix(q_virtual, q_mobile);
             return S.transpose() * Manipulator::RobotData::computeNonlinearEffects(q, qdot);
         }
         
-        Affine3d RobotData::computePose(const VectorXd& q_virtual,
-                                        const VectorXd& q_mobile,
-                                        const VectorXd& q_mani, 
+        Affine3d RobotData::computePose(const Eigen::Ref<const VectorXd>& q_virtual,
+                                        const Eigen::Ref<const VectorXd>& q_mobile,
+                                        const Eigen::Ref<const VectorXd>& q_mani, 
                                         const std::string& link_name)
         {
             VectorXd q = getJointVector(q_virtual, q_mobile, q_mani);
             return Manipulator::RobotData::computePose(q, link_name);
         }
 
-        MatrixXd RobotData::computeJacobian(const VectorXd& q_virtual,
-                                            const VectorXd& q_mobile,
-                                            const VectorXd& q_mani, 
+        MatrixXd RobotData::computeJacobian(const Eigen::Ref<const VectorXd>& q_virtual,
+                                            const Eigen::Ref<const VectorXd>& q_mobile,
+                                            const Eigen::Ref<const VectorXd>& q_mani, 
                                             const std::string& link_name)
         {
             VectorXd q = getJointVector(q_virtual, q_mobile, q_mani);
             return Manipulator::RobotData::computeJacobian(q, link_name);
         }
 
-        MatrixXd RobotData::computeJacobianTimeVariation(const VectorXd& q_virtual,
-                                                         const VectorXd& q_mobile,
-                                                         const VectorXd& q_mani,
-                                                         const VectorXd& qdot_virtual,
-                                                         const VectorXd& qdot_mobile,
-                                                         const VectorXd& qdot_mani, 
+        MatrixXd RobotData::computeJacobianTimeVariation(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                         const Eigen::Ref<const VectorXd>& q_mobile,
+                                                         const Eigen::Ref<const VectorXd>& q_mani,
+                                                         const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                         const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                         const Eigen::Ref<const VectorXd>& qdot_mani, 
                                                          const std::string& link_name)
         {
             VectorXd q = getJointVector(q_virtual, q_mobile, q_mani);
@@ -271,12 +275,12 @@ namespace drc
             return Manipulator::RobotData::computeJacobianTimeVariation(q, qdot, link_name);
         }
 
-        VectorXd RobotData::computeVelocity(const VectorXd& q_virtual,
-                                            const VectorXd& q_mobile,
-                                            const VectorXd& q_mani,
-                                            const VectorXd& qdot_virtual,
-                                            const VectorXd& qdot_mobile,
-                                            const VectorXd& qdot_mani, 
+        VectorXd RobotData::computeVelocity(const Eigen::Ref<const VectorXd>& q_virtual,
+                                            const Eigen::Ref<const VectorXd>& q_mobile,
+                                            const Eigen::Ref<const VectorXd>& q_mani,
+                                            const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                            const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                            const Eigen::Ref<const VectorXd>& qdot_mani, 
                                             const std::string& link_name)
         {
             VectorXd q = getJointVector(q_virtual, q_mobile, q_mani);
@@ -284,12 +288,12 @@ namespace drc
             return Manipulator::RobotData::computeVelocity(q, qdot, link_name);
         }
 
-        Manipulator::MinDistResult RobotData::computeMinDistance(const VectorXd& q_virtual,
-                                                                const VectorXd& q_mobile,
-                                                                const VectorXd& q_mani,
-                                                                const VectorXd& qdot_virtual,
-                                                                const VectorXd& qdot_mobile,
-                                                                const VectorXd& qdot_mani, 
+        Manipulator::MinDistResult RobotData::computeMinDistance(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                                const Eigen::Ref<const VectorXd>& q_mobile,
+                                                                const Eigen::Ref<const VectorXd>& q_mani,
+                                                                const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                                const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                                const Eigen::Ref<const VectorXd>& qdot_mani, 
                                                                 const bool& with_grad, 
                                                                 const bool& with_graddot, 
                                                                 const bool verbose)
@@ -299,8 +303,8 @@ namespace drc
             return Manipulator::RobotData::computeMinDistance(q, qdot, with_grad, with_graddot, verbose);
         }
 
-        Manipulator::ManipulabilityResult RobotData::computeManipulability(const VectorXd& q_mani, 
-                                                                           const VectorXd& qdot_mani, 
+        Manipulator::ManipulabilityResult RobotData::computeManipulability(const Eigen::Ref<const VectorXd>& q_mani, 
+                                                                           const Eigen::Ref<const VectorXd>& qdot_mani, 
                                                                            const bool& with_grad, 
                                                                            const bool& with_graddot, 
                                                                            const std::string& link_name)
@@ -368,17 +372,17 @@ namespace drc
             return result;
         }
 
-        MatrixXd RobotData::computeMobileFKJacobian(const VectorXd& q_mobile)
+        MatrixXd RobotData::computeMobileFKJacobian(const Eigen::Ref<const VectorXd>& q_mobile)
         {
             return Mobile::RobotData::computeFKJacobian(q_mobile);
         }
 
-        VectorXd RobotData::computeMobileBaseVel(const VectorXd& q_mobile, const VectorXd& qdot_mobile)
+        VectorXd RobotData::computeMobileBaseVel(const Eigen::Ref<const VectorXd>& q_mobile, const Eigen::Ref<const VectorXd>& qdot_mobile)
         {
             return Mobile::RobotData::computeBaseVel(q_mobile, qdot_mobile);
         }
 
-        MatrixXd RobotData::computeSelectionMatrix(const VectorXd& q_virtual, const VectorXd& q_mobile)
+        MatrixXd RobotData::computeSelectionMatrix(const Eigen::Ref<const VectorXd>& q_virtual, const Eigen::Ref<const VectorXd>& q_mobile)
         {
             MatrixXd S;
             S.setZero(dof_,actuated_dof_);
@@ -394,26 +398,28 @@ namespace drc
             return S;
         }
 
-        MatrixXd RobotData::computeJacobianActuated(const VectorXd& q_virtual,
-                                                    const VectorXd& q_mobile,
-                                                    const VectorXd& q_mani, 
+        MatrixXd RobotData::computeJacobianActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                    const Eigen::Ref<const VectorXd>& q_mobile,
+                                                    const Eigen::Ref<const VectorXd>& q_mani, 
                                                     const std::string& link_name)
         {
-            VectorXd q = getJointVector(VectorXd::Zero(virtual_dof_), q_mobile, q_mani);
+            const VectorXd q_virtual_zero = VectorXd::Zero(virtual_dof_);
+            VectorXd q = getJointVector(q_virtual_zero, q_mobile, q_mani);
             MatrixXd S = computeSelectionMatrix(q_virtual, q_mobile);
             return Manipulator::RobotData::computeJacobian(q, link_name) * S;
         }
 
-        MatrixXd RobotData::computeJacobianTimeVariationActuated(const VectorXd& q_virtual,
-                                                                 const VectorXd& q_mobile,
-                                                                 const VectorXd& q_mani,
-                                                                 const VectorXd& qdot_virtual,
-                                                                 const VectorXd& qdot_mobile,
-                                                                 const VectorXd& qdot_mani, 
+        MatrixXd RobotData::computeJacobianTimeVariationActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                                 const Eigen::Ref<const VectorXd>& q_mobile,
+                                                                 const Eigen::Ref<const VectorXd>& q_mani,
+                                                                 const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                                 const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                                 const Eigen::Ref<const VectorXd>& qdot_mani, 
                                                                  const std::string& link_name)
         {
-            VectorXd q = getJointVector(VectorXd::Zero(virtual_dof_), q_mobile, q_mani);
-            VectorXd qdot = getJointVector(VectorXd::Zero(virtual_dof_), qdot_mobile, qdot_mani);
+            const VectorXd q_virtual_zero = VectorXd::Zero(virtual_dof_);
+            VectorXd q = getJointVector(q_virtual_zero, q_mobile, q_mani);
+            VectorXd qdot = getJointVector(q_virtual_zero, qdot_mobile, qdot_mani);
             MatrixXd S = computeSelectionMatrix(q_virtual, q_mobile);
             return Manipulator::RobotData::computeJacobianTimeVariation(q, qdot, link_name) * S; // neglect Sdot
         }
@@ -429,9 +435,9 @@ namespace drc
         }
         
 
-        VectorXd RobotData::getJointVector(const VectorXd& q_virtual,
-                                           const VectorXd& q_mobile,
-                                           const VectorXd& q_mani)
+        VectorXd RobotData::getJointVector(const Eigen::Ref<const VectorXd>& q_virtual,
+                                           const Eigen::Ref<const VectorXd>& q_mobile,
+                                           const Eigen::Ref<const VectorXd>& q_mani)
         {
             VectorXd q;
             q.setZero(dof_);
@@ -441,7 +447,7 @@ namespace drc
             return q;
         }
 
-        VectorXd RobotData::getActuatorVector(const VectorXd& q_mobile, const VectorXd& q_mani)
+        VectorXd RobotData::getActuatorVector(const Eigen::Ref<const VectorXd>& q_mobile, const Eigen::Ref<const VectorXd>& q_mani)
         {
             VectorXd q_actuated;
             q_actuated.setZero(actuated_dof_);

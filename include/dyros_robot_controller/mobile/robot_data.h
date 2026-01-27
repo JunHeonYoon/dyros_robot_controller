@@ -36,7 +36,7 @@ namespace drc
                  * @param wheel_vel (Eigen::VectorXd) Wheel velocities [rad/s]; its size must be same as wheel_num_.
                  * @return True if state update is successful.
                 */
-                virtual bool updateState(const VectorXd& wheel_pos, const VectorXd& wheel_vel);
+                virtual bool updateState(const Eigen::Ref<const VectorXd>& wheel_pos, const Eigen::Ref<const VectorXd>& wheel_vel);
 
                 /**
                  * @brief Initialize base pose.
@@ -53,14 +53,14 @@ namespace drc
                  * @param wheel_vel (Eigen::VectorXd) Wheel velocities [rad/s]; its size must be same as wheel_num_.
                  * @return (Eigen::Vector3d) Base velocity vector [vx, vy, wz].
                 */
-                virtual Vector3d computeBaseVel(const VectorXd& wheel_pos, const VectorXd& wheel_vel);
+                virtual Vector3d computeBaseVel(const Eigen::Ref<const VectorXd>& wheel_pos, const Eigen::Ref<const VectorXd>& wheel_vel);
                 /**
                  * @brief Compute the forward kinematics Jacobian of the base.
                  *        Maps wheel velocities to base velocity.
                  * @param wheel_pos (Eigen::VectorXd) Wheel positions [rad]; its size must be same as wheel_num_.
                  * @return (Eigen::MatrixXd) Base velocity Jacobian matrix.
                 */
-                virtual MatrixXd computeFKJacobian(const VectorXd& wheel_pos);
+                virtual MatrixXd computeFKJacobian(const Eigen::Ref<const VectorXd>& wheel_pos);
 
                 /**
                  * @brief Update base pose using wheel state and dt.
@@ -68,7 +68,7 @@ namespace drc
                  * @param wheel_vel Wheel velocities [rad/s]
                  * @param dt Timestep [s]
                 */
-                virtual Affine2d computeBasePose(const VectorXd& wheel_pos, const VectorXd& wheel_vel);
+                virtual Affine2d computeBasePose(const Eigen::Ref<const VectorXd>& wheel_pos, const Eigen::Ref<const VectorXd>& wheel_vel);
 
                 // ================================ Get Functions ================================
                 /**
@@ -149,7 +149,7 @@ namespace drc
                  * @param wheel_pos Wheel positions (to resolve caster angles).
                  * @return (Eigen::MatrixXd) Jacobian matrix [3 x N_wheels].
                 */
-                MatrixXd CasterFKJacobian(const VectorXd& wheel_pos);
+                MatrixXd CasterFKJacobian(const Eigen::Ref<const VectorXd>& wheel_pos);
 
         };
     } // namespace RobotData

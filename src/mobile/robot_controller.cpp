@@ -56,7 +56,7 @@ namespace drc
             wheel_num_ = robot_data_->getWheelNum();
         }
 
-        VectorXd RobotController::VelocityCommand(const VectorXd& desired_base_vel)
+        VectorXd RobotController::VelocityCommand(const Eigen::Ref<const VectorXd>& desired_base_vel)
         {
             assert(desired_base_vel.size() == 3); // [vx, vy, omega]
 
@@ -125,7 +125,7 @@ namespace drc
             return computeWheelVel(v_limited);
         }
 
-        VectorXd RobotController::computeWheelVel(const VectorXd& base_vel)
+        VectorXd RobotController::computeWheelVel(const Eigen::Ref<const VectorXd>& base_vel)
         {
             assert(base_vel.size() == 3); // Ensure base_vel has three elements for vx, vy, omega       
             return computeIKJacobian() * base_vel;

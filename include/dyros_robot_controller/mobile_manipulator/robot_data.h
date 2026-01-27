@@ -97,12 +97,12 @@ namespace drc
                  * @param qdot_mani     (Eigen::VectorXd) Joint velocities of the manipulator.
                  * @return (bool) True if state update is successful.
                 */
-                bool updateState(const VectorXd& q_virtual,
-                                 const VectorXd& q_mobile,
-                                 const VectorXd& q_mani,
-                                 const VectorXd& qdot_virtual,
-                                 const VectorXd& qdot_mobile,
-                                 const VectorXd& qdot_mani);
+                bool updateState(const Eigen::Ref<const VectorXd>& q_virtual,
+                                 const Eigen::Ref<const VectorXd>& q_mobile,
+                                 const Eigen::Ref<const VectorXd>& q_mani,
+                                 const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                 const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                 const Eigen::Ref<const VectorXd>& qdot_mani);
 
                 // ================================ Compute Functions ================================
                 // Wholebody joint space
@@ -118,9 +118,9 @@ namespace drc
                  * @param q_mani        (Eigen::VectorXd) Joint positions of the manipulator.
                  * @return (Eigen::MatrixXd) Mass matrix of the whole body.
                 */ 
-                virtual MatrixXd computeMassMatrix(const VectorXd& q_virtual,
-                                                   const VectorXd& q_mobile,
-                                                   const VectorXd& q_mani);
+                virtual MatrixXd computeMassMatrix(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                   const Eigen::Ref<const VectorXd>& q_mobile,
+                                                   const Eigen::Ref<const VectorXd>& q_mani);
                 /**
                  * @brief Compute the gravity vector of the whole body.
                  * @param q_virtual     (Eigen::VectorXd) Joint positions of the floating base.
@@ -128,9 +128,9 @@ namespace drc
                  * @param q_mani        (Eigen::VectorXd) Joint positions of the manipulator.
                  * @return (Eigen::VectorXd) Gravity vector of the whole body.
                 */                                     
-                virtual VectorXd computeGravity(const VectorXd& q_virtual,
-                                                const VectorXd& q_mobile,
-                                                const VectorXd& q_mani);
+                virtual VectorXd computeGravity(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                const Eigen::Ref<const VectorXd>& q_mobile,
+                                                const Eigen::Ref<const VectorXd>& q_mani);
                 /**
                  * @brief Compute the coriolis vector of the whole body.
                  * @param q_virtual     (Eigen::VectorXd) Joint positions of the floating base.
@@ -141,12 +141,12 @@ namespace drc
                  * @param qdot_mani     (Eigen::VectorXd) Joint velocities of the manipulator.
                  * @return (Eigen::VectorXd) Coriolis vector of the whole body.
                 */                                 
-                virtual VectorXd computeCoriolis(const VectorXd& q_virtual,
-                                                 const VectorXd& q_mobile,
-                                                 const VectorXd& q_mani,
-                                                 const VectorXd& qdot_virtual,
-                                                 const VectorXd& qdot_mobile,
-                                                 const VectorXd& qdot_mani);
+                virtual VectorXd computeCoriolis(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                 const Eigen::Ref<const VectorXd>& q_mobile,
+                                                 const Eigen::Ref<const VectorXd>& q_mani,
+                                                 const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                 const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                 const Eigen::Ref<const VectorXd>& qdot_mani);
                 /**
                  * @brief Compute the nonlinear effects vector of the whole body.
                  * @param q_virtual     (Eigen::VectorXd) Joint positions of the floating base.
@@ -157,12 +157,12 @@ namespace drc
                  * @param qdot_mani     (Eigen::VectorXd) Joint velocities of the manipulator.
                  * @return (Eigen::VectorXd) Nonlinear effects vector of the whole body.
                 */                                  
-                virtual VectorXd computeNonlinearEffects(const VectorXd& q_virtual,
-                                                         const VectorXd& q_mobile,
-                                                         const VectorXd& q_mani,
-                                                         const VectorXd& qdot_virtual,
-                                                         const VectorXd& qdot_mobile,
-                                                         const VectorXd& qdot_mani);
+                virtual VectorXd computeNonlinearEffects(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                         const Eigen::Ref<const VectorXd>& q_mobile,
+                                                         const Eigen::Ref<const VectorXd>& q_mani,
+                                                         const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                         const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                         const Eigen::Ref<const VectorXd>& qdot_mani);
 
                 /**
                  * @brief Compute the mass matrix of the whole body, excluding the floating base.
@@ -171,9 +171,9 @@ namespace drc
                  * @param q_mani        (Eigen::VectorXd) Joint positions of the manipulator.
                  * @return (Eigen::MatrixXd) Mass matrix of the actuated joints.
                 */                                         
-                virtual MatrixXd computeMassMatrixActuated(const VectorXd& q_virtual,
-                                                           const VectorXd& q_mobile,
-                                                           const VectorXd& q_mani);
+                virtual MatrixXd computeMassMatrixActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                           const Eigen::Ref<const VectorXd>& q_mobile,
+                                                           const Eigen::Ref<const VectorXd>& q_mani);
                 /**
                  * @brief Compute the gravity vector of the whole body, excluding the floating base.
                  * @param q_virtual     (Eigen::VectorXd) Joint positions of the floating base.
@@ -181,9 +181,9 @@ namespace drc
                  * @param q_mani        (Eigen::VectorXd) Joint positions of the manipulator.
                  * @return (Eigen::VectorXd) Gravity vector of the actuated joints.
                 */                                              
-                virtual VectorXd computeGravityActuated(const VectorXd& q_virtual,
-                                                        const VectorXd& q_mobile,
-                                                        const VectorXd& q_mani);
+                virtual VectorXd computeGravityActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                        const Eigen::Ref<const VectorXd>& q_mobile,
+                                                        const Eigen::Ref<const VectorXd>& q_mani);
                 /**
                  * @brief Compute the coriolis vector of the whole body, excluding the floating base.
                  * @param q_virtual     (Eigen::VectorXd) Joint positions of the floating base.
@@ -193,11 +193,11 @@ namespace drc
                  * @param qdot_mani     (Eigen::VectorXd) Joint velocities of the manipulator.
                  * @return (Eigen::VectorXd) Coriolis vector of the actuated joints.
                 */                                         
-                virtual VectorXd computeCoriolisActuated(const VectorXd& q_virtual,
-                                                         const VectorXd& q_mobile,
-                                                         const VectorXd& q_mani,
-                                                         const VectorXd& qdot_mobile,
-                                                         const VectorXd& qdot_mani);
+                virtual VectorXd computeCoriolisActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                         const Eigen::Ref<const VectorXd>& q_mobile,
+                                                         const Eigen::Ref<const VectorXd>& q_mani,
+                                                         const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                         const Eigen::Ref<const VectorXd>& qdot_mani);
                 /**
                  * @brief Compute the nonlinear effects vector of the whole body, excluding the floating base.
                  * @param q_virtual     (Eigen::VectorXd) Joint positions of the floating base.
@@ -207,11 +207,11 @@ namespace drc
                  * @param qdot_mani     (Eigen::VectorXd) Joint velocities of the manipulator.
                  * @return (Eigen::VectorXd) Nonlinear effects vector of the actuated joints.
                 */                                         
-                virtual VectorXd computeNonlinearEffectsActuated(const VectorXd& q_virtual,
-                                                                 const VectorXd& q_mobile,
-                                                                 const VectorXd& q_mani,
-                                                                 const VectorXd& qdot_mobile,
-                                                                 const VectorXd& qdot_mani);
+                virtual VectorXd computeNonlinearEffectsActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                                 const Eigen::Ref<const VectorXd>& q_mobile,
+                                                                 const Eigen::Ref<const VectorXd>& q_mani,
+                                                                 const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                                 const Eigen::Ref<const VectorXd>& qdot_mani);
 
                 // Wholebody task space
                 using Manipulator::RobotData::computePose;
@@ -228,9 +228,9 @@ namespace drc
                  * @param link_name     (std::string) Name of the link.
                  * @return (Eigen::Affine3d) Pose of the link in the task space.
                 */ 
-                virtual Affine3d computePose(const VectorXd& q_virtual,
-                                             const VectorXd& q_mobile,
-                                             const VectorXd& q_mani, 
+                virtual Affine3d computePose(const Eigen::Ref<const VectorXd>& q_virtual,
+                                             const Eigen::Ref<const VectorXd>& q_mobile,
+                                             const Eigen::Ref<const VectorXd>& q_mani, 
                                              const std::string& link_name);
                 /**
                  * @brief Compute the Jacobian of the link.
@@ -240,9 +240,9 @@ namespace drc
                  * @param link_name     (std::string) Name of the link.
                  * @return (Eigen::MatrixXd) Jacobian of the link.
                 */                              
-                virtual MatrixXd computeJacobian(const VectorXd& q_virtual,
-                                                 const VectorXd& q_mobile,
-                                                 const VectorXd& q_mani, 
+                virtual MatrixXd computeJacobian(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                 const Eigen::Ref<const VectorXd>& q_mobile,
+                                                 const Eigen::Ref<const VectorXd>& q_mani, 
                                                  const std::string& link_name);
                 /**
                  * @brief Compute the Jacobian time variation of the link.
@@ -254,12 +254,12 @@ namespace drc
                  * @param qdot_mani     (Eigen::VectorXd) Joint velocities of the manipulator.
                  * @return (Eigen::MatrixXd) Jacobian time variation of the link.
                 */                                 
-                virtual MatrixXd computeJacobianTimeVariation(const VectorXd& q_virtual,
-                                                              const VectorXd& q_mobile,
-                                                              const VectorXd& q_mani,
-                                                              const VectorXd& qdot_virtual,
-                                                              const VectorXd& qdot_mobile,
-                                                              const VectorXd& qdot_mani, 
+                virtual MatrixXd computeJacobianTimeVariation(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                              const Eigen::Ref<const VectorXd>& q_mobile,
+                                                              const Eigen::Ref<const VectorXd>& q_mani,
+                                                              const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                              const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                              const Eigen::Ref<const VectorXd>& qdot_mani, 
                                                               const std::string& link_name);
                 /**
                  * @brief Compute the velocity of the link in the task space.
@@ -271,12 +271,12 @@ namespace drc
                  * @param qdot_mani     (Eigen::VectorXd) Joint velocities of the manipulator.
                  * @return (Eigen::VectorXd) Velocity of the link in the task space.
                 */                                               
-                virtual VectorXd computeVelocity(const VectorXd& q_virtual,
-                                                 const VectorXd& q_mobile,
-                                                 const VectorXd& q_mani,
-                                                 const VectorXd& qdot_virtual,
-                                                 const VectorXd& qdot_mobile,
-                                                 const VectorXd& qdot_mani, 
+                virtual VectorXd computeVelocity(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                 const Eigen::Ref<const VectorXd>& q_mobile,
+                                                 const Eigen::Ref<const VectorXd>& q_mani,
+                                                 const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                 const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                 const Eigen::Ref<const VectorXd>& qdot_mani, 
                                                  const std::string& link_name);
                 /**
                  * @brief Compute the minimum pairwise distance between the robot's collision meshes and (optionally) its time variations.
@@ -291,12 +291,12 @@ namespace drc
                  * @param verbose       (bool) If true, prints the closest pair of links and their minimum distance.
                  * @return (RobotData::Manipulator::MinDistResult) Minimum distance result containing distance, gradient, and gradient time variation.
                 */                                  
-                virtual Manipulator::MinDistResult computeMinDistance(const VectorXd& q_virtual,
-                                                                      const VectorXd& q_mobile,
-                                                                      const VectorXd& q_mani,
-                                                                      const VectorXd& qdot_virtual,
-                                                                      const VectorXd& qdot_mobile,
-                                                                      const VectorXd& qdot_mani, 
+                virtual Manipulator::MinDistResult computeMinDistance(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                                      const Eigen::Ref<const VectorXd>& q_mobile,
+                                                                      const Eigen::Ref<const VectorXd>& q_mani,
+                                                                      const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                                      const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                                      const Eigen::Ref<const VectorXd>& qdot_mani, 
                                                                       const bool& with_grad, 
                                                                       const bool& with_graddot, 
                                                                       const bool verbose);
@@ -306,8 +306,8 @@ namespace drc
                  * @param q_mobile      (Eigen::VectorXd) Wheel positions.
                  * @return (Eigen::MatrixXd) Selection matrix.
                  */                                                      
-                virtual MatrixXd computeSelectionMatrix(const VectorXd& q_virtual,
-                                                        const VectorXd& q_mobile);
+                virtual MatrixXd computeSelectionMatrix(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                        const Eigen::Ref<const VectorXd>& q_mobile);
 
                 /**
                  * @brief Compute the Jacobian of the link excluding the floating base.
@@ -317,9 +317,9 @@ namespace drc
                  * @param link_name     (std::string) Name of the link.
                  * @return (Eigen::MatrixXd) Jacobian of the link for the actuated joints.
                  */                                        
-                virtual MatrixXd computeJacobianActuated(const VectorXd& q_virtual,
-                                                         const VectorXd& q_mobile,
-                                                         const VectorXd& q_mani, 
+                virtual MatrixXd computeJacobianActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                         const Eigen::Ref<const VectorXd>& q_mobile,
+                                                         const Eigen::Ref<const VectorXd>& q_mani, 
                                                          const std::string& link_name);
                 /**
                  * @brief Compute the Jacobian time variation of the link excluding the floating base.
@@ -332,12 +332,12 @@ namespace drc
                  * @param link_name     (std::string) Name of the link.
                  * @return (Eigen::MatrixXd) Jacobian time variation of the link for the actuated joints.
                  */                                         
-                virtual MatrixXd computeJacobianTimeVariationActuated(const VectorXd& q_virtual,
-                                                                      const VectorXd& q_mobile,
-                                                                      const VectorXd& q_mani,
-                                                                      const VectorXd& qdot_virtual,
-                                                                      const VectorXd& qdot_mobile,
-                                                                      const VectorXd& qdot_mani, 
+                virtual MatrixXd computeJacobianTimeVariationActuated(const Eigen::Ref<const VectorXd>& q_virtual,
+                                                                      const Eigen::Ref<const VectorXd>& q_mobile,
+                                                                      const Eigen::Ref<const VectorXd>& q_mani,
+                                                                      const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                                                      const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                                                      const Eigen::Ref<const VectorXd>& qdot_mani, 
                                                                       const std::string& link_name);
                                                         
                                                               
@@ -352,8 +352,8 @@ namespace drc
                  * @param link_name     (std::string) Name of the link.
                  * @return (RobotData::Manipulator::ManipulabilityResult) Manipulability result containing manipulability, gradient, and gradient time variation.
                 */
-                virtual Manipulator::ManipulabilityResult computeManipulability(const VectorXd& q_mani, 
-                                                                                const VectorXd& qdot_mani, 
+                virtual Manipulator::ManipulabilityResult computeManipulability(const Eigen::Ref<const VectorXd>& q_mani, 
+                                                                                const Eigen::Ref<const VectorXd>& qdot_mani, 
                                                                                 const bool& with_grad, 
                                                                                 const bool& with_graddot, 
                                                                                 const std::string& link_name);
@@ -364,14 +364,14 @@ namespace drc
                  * @param q_mobile      (Eigen::VectorXd) Wheel positions.
                  * @return (Eigen::MatrixXd) Jacobian of the mobile base.
                  */
-                virtual MatrixXd computeMobileFKJacobian(const VectorXd& q_mobile);
+                virtual MatrixXd computeMobileFKJacobian(const Eigen::Ref<const VectorXd>& q_mobile);
                 /**
                  * @brief Compute the velocity of the mobile base.
                  * @param q_mobile      (Eigen::VectorXd) Wheel positions.
                  * @param qdot_mobile   (Eigen::VectorXd) Wheel velocities.
                  * @return (Eigen::VectorXd) Base velocity vector [vx, vy, wz].
                  */
-                virtual VectorXd computeMobileBaseVel(const VectorXd& q_mobile, const VectorXd& qdot_mobile);
+                virtual VectorXd computeMobileBaseVel(const Eigen::Ref<const VectorXd>& q_mobile, const Eigen::Ref<const VectorXd>& qdot_mobile);
 
                 // ================================ Get Functions ================================
                 /**
@@ -525,12 +525,12 @@ namespace drc
                  * @param qdot_mani     (Eigen::VectorXd) Joint velocities of the manipulator.
                  * @return (bool) True if the update was successful.
                  */
-                virtual bool updateKinematics(const VectorXd& q_virtual,
-                                              const VectorXd& q_mobile,
-                                              const VectorXd& q_mani,
-                                              const VectorXd& qdot_virtual,
-                                              const VectorXd& qdot_mobile,
-                                              const VectorXd& qdot_mani);
+                virtual bool updateKinematics(const Eigen::Ref<const VectorXd>& q_virtual,
+                                              const Eigen::Ref<const VectorXd>& q_mobile,
+                                              const Eigen::Ref<const VectorXd>& q_mani,
+                                              const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                              const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                              const Eigen::Ref<const VectorXd>& qdot_mani);
                 /**
                  * @brief Update the dynamics of the mobile manipulator.
                  * @param q_virtual     (Eigen::VectorXd) Joint positions of the floating base.
@@ -541,12 +541,12 @@ namespace drc
                  * @param qdot_mani     (Eigen::VectorXd) Joint velocities of the manipulator.
                  * @return (bool) True if the update was successful.
                  */                              
-                virtual bool updateDynamics(const VectorXd& q_virtual,
-                                            const VectorXd& q_mobile,
-                                            const VectorXd& q_mani,
-                                            const VectorXd& qdot_virtual,
-                                            const VectorXd& qdot_mobile,
-                                            const VectorXd& qdot_mani);
+                virtual bool updateDynamics(const Eigen::Ref<const VectorXd>& q_virtual,
+                                            const Eigen::Ref<const VectorXd>& q_mobile,
+                                            const Eigen::Ref<const VectorXd>& q_mani,
+                                            const Eigen::Ref<const VectorXd>& qdot_virtual,
+                                            const Eigen::Ref<const VectorXd>& qdot_mobile,
+                                            const Eigen::Ref<const VectorXd>& qdot_mani);
 
                 /**
                  * @brief Combine virtual, mobile, and manipulator joint vectors into a single joint vector.
@@ -555,17 +555,17 @@ namespace drc
                  * @param q_mani        (Eigen::VectorXd) Joint positions of the manipulator.
                  * @return (Eigen::VectorXd) Combined joint vector.
                  */                             
-                VectorXd getJointVector(const VectorXd& q_virtual,
-                                        const VectorXd& q_mobile,
-                                        const VectorXd& q_mani);
+                VectorXd getJointVector(const Eigen::Ref<const VectorXd>& q_virtual,
+                                        const Eigen::Ref<const VectorXd>& q_mobile,
+                                        const Eigen::Ref<const VectorXd>& q_mani);
                 /**
                  * @brief Combine mobile and manipulator joint vectors into a single actuator joint vector.
                  * @param q_mobile      (Eigen::VectorXd) Wheel positions.
                  * @param q_mani        (Eigen::VectorXd) Joint positions of the manipulator.
                  * @return (Eigen::VectorXd) Combined actuator joint vector.
                  */                         
-                VectorXd getActuatorVector(const VectorXd& q_mobile,
-                                           const VectorXd& q_mani);
+                VectorXd getActuatorVector(const Eigen::Ref<const VectorXd>& q_mobile,
+                                           const Eigen::Ref<const VectorXd>& q_mani);
 
                 int mani_dof_;          // Manipulator degrees of freedom
                 int mobi_dof_;          // Mobile base degrees of freedom

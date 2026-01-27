@@ -69,8 +69,13 @@ namespace drc
             link_xddot_desired_ = link_xddot_desired;
         }
     
-        bool QPID::getOptJoint(VectorXd &opt_qddot, VectorXd &opt_torque, QP::TimeDuration &time_status)
+        bool QPID::getOptJoint(Eigen::Ref<Eigen::VectorXd> opt_qddot, Eigen::Ref<Eigen::VectorXd> opt_torque, QP::TimeDuration &time_status)
         {
+            if(opt_qddot.size() != joint_dof_ || opt_torque.size() != joint_dof_)
+            {
+                time_status.setZero();
+                return false;
+            }
             MatrixXd sol;
             if(!solveQP(sol, time_status))
             {
@@ -87,7 +92,9 @@ namespace drc
             }
         }
 
-        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking, const VectorXd w_vel_damping, const VectorXd w_acc_damping)
+        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
             w_vel_damping_ = w_vel_damping;

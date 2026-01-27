@@ -71,7 +71,7 @@ namespace drc
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (bool) True if state update is successful.
                 */            
-                virtual bool updateState(const VectorXd& q, const VectorXd& qdot);
+                virtual bool updateState(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
                 /**
                  * @brief Prints debug information.
                  * @return (std::string) Debug information.
@@ -84,27 +84,27 @@ namespace drc
                  * @param q (Eigen::VectorXd) Joint positions.
                  * @return (Eigen::MatrixXd) Mass matrix of the manipulator.
                  */
-                virtual MatrixXd computeMassMatrix(const VectorXd& q);
+                virtual MatrixXd computeMassMatrix(const Eigen::Ref<const VectorXd>& q);
                 /**
                  * @brief Compute the gravity vector of the manipulator.
                  * @param q (Eigen::VectorXd) Joint positions.
                  * @return (Eigen::VectorXd) Gravity vector of the manipulator.
                  */
-                virtual VectorXd computeGravity(const VectorXd& q);
+                virtual VectorXd computeGravity(const Eigen::Ref<const VectorXd>& q);
                 /**
                  * @brief Compute the coriolis vector of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (Eigen::VectorXd) Coriolis vector of the manipulator.
                  */
-                virtual VectorXd computeCoriolis(const VectorXd& q, const VectorXd& qdot);
+                virtual VectorXd computeCoriolis(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
                 /**
                  * @brief Compute the nonlinear effects vector of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (Eigen::VectorXd) Nonlinear effects vector of the manipulator.
                  */
-                virtual VectorXd computeNonlinearEffects(const VectorXd& q, const VectorXd& qdot);
+                virtual VectorXd computeNonlinearEffects(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
                 
                 // Task space
                 /**
@@ -113,14 +113,14 @@ namespace drc
                  * @param link_name (std::string) Name of the link.
                  * @return (Eigen::Affine3d) Pose of the link in the task space.
                  */
-                virtual Affine3d computePose(const VectorXd& q, const std::string& link_name);
+                virtual Affine3d computePose(const Eigen::Ref<const VectorXd>& q, const std::string& link_name);
                 /**
                  * @brief Compute the Jacobian of the link.
                  * @param q         (Eigen::VectorXd) Joint positions.
                  * @param link_name (std::string) Name of the link.
                  * @return (Eigen::MatrixXd) Jacobian of the link.
                  */
-                virtual MatrixXd computeJacobian(const VectorXd& q, const std::string& link_name);
+                virtual MatrixXd computeJacobian(const Eigen::Ref<const VectorXd>& q, const std::string& link_name);
                 /**
                  * @brief Compute the Jacobian time variation of the link.
                  * @param q         (Eigen::VectorXd) Joint positions.
@@ -128,7 +128,7 @@ namespace drc
                  * @param link_name (std::string) Name of the link.
                  * @return (MatrixXd) Jacobian time variation of the link.
                  */
-                virtual MatrixXd computeJacobianTimeVariation(const VectorXd& q, const VectorXd& qdot, const std::string& link_name);
+                virtual MatrixXd computeJacobianTimeVariation(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const std::string& link_name);
                 /**
                  * @brief Compute the velocity of the link in the task space.
                  * @param q         (Eigen::VectorXd) Joint positions.
@@ -136,7 +136,7 @@ namespace drc
                  * @param link_name (std::string) Name of the link.
                  * @return (Eigen::VectorXd) Velocity of the link in the task space.
                  */
-                virtual VectorXd computeVelocity(const VectorXd& q, const VectorXd& qdot, const std::string& link_name);
+                virtual VectorXd computeVelocity(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const std::string& link_name);
                 /**
                  * @brief Compute the minimum pairwise distance between the robot's collision meshes and (optionally) its time variations.
                  * @param q             (Eigen::VectorXd) Joint positions.
@@ -146,7 +146,7 @@ namespace drc
                  * @param verbose       (bool) If true, prints the closest pair of links and their minimum distance.
                  * @return (MinDistResult) Minimum distance result containing distance, gradient, and gradient time variation.
                  */
-                virtual MinDistResult computeMinDistance(const VectorXd& q, const VectorXd& qdot, const bool& with_grad, const bool& with_graddot, const bool verbose);
+                virtual MinDistResult computeMinDistance(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const bool& with_grad, const bool& with_graddot, const bool verbose);
                 /**
                  * @brief Compute the manipulability of the link (which indicates how well the link can move at current joint configuration) and (optionally) its time variations.
                  * @param q             (Eigen::VectorXd) Joint positions.
@@ -156,7 +156,7 @@ namespace drc
                  * @param link_name     (std::string) Name of the link.
                  * @return (ManipulabilityResult) Manipulability result containing manipulability, gradient, and gradient time variation.
                  */
-                virtual ManipulabilityResult computeManipulability(const VectorXd& q, const VectorXd& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name);
+                virtual ManipulabilityResult computeManipulability(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name);
                 
                 // ================================ Get Functions ================================
                 const std::string getURDFPath() const {return urdf_path_;}
@@ -282,14 +282,14 @@ namespace drc
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (bool) True if the update was successful.
                  */
-                virtual bool updateKinematics(const VectorXd& q, const VectorXd& qdot);
+                virtual bool updateKinematics(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
                 /**
                  * @brief Update the dynamic parameters of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (bool) True if the update was successful.
                  */
-                virtual bool updateDynamics(const VectorXd& q, const VectorXd& qdot);
+                virtual bool updateDynamics(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
 
                 std::string urdf_path_;
                 std::string srdf_path_;

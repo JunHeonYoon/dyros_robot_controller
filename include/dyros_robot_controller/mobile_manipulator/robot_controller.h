@@ -32,18 +32,18 @@ namespace drc
                  * @param Kp (Eigen::VectorXd) Proportional gains; its size must same as mani_dof.
                  * @param Kv (Eigen::VectorXd) Derivative gains; its size must same as mani_dof.
                 */                
-                virtual void setManipulatorJointGain(const VectorXd& Kp, 
-                                                     const VectorXd& Kv);
+                virtual void setManipulatorJointGain(const Eigen::Ref<const VectorXd>& Kp, 
+                                                     const Eigen::Ref<const VectorXd>& Kv);
                 /**
                  * @brief Set joint space P gains for the robot.
                  * @param Kp (Eigen::VectorXd) Proportional gains; its size must same as mani_dof.
                 */                                     
-                virtual void setManipulatorJointKpGain(const VectorXd& Kp);
+                virtual void setManipulatorJointKpGain(const Eigen::Ref<const VectorXd>& Kp);
                 /**
                  * @brief Set joint space D gains for the robot.
                  * @param Kv (Eigen::VectorXd) Derivative gains; its size must same as mani_dof.
                 */ 
-                virtual void setManipulatorJointKvGain(const VectorXd& Kv);
+                virtual void setManipulatorJointKvGain(const Eigen::Ref<const VectorXd>& Kv);
                 /**
                  * @brief Set task space PD gains for the robot per links.
                  * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
@@ -67,7 +67,7 @@ namespace drc
                  * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator_dof.
                  */
                 // TODO: add document to notion
-                void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_damping);
+                void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping);
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPID
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
@@ -75,7 +75,7 @@ namespace drc
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as actuator_dof.
                  */
                 // TODO: add document to notion
-                void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const VectorXd& w_vel_damping, const VectorXd& w_acc_damping);
+                void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 // TODO: modify comments, add bindings and python func, add python comment, add to notion
                 // ================================== Mobile Functions ===================================
@@ -114,10 +114,10 @@ namespace drc
                  * @param duration          (double) Time duration.
                  * @return (Eigen::VectorXd) Desired manipulator joint positions.
                 */ 
-                virtual VectorXd moveManipulatorJointPositionCubic(const VectorXd& q_mani_target,
-                                                                   const VectorXd& qdot_mani_target,
-                                                                   const VectorXd& q_mani_init,
-                                                                   const VectorXd& qdot_mani_init,
+                virtual VectorXd moveManipulatorJointPositionCubic(const Eigen::Ref<const VectorXd>& q_mani_target,
+                                                                   const Eigen::Ref<const VectorXd>& qdot_mani_target,
+                                                                   const Eigen::Ref<const VectorXd>& q_mani_init,
+                                                                   const Eigen::Ref<const VectorXd>& qdot_mani_init,
                                                                    const double& current_time,
                                                                    const double& init_time,
                                                                    const double& duration);
@@ -132,10 +132,10 @@ namespace drc
                  * @param duration      (double) Time duration
                  * @return (Eigen::VectorXd) Desired manipulator joint velocities.
                  */                                        
-                virtual VectorXd moveManipulatorJointVelocityCubic(const VectorXd& q_target,
-                                                                   const VectorXd& qdot_target,
-                                                                   const VectorXd& q_init,
-                                                                   const VectorXd& qdot_init,
+                virtual VectorXd moveManipulatorJointVelocityCubic(const Eigen::Ref<const VectorXd>& q_target,
+                                                                   const Eigen::Ref<const VectorXd>& qdot_target,
+                                                                   const Eigen::Ref<const VectorXd>& q_init,
+                                                                   const Eigen::Ref<const VectorXd>& qdot_init,
                                                                    const double& current_time,
                                                                    const double& init_time,
                                                                    const double& duration);
@@ -146,7 +146,7 @@ namespace drc
                  * @return (Eigen::VectorXd) Desired manipulator joint torques.
                 */                             
                 // TODO: add document to notion that add use_mass                       
-                virtual VectorXd moveManipulatorJointTorqueStep(const VectorXd& qddot_mani_target, const bool use_mass = true);
+                virtual VectorXd moveManipulatorJointTorqueStep(const Eigen::Ref<const VectorXd>& qddot_mani_target, const bool use_mass = true);
                 /**
                  * @brief Computes joint torques to achieve desired manipulator joint positions & velocities using PD control law.
                  * @param q_mani_target     (Eigen::VectorXd) Desired manipulator joint positions.
@@ -155,8 +155,8 @@ namespace drc
                  * @return (Eigen::VectorXd) Desired manipulator joint torques.
                  */
                 // TODO: add document to notion that add use_mass
-                virtual VectorXd moveManipulatorJointTorqueStep(const VectorXd& q_mani_target,
-                                                                const VectorXd& qdot_mani_target,
+                virtual VectorXd moveManipulatorJointTorqueStep(const Eigen::Ref<const VectorXd>& q_mani_target,
+                                                                const Eigen::Ref<const VectorXd>& qdot_mani_target,
                                                                 const bool use_mass = true);
 
                 /**
@@ -172,10 +172,10 @@ namespace drc
                  * @return (Eigen::VectorXd) Desired manipulator joint torques.
                  */          
                 // TODO: add document to notion that add use_mass                                      
-                virtual VectorXd moveManipulatorJointTorqueCubic(const VectorXd& q_mani_target,
-                                                                 const VectorXd& qdot_mani_target,
-                                                                 const VectorXd& q_mani_init,
-                                                                 const VectorXd& qdot_mani_init,
+                virtual VectorXd moveManipulatorJointTorqueCubic(const Eigen::Ref<const VectorXd>& q_mani_target,
+                                                                 const Eigen::Ref<const VectorXd>& qdot_mani_target,
+                                                                 const Eigen::Ref<const VectorXd>& q_mani_init,
+                                                                 const Eigen::Ref<const VectorXd>& qdot_mani_init,
                                                                  const double& current_time,
                                                                  const double& init_time,
                                                                  const double& duration,
@@ -191,8 +191,8 @@ namespace drc
                  * @return (bool) True if the problem was solved successfully.
                 */                                                  
                 virtual bool QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                  VectorXd& opt_qdot_mobile,
-                                  VectorXd& opt_qdot_manipulator,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                   const bool time_verbose=false);
 
                 /**
@@ -204,8 +204,8 @@ namespace drc
                  * @return (bool) True if the problem was solved successfully.
                 */                    
                 virtual bool QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                      VectorXd& opt_qdot_mobile,
-                                      VectorXd& opt_qdot_manipulator,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                       const bool time_verbose=false);
 
                 /**
@@ -223,8 +223,8 @@ namespace drc
                                        const double& current_time,
                                        const double& init_time,
                                        const double& duration,
-                                       VectorXd& opt_qdot_mobile,
-                                       VectorXd& opt_qdot_manipulator,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                        const bool time_verbose=false);
 
                 /**
@@ -236,8 +236,8 @@ namespace drc
                  * @return (bool) True if the problem was solved successfully.
                 */      
                 virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                  VectorXd& opt_qddot_mobile,
-                                  VectorXd& opt_torque_manipulator,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                   const bool time_verbose=false);
 
                 /**
@@ -249,8 +249,8 @@ namespace drc
                  * @return (bool) True if the problem was solved successfully.
                 */                  
                 virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                      VectorXd& opt_qddot_mobile,
-                                      VectorXd& opt_torque_manipulator,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                      Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                       const bool time_verbose=false);
 
                 /**
@@ -268,8 +268,8 @@ namespace drc
                                        const double& current_time,
                                        const double& init_time,
                                        const double& duration,
-                                       VectorXd& opt_qddot_mobile,
-                                       VectorXd& opt_torque_manipulator,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                        const bool time_verbose=false);
 
    
@@ -295,13 +295,13 @@ namespace drc
                 std::unique_ptr<MobileManipulator::QPID> QP_moma_ID_;
 
                 virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
-                                  VectorXd& opt_qdot_mobile,
-                                  VectorXd& opt_qdot_manipulator,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                   const bool time_verbose=false);
 
                 virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
-                                  VectorXd& opt_qddot_mobile,
-                                  VectorXd& opt_torque_manipulator,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                   const bool time_verbose=false);
         };
     } // namespace MobileManipulator
