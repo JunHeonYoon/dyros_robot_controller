@@ -32,12 +32,17 @@ namespace drc
                  */
                 // TODO: add document to notion
                 void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_vel_damping,
-                               const Eigen::Ref<const VectorXd>& w_acc_damping);
+                               const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
+                               const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                               const Eigen::Vector3d& w_base_vel_damping,
+                               const Eigen::Vector3d& w_base_acc_damping);
                 /**
                  * @brief Set the desired task space acceleration for the link.
-                 * @param link_xddot_desired (std::map<std::string, Vector6d>) Desired task space acceleration (6D twist) per links.
-                 * @param link_name     (std::string) Name of the link.
+                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
+                  * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                  * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                  * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
+                  * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
                  */
                 // TODO: add document to notion
                 void setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired);
@@ -65,6 +70,10 @@ namespace drc
                     int slack_qdot_mani_max_start;
                     int slack_sing_start;
                     int slack_sel_col_start;
+                    int slack_base_vel_min_start;
+                    int slack_base_vel_max_start;
+                    int slack_base_acc_min_start;
+                    int slack_base_acc_max_start;
     
                     int eta_dot_size;
                     int torque_size;
@@ -74,6 +83,10 @@ namespace drc
                     int slack_qdot_mani_max_size;
                     int slack_sing_size;
                     int slack_sel_col_size;
+                    int slack_base_vel_min_size;
+                    int slack_base_vel_max_size;
+                    int slack_base_acc_min_size;
+                    int slack_base_acc_max_size;
                     
                     // equality
                     int con_dyn_start; // dynamics constraint
@@ -87,6 +100,10 @@ namespace drc
                     int con_qdot_mani_max_start; // max qdot_manipulator
                     int con_sing_start;          // singularity
                     int con_sel_col_start;       // self collision
+                    int con_base_vel_min_start;  // mobile base velocity min
+                    int con_base_vel_max_start;  // mobile base velocity max
+                    int con_base_acc_min_start;  // mobile base acceleration min
+                    int con_base_acc_max_start;  // mobile base acceleration max
     
                     int con_q_mani_min_size;    // min q_manipulator size
                     int con_q_mani_max_size;    // max q_manipulator size
@@ -94,6 +111,10 @@ namespace drc
                     int con_qdot_mani_max_size; // max qdot_manipulator size
                     int con_sing_size;          // singularity size
                     int con_sel_col_size;       // self collision size
+                    int con_base_vel_min_size;  // mobile base velocity min size
+                    int con_base_vel_max_size;  // mobile base velocity max size
+                    int con_base_acc_min_size;  // mobile base acceleration min size
+                    int con_base_acc_max_size;  // mobile base acceleration max size
                 }si_index_;
     
                 std::shared_ptr<MobileManipulator::RobotData> robot_data_; // Shared pointer to the robot data class.
@@ -104,9 +125,11 @@ namespace drc
                 
                 std::map<std::string, Vector6d> link_xddot_desired_; // Desired task acceleration per links
                 std::map<std::string, Vector6d> link_w_tracking_; // weight for task acceleration tracking per links; || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||
-                VectorXd w_vel_damping_;                          // weight for velocity damping;                     || eta_dot*dt + eta ||
-                VectorXd w_acc_damping_;                          // weight for acceleration damping;                 || eta_ddot ||
-
+                VectorXd w_mani_vel_damping_;                     // weight for manipulator velocity damping;                     || eta_dot*dt + eta ||
+                VectorXd w_mani_acc_damping_;                     // weight for manipulator acceleration damping;                 || eta_ddot ||
+                Vector3d w_base_vel_damping_;                     // weight for mobile base velocity damping;                     || eta_dot*dt + eta ||
+                Vector3d w_base_acc_damping_;                     // weight for mobile base acceleration damping;                 || eta_ddot ||
+                
                 /**
                  * @brief Set the cost function which minimizes task space acceleration error.
                  *        Use slack variables (s) to increase feasibility of QP.

@@ -26,12 +26,14 @@ namespace drc
                 QPIK(std::shared_ptr<MobileManipulator::RobotData> robot_data, const double dt);
                 /**
                  * @brief Set the wight vector for the cost terms
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space velocity tracking per links.
-                 * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator dof.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 * @param w_mani_damping  (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @param w_base_damping  (Eigen::Vector3d) Weight for mobile base velocity damping.
                  */
                 // TODO: add document to notion
-                void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_damping);
+                void setWeight(const std::map<std::string, Vector6d>& link_w_tracking, 
+                               const Eigen::Ref<const VectorXd>& w_mani_damping,
+                               const Eigen::Vector3d& w_base_damping);
                 /**
                  * @brief Set the desired task space velocity for the link.
                  * @param link_xdot_desired (std::map<std::string, Vector6d>) Desired task space velocity (6D twist) per links.
@@ -70,11 +72,15 @@ namespace drc
                     int con_q_mani_max_start;    // max q_manipulator
                     int con_sing_start;          // singularity
                     int con_sel_col_start;       // self collision
+                    int con_base_vel_start;      // mobile base velocity
+                    int con_base_acc_start;      // mobile base acceleration
     
                     int con_q_mani_min_size;    // min q_manipulator size
                     int con_q_mani_max_size;    // max q_manipulator size
                     int con_sing_size;          // singularity size
                     int con_sel_col_size;       // self collision size
+                    int con_base_vel_size;      // mobile base velocity size
+                    int con_base_acc_size;      // mobile base acceleration size
                 }si_index_;
     
                 std::shared_ptr<MobileManipulator::RobotData> robot_data_;   // Shared pointer to the robot data class.
@@ -85,7 +91,8 @@ namespace drc
 
                 std::map<std::string, Vector6d> link_xdot_desired_; // Desired task velocity per links
                 std::map<std::string, Vector6d> link_w_tracking_;   // weight for task velocity tracking per links; || x_i_dot_des - J_i_tilda*eta ||
-                VectorXd w_damping_;                                // weight for joint velocity damping;           || eta ||
+                VectorXd w_mani_damping_;                           // weight for manipulator joint velocity damping;|| eta ||
+                Vector3d w_base_damping_;                           // weight for mobile base joint velocity damping;|| eta ||
                 
                 /**
                  * @brief Set the cost function which minimizes task space velocity error.

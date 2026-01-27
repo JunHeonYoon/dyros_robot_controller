@@ -64,18 +64,27 @@ namespace drc
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPIK
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
-                 * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator_dof.
+                 * @param w_mani_damping  (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @param w_base_damping  (Eigen::Vector3d) Weight for mobile base velocity damping.
                  */
                 // TODO: add document to notion
-                void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping);
+                void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, 
+                                 const Eigen::Ref<const VectorXd>& w_mani_damping,
+                                 const Eigen::Vector3d& w_base_damping);
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPID
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
-                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator_dof.
-                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as actuator_dof.
+                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
+                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
                  */
                 // TODO: add document to notion
-                void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
+                void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, 
+                                 const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
+                                 const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                                 const Eigen::Vector3d& w_base_vel_damping,
+                                 const Eigen::Vector3d& w_base_acc_damping);
 
                 // TODO: modify comments, add bindings and python func, add python comment, add to notion
                 // ================================== Mobile Functions ===================================

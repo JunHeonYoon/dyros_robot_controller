@@ -81,9 +81,12 @@ class FR3XLSController
         //  --- Gain
         Eigen::VectorXd                 mani_joint_kp_;
         Eigen::VectorXd                 mani_joint_kv_;
-        Eigen::VectorXd                 qpik_damping_;
-        Eigen::VectorXd                 qpid_vel_damping_;
-        Eigen::VectorXd                 qpid_acc_damping_;
+        Eigen::VectorXd                 qpik_mani_damping_;
+        Eigen::Vector3d                 qpik_base_damping_;
+        Eigen::VectorXd                 qpid_mani_vel_damping_;
+        Eigen::VectorXd                 qpid_mani_acc_damping_;
+        Eigen::Vector3d                 qpid_base_vel_damping_;
+        Eigen::Vector3d                 qpid_base_acc_damping_;
         std::map<std::string, Vector6d> link_task_kp_;
         std::map<std::string, Vector6d> link_task_kv_;
         std::map<std::string, Vector6d> link_qpik_tracking_;

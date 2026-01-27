@@ -699,8 +699,10 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("setTaskGain",                                                                                                  &MM_RC::setTaskGain)
         .def("setTaskKpGain",                                                                                                &MM_RC::setTaskKpGain)
         .def("setTaskKvGain",                                                                                                &MM_RC::setTaskKvGain)
-        .def("setQPIKGain",                                                                                                  &MM_RC::setQPIKGain)
-        .def("setQPIDGain",                                                                                                  &MM_RC::setQPIDGain)
+        .def("setQPIKGain",                                                                                                  &MM_RC::setQPIKGain,
+             (bp::arg("link_w_tracking"), bp::arg("w_mani_damping"), bp::arg("w_base_damping")))
+        .def("setQPIDGain",                                                                                                  &MM_RC::setQPIDGain,
+             (bp::arg("link_w_tracking"), bp::arg("w_mani_vel_damping"), bp::arg("w_mani_acc_damping"), bp::arg("w_base_vel_damping"), bp::arg("w_base_acc_damping")))
         .def("computeMobileWheelVel",                                                                                        &MM_RC::computeMobileWheelVel)
         .def("computeMobileIKJacobian",                                                                                      &MM_RC::computeMobileIKJacobian)
         .def("MobileVelocityCommand",                                                                                        &MM_RC::MobileVelocityCommand)

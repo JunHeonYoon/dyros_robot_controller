@@ -74,42 +74,54 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
     
     def set_QPIK_gain(self, 
                       link_w_tracking: dict[str, np.ndarray],
-                      w_damping: np.ndarray,
+                      w_mani_damping: np.ndarray,
+                      w_base_damping: np.ndarray,
                       ):
         """
         Set the wight vector for the cost terms of the QPIK
         
         Parameters:
             link_w_tracking : (dict[str, np.ndarray]) Weight for task velocity tracking per links.
-            w_damping : (np.ndarray) Weight for joint velocity damping; its size must same as actuator_dof.
+            w_mani_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+            w_base_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
         """
-        w_damping = w_damping.reshape(-1)
-        assert w_damping.size == self._robot_data.actuated_dof, f"Size of w_damping {w_damping.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+        w_mani_damping = w_mani_damping.reshape(-1)
+        w_base_damping = np.asarray(w_base_damping).reshape(-1)
+        assert w_mani_damping.size == self._robot_data.mani_dof, f"Size of w_mani_damping {w_mani_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+        assert w_base_damping.size == 3, f"Size of w_base_damping {w_base_damping.size} is not equal to 3"
         for k,v in link_w_tracking.items():
             link_w_tracking[k] = v.reshape(-1)
             assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-        super().setQPIKGain(link_w_tracking, w_damping)
+        super().setQPIKGain(link_w_tracking, w_mani_damping, w_base_damping)
         
     def set_QPID_gain(self, 
                       link_w_tracking: dict[str, np.ndarray], 
-                      w_vel_damping: np.ndarray, 
-                      w_acc_damping: np.ndarray):
+                      w_mani_vel_damping: np.ndarray, 
+                      w_mani_acc_damping: np.ndarray,
+                      w_base_vel_damping: np.ndarray,
+                      w_base_acc_damping: np.ndarray):
         """
         Set the wight vector for the cost terms of the QPID
         
         Parameters:
             link_w_tracking : (dict[str, np.ndarray]) Weight for task acceleration tracking per links.
-            w_vel_damping : (np.ndarray) Weight for joint velocity damping; its size must same as actuator_dof.
-            w_acc_damping : (np.ndarray) Weight for joint acceleration damping; its size must same as actuator_dof.
+            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+            w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
+            w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
         """
-        w_vel_damping = w_vel_damping.reshape(-1)
-        w_acc_damping = w_acc_damping.reshape(-1)
-        assert w_vel_damping.size == self._robot_data.actuated_dof, f"Size of w_damping {w_vel_damping.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-        assert w_acc_damping.size == self._robot_data.actuated_dof, f"Size of w_damping {w_acc_damping.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+        w_mani_vel_damping = w_mani_vel_damping.reshape(-1)
+        w_mani_acc_damping = w_mani_acc_damping.reshape(-1)
+        w_base_vel_damping = np.asarray(w_base_vel_damping).reshape(-1)
+        w_base_acc_damping = np.asarray(w_base_acc_damping).reshape(-1)
+        assert w_mani_vel_damping.size == self._robot_data.mani_dof, f"Size of w_mani_vel_damping {w_mani_vel_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+        assert w_mani_acc_damping.size == self._robot_data.mani_dof, f"Size of w_mani_acc_damping {w_mani_acc_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+        assert w_base_vel_damping.size == 3, f"Size of w_base_vel_damping {w_base_vel_damping.size} is not equal to 3"
+        assert w_base_acc_damping.size == 3, f"Size of w_base_acc_damping {w_base_acc_damping.size} is not equal to 3"
         for k,v in link_w_tracking.items():
             link_w_tracking[k] = v.reshape(-1)
             assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-        super().setQPIDGain(link_w_tracking, w_vel_damping, w_acc_damping)
+        super().setQPIDGain(link_w_tracking, w_mani_vel_damping, w_mani_acc_damping, w_base_vel_damping, w_base_acc_damping)
 
     # ================================ Joint space Functions ================================        
 

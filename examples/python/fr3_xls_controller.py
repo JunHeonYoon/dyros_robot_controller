@@ -122,18 +122,24 @@ class FR3XLSController:
         self.link_kp_task = {self.ee_link_name: np.array([100, 100, 100, 100, 100, 100])}
         self.link_kv_task = {self.ee_link_name: np.array([20, 20, 20, 20, 20, 20])}
         self.qpik_link_tracking = {self.ee_link_name: np.array([10, 10, 10, 10, 10, 10])}
-        self.qpik_damping = np.array([10, 10, 10, 10, 10, 10, 10, # manipulator
-                                      0.2, 0.2, 0.2, 0.2])        # mobile
+        self.qpik_mani_damping = np.array([10, 10, 10, 10, 10, 10, 10])
+        self.qpik_base_damping = np.array([0.2, 0.2, 0.2])  # [vx, vy, wz]
         self.qpid_link_tracking = {self.ee_link_name: np.array([1, 1, 1, 1, 1, 1])}
-        self.qpid_vel_damping = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, # manipulator
-                                          10, 10, 10, 10])                   # mobile
-        self.qpid_acc_damping = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, # manipulator
-                                          0.0001, 0.0001, 0.0001, 0.0001])          # mobile
+        self.qpid_mani_vel_damping = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        self.qpid_mani_acc_damping = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        self.qpid_base_vel_damping = np.array([10, 10, 10])      # [vx, vy, wz]
+        self.qpid_base_acc_damping = np.array([0.0001, 0.0001, 0.0001])
         
         self.robot_controller.set_manipulator_joint_gain(kp=self.kp_mani_joint, kv=self.kv_mani_joint)
         self.robot_controller.set_task_gain(link_kp=self.link_kp_task, link_kv=self.link_kv_task)
-        self.robot_controller.set_QPIK_gain(link_w_tracking=self.qpik_link_tracking, w_damping=self.qpik_damping)
-        self.robot_controller.set_QPID_gain(link_w_tracking=self.qpid_link_tracking, w_vel_damping=self.qpid_vel_damping, w_acc_damping=self.qpid_acc_damping)
+        self.robot_controller.set_QPIK_gain(link_w_tracking=self.qpik_link_tracking,
+                                            w_mani_damping=self.qpik_mani_damping,
+                                            w_base_damping=self.qpik_base_damping)
+        self.robot_controller.set_QPID_gain(link_w_tracking=self.qpid_link_tracking,
+                                            w_mani_vel_damping=self.qpid_mani_vel_damping,
+                                            w_mani_acc_damping=self.qpid_mani_acc_damping,
+                                            w_base_vel_damping=self.qpid_base_vel_damping,
+                                            w_base_acc_damping=self.qpid_base_acc_damping)
         
         # Print FR3XLS URDF info
         print("info:")

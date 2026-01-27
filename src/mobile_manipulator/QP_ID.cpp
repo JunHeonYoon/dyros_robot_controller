@@ -19,6 +19,10 @@ namespace drc
             si_index_.slack_qdot_mani_max_size = mani_dof_;
             si_index_.slack_sing_size          = 1;
             si_index_.slack_sel_col_size       = 1;
+            si_index_.slack_base_vel_min_size  = 3;
+            si_index_.slack_base_vel_max_size  = 3;
+            si_index_.slack_base_acc_min_size  = 3;
+            si_index_.slack_base_acc_max_size  = 3;
             si_index_.con_dyn_size             = actuator_dof_;
             si_index_.con_q_mani_min_size      = mani_dof_;
             si_index_.con_q_mani_max_size      = mani_dof_;
@@ -26,6 +30,10 @@ namespace drc
             si_index_.con_qdot_mani_max_size   = mani_dof_;
             si_index_.con_sing_size            = 1;
             si_index_.con_sel_col_size         = 1;
+            si_index_.con_base_vel_min_size    = 3;
+            si_index_.con_base_vel_max_size    = 3;
+            si_index_.con_base_acc_min_size    = 3;
+            si_index_.con_base_acc_max_size    = 3;
     
             const int nx = si_index_.eta_dot_size + 
                            si_index_.torque_size +
@@ -34,14 +42,22 @@ namespace drc
                            si_index_.slack_qdot_mani_min_size +
                            si_index_.slack_qdot_mani_max_size +
                            si_index_.slack_sing_size +
-                           si_index_.slack_sel_col_size;
+                           si_index_.slack_sel_col_size +
+                           si_index_.slack_base_vel_min_size +
+                           si_index_.slack_base_vel_max_size +
+                           si_index_.slack_base_acc_min_size +
+                           si_index_.slack_base_acc_max_size;
             const int nbound = nx;
             const int nineq = si_index_.con_q_mani_min_size +
                               si_index_.con_q_mani_max_size +
                               si_index_.con_qdot_mani_min_size +
                               si_index_.con_qdot_mani_max_size +
                               si_index_.con_sing_size +
-                              si_index_.con_sel_col_size;
+                              si_index_.con_sel_col_size +
+                              si_index_.con_base_vel_min_size +
+                              si_index_.con_base_vel_max_size +
+                              si_index_.con_base_acc_min_size +
+                              si_index_.con_base_acc_max_size;
             const int neq = si_index_.con_dyn_size;
     
             QPBase::setQPsize(nx, nbound, nineq, neq);
@@ -54,6 +70,10 @@ namespace drc
             si_index_.slack_qdot_mani_max_start = si_index_.slack_qdot_mani_min_start + si_index_.slack_qdot_mani_min_size;
             si_index_.slack_sing_start          = si_index_.slack_qdot_mani_max_start + si_index_.slack_qdot_mani_max_size;
             si_index_.slack_sel_col_start       = si_index_.slack_sing_start          + si_index_.slack_sing_size;
+            si_index_.slack_base_vel_min_start  = si_index_.slack_sel_col_start       + si_index_.slack_sel_col_size;
+            si_index_.slack_base_vel_max_start  = si_index_.slack_base_vel_min_start  + si_index_.slack_base_vel_min_size;
+            si_index_.slack_base_acc_min_start  = si_index_.slack_base_vel_max_start  + si_index_.slack_base_vel_max_size;
+            si_index_.slack_base_acc_max_start  = si_index_.slack_base_acc_min_start  + si_index_.slack_base_acc_min_size;
             si_index_.con_dyn_start             = 0;
             si_index_.con_q_mani_min_start      = 0;
             si_index_.con_q_mani_max_start      = si_index_.con_q_mani_min_start    + si_index_.con_q_mani_min_size;
@@ -61,9 +81,15 @@ namespace drc
             si_index_.con_qdot_mani_max_start   = si_index_.con_qdot_mani_min_start + si_index_.con_qdot_mani_min_size;
             si_index_.con_sing_start            = si_index_.con_qdot_mani_max_start + si_index_.con_qdot_mani_max_size;
             si_index_.con_sel_col_start         = si_index_.con_sing_start          + si_index_.con_sing_size;
+            si_index_.con_base_vel_min_start    = si_index_.con_sel_col_start       + si_index_.con_sel_col_size;
+            si_index_.con_base_vel_max_start    = si_index_.con_base_vel_min_start  + si_index_.con_base_vel_min_size;
+            si_index_.con_base_acc_min_start    = si_index_.con_base_vel_max_start  + si_index_.con_base_vel_max_size;
+            si_index_.con_base_acc_max_start    = si_index_.con_base_acc_min_start  + si_index_.con_base_acc_min_size;
 
-            w_vel_damping_.setOnes(actuator_dof_);
-            w_acc_damping_.setOnes(actuator_dof_);
+            w_mani_vel_damping_.setOnes(mani_dof_);
+            w_mani_acc_damping_.setOnes(mani_dof_);
+            w_base_vel_damping_.setOnes();
+            w_base_acc_damping_.setOnes();
         }
         
 
@@ -98,12 +124,16 @@ namespace drc
         }
 
         void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_vel_damping,
-                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+                             const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
+                             const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                             const Eigen::Vector3d& w_base_vel_damping,
+                             const Eigen::Vector3d& w_base_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
-            w_vel_damping_ = w_vel_damping;
-            w_acc_damping_ = w_acc_damping;
+            w_mani_vel_damping_ = w_mani_vel_damping;
+            w_mani_acc_damping_ = w_mani_acc_damping;
+            w_base_vel_damping_ = w_base_vel_damping;
+            w_base_acc_damping_ = w_base_acc_damping;
         }
 
     
@@ -131,20 +161,23 @@ namespace drc
             const int mani_start = actuator_idx.mani_start;
             const int mobi_start = actuator_idx.mobi_start;
 
-            const VectorXd eta_mani = eta.segment(mani_start, mani_dof_);
-            P_ds_.block(si_index_.eta_dot_start + mani_start,
-                        si_index_.eta_dot_start + mani_start,
+            // for manipulator joint velocity/acceleration damping
+            P_ds_.block(si_index_.eta_dot_start+mani_start,
+                        si_index_.eta_dot_start+mani_start,
                         mani_dof_,
-                        mani_dof_) += 2.0 * w_acc_damping_.segment(mani_start, mani_dof_).asDiagonal().toDenseMatrix();
-            q_ds_.segment(si_index_.eta_dot_start + mani_start, mani_dof_) += 2.0 * dt_ * eta_mani;
+                        mani_dof_) += 2.0 * w_mani_acc_damping_.asDiagonal().toDenseMatrix() +  2.0 * dt_ * dt_ * w_mani_vel_damping_.asDiagonal().toDenseMatrix();
+            q_ds_.segment(si_index_.eta_dot_start+mani_start,mani_dof_) += 2.0 * dt_ * w_mani_vel_damping_.asDiagonal().toDenseMatrix() * eta.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_);
 
             const MatrixXd J_mobile = robot_data_->getMobileFKJacobian();
-            const VectorXd base_vel = robot_data_->getMobileBaseVel();
+            const MatrixXd J_mobile_T = J_mobile.transpose();
+            const Matrix3d w_base_acc = w_base_acc_damping_.asDiagonal();
+            const Matrix3d w_base_vel = w_base_vel_damping_.asDiagonal();
             P_ds_.block(si_index_.eta_dot_start + mobi_start,
                         si_index_.eta_dot_start + mobi_start,
                         mobi_dof_,
-                        mobi_dof_) += 2.0 * J_mobile.transpose() * J_mobile;
-            q_ds_.segment(si_index_.eta_dot_start + mobi_start, mobi_dof_) += 2.0 * dt_ * J_mobile.transpose() * base_vel;
+                        mobi_dof_) += 2.0 * J_mobile_T * w_base_acc * J_mobile + 2.0 * dt_ * dt_ * J_mobile_T * w_base_vel * J_mobile;
+            q_ds_.segment(si_index_.eta_dot_start + mobi_start, mobi_dof_) += 2.0 * dt_ * J_mobile_T * w_base_vel * robot_data_->getBaseVel();
+
 
             // for slack
             q_ds_.segment(si_index_.slack_q_mani_min_start,   si_index_.slack_q_mani_min_size)    = VectorXd::Constant(si_index_.slack_q_mani_min_size,    1000.0);
@@ -153,6 +186,10 @@ namespace drc
             q_ds_.segment(si_index_.slack_qdot_mani_max_start,si_index_.slack_qdot_mani_max_size) = VectorXd::Constant(si_index_.slack_qdot_mani_max_size, 1000.0);
             q_ds_(si_index_.slack_sing_start)    = 1000.0;
             q_ds_(si_index_.slack_sel_col_start) = 1000.0;
+            q_ds_.segment(si_index_.slack_base_vel_min_start, si_index_.slack_base_vel_min_size) = VectorXd::Constant(si_index_.slack_base_vel_min_size, 1000.0);
+            q_ds_.segment(si_index_.slack_base_vel_max_start, si_index_.slack_base_vel_max_size) = VectorXd::Constant(si_index_.slack_base_vel_max_size, 1000.0);
+            q_ds_.segment(si_index_.slack_base_acc_min_start, si_index_.slack_base_acc_min_size) = VectorXd::Constant(si_index_.slack_base_acc_min_size, 1000.0);
+            q_ds_.segment(si_index_.slack_base_acc_max_start, si_index_.slack_base_acc_max_size) = VectorXd::Constant(si_index_.slack_base_acc_max_size, 1000.0);
 
         }
     
@@ -168,6 +205,10 @@ namespace drc
             l_bound_ds_.segment(si_index_.slack_qdot_mani_max_start,si_index_.slack_qdot_mani_max_size).setZero();
             l_bound_ds_(si_index_.slack_sing_start) = 0.0;
             l_bound_ds_(si_index_.slack_sel_col_start) = 0.0;
+            l_bound_ds_.segment(si_index_.slack_base_vel_min_start, si_index_.slack_base_vel_min_size).setZero();
+            l_bound_ds_.segment(si_index_.slack_base_vel_max_start, si_index_.slack_base_vel_max_size).setZero();
+            l_bound_ds_.segment(si_index_.slack_base_acc_min_start, si_index_.slack_base_acc_min_size).setZero();
+            l_bound_ds_.segment(si_index_.slack_base_acc_max_start, si_index_.slack_base_acc_max_size).setZero();
         }
     
         void QPID::setIneqConstraint()    
@@ -223,7 +264,7 @@ namespace drc
             A_ineq_ds_.block(si_index_.con_qdot_mani_min_start,
                              si_index_.slack_qdot_mani_min_start,
                              si_index_.con_qdot_mani_min_size, 
-                             si_index_.slack_qdot_mani_min_size) = -MatrixXd::Identity(si_index_.con_qdot_mani_min_size, si_index_.slack_qdot_mani_min_size);
+                             si_index_.slack_qdot_mani_min_size) = MatrixXd::Identity(si_index_.con_qdot_mani_min_size, si_index_.slack_qdot_mani_min_size);
             l_ineq_ds_.segment(si_index_.con_qdot_mani_min_start, 
                                si_index_.con_qdot_mani_min_size) = -alpha*(qdot_mani - qdot_mani_min);
     
@@ -234,7 +275,7 @@ namespace drc
             A_ineq_ds_.block(si_index_.con_qdot_mani_max_start,
                              si_index_.slack_qdot_mani_max_start,
                              si_index_.con_qdot_mani_max_size, 
-                             si_index_.slack_qdot_mani_max_size) = -MatrixXd::Identity(si_index_.con_qdot_mani_max_size, si_index_.slack_qdot_mani_max_size);
+                             si_index_.slack_qdot_mani_max_size) = MatrixXd::Identity(si_index_.con_qdot_mani_max_size, si_index_.slack_qdot_mani_max_size);
             l_ineq_ds_.segment(si_index_.con_qdot_mani_max_start, si_index_.con_qdot_mani_max_size) = -alpha*(qdot_mani_max - qdot_mani);
     
             // singularity avoidance
@@ -262,8 +303,66 @@ namespace drc
             A_ineq_ds_.block(si_index_.con_sel_col_start, 
                              si_index_.slack_sel_col_start,
                              si_index_.con_sel_col_size, 
-                             si_index_.slack_sel_col_size) = -MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
+                             si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
             l_ineq_ds_(si_index_.con_sel_col_start) = -min_dist_data.grad_dot.dot(qdot_mani) - (alpha + alpha)*min_dist_data.grad.dot(qdot_mani) - alpha*alpha*(min_dist_data.distance -0.01);
+            
+            // Mobile base velocity & acceleration limit
+            const auto& param = robot_data_->getKineParam();
+            const MatrixXd J_mobile = robot_data_->getMobileFKJacobian();
+            const int mobi_start = robot_data_->getActuatorIndex().mobi_start;
+            const Vector3d base_vel = robot_data_->getMobileBaseVel();
+
+            Vector3d vel_limit;
+            vel_limit << param.max_lin_speed, param.max_lin_speed, param.max_ang_speed;
+            const Vector3d vel_min = -vel_limit;
+            const Vector3d vel_max = vel_limit;
+
+            A_ineq_ds_.block(si_index_.con_base_vel_min_start,
+                             si_index_.eta_dot_start + mobi_start,
+                             si_index_.con_base_vel_min_size,
+                             mobi_dof_) = J_mobile;
+            A_ineq_ds_.block(si_index_.con_base_vel_min_start,
+                             si_index_.slack_base_vel_min_start,
+                             si_index_.con_base_vel_min_size,
+                             si_index_.slack_base_vel_min_size) = MatrixXd::Identity(si_index_.con_base_vel_min_size, si_index_.slack_base_vel_min_size);
+            l_ineq_ds_.segment(si_index_.con_base_vel_min_start,
+                               si_index_.con_base_vel_min_size) = -alpha*(base_vel - vel_min);
+
+            A_ineq_ds_.block(si_index_.con_base_vel_max_start,
+                             si_index_.eta_dot_start + mobi_start,
+                             si_index_.con_base_vel_max_size,
+                             mobi_dof_) = -J_mobile;
+            A_ineq_ds_.block(si_index_.con_base_vel_max_start,
+                             si_index_.slack_base_vel_max_start,
+                             si_index_.con_base_vel_max_size,
+                             si_index_.slack_base_vel_max_size) = MatrixXd::Identity(si_index_.con_base_vel_max_size, si_index_.slack_base_vel_max_size);
+            l_ineq_ds_.segment(si_index_.con_base_vel_max_start,
+                               si_index_.con_base_vel_max_size) = -alpha*(vel_max - base_vel);
+
+            Vector3d acc_limit;
+            acc_limit << param.max_lin_acc, param.max_lin_acc, param.max_ang_acc;
+
+            A_ineq_ds_.block(si_index_.con_base_acc_min_start,
+                             si_index_.eta_dot_start + mobi_start,
+                             si_index_.con_base_acc_min_size,
+                             mobi_dof_) = J_mobile;
+            A_ineq_ds_.block(si_index_.con_base_acc_min_start,
+                             si_index_.slack_base_acc_min_start,
+                             si_index_.con_base_acc_min_size,
+                             si_index_.slack_base_acc_min_size) = MatrixXd::Identity(si_index_.con_base_acc_min_size, si_index_.slack_base_acc_min_size);
+            l_ineq_ds_.segment(si_index_.con_base_acc_min_start,
+                               si_index_.con_base_acc_min_size) = -acc_limit;
+
+            A_ineq_ds_.block(si_index_.con_base_acc_max_start,
+                             si_index_.eta_dot_start + mobi_start,
+                             si_index_.con_base_acc_max_size,
+                             mobi_dof_) = -J_mobile;
+            A_ineq_ds_.block(si_index_.con_base_acc_max_start,
+                             si_index_.slack_base_acc_max_start,
+                             si_index_.con_base_acc_max_size,
+                             si_index_.slack_base_acc_max_size) = MatrixXd::Identity(si_index_.con_base_acc_max_size, si_index_.slack_base_acc_max_size);
+            l_ineq_ds_.segment(si_index_.con_base_acc_max_start,
+                               si_index_.con_base_acc_max_size) = -acc_limit;
         }
     
         void QPID::setEqConstraint()    

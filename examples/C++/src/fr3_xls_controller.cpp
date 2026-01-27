@@ -89,17 +89,20 @@ FR3XLSController::FR3XLSController(const double dt)
     // --- Gain
     mani_joint_kp_.setZero(mani_dof_);
     mani_joint_kv_.setZero(mani_dof_);
-    qpik_damping_.setZero(actuator_dof_);
-    qpid_vel_damping_.setZero(actuator_dof_);
-    qpid_acc_damping_.setZero(actuator_dof_);
+    qpik_mani_damping_.setZero(mani_dof_);
+    qpik_base_damping_.setZero();
+    qpid_mani_vel_damping_.setZero(mani_dof_);
+    qpid_mani_acc_damping_.setZero(mani_dof_);
+    qpid_base_vel_damping_.setZero();
+    qpid_base_acc_damping_.setZero();
     mani_joint_kp_ << 600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 50.0;
     mani_joint_kv_ << 30.0,  30.0,  30.0,  30.0,  10.0,  10.0,  5.0;
-    qpik_damping_ << 10, 10, 10, 10, 10, 10, 10, // manipulator
-                     0.2, 0.2, 0.2, 0.2;         // mobile
-    qpid_vel_damping_ << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, // manipulator
-                         10, 10, 10, 10;                    // mobile
-    qpid_acc_damping_ << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, // manipulator
-                         0.0001, 0.0001, 0.0001, 0.0001;           // mobile
+    qpik_mani_damping_ << 10, 10, 10, 10, 10, 10, 10;
+    qpik_base_damping_ << 0.2, 0.2, 0.2; // [vx, vy, wz]
+    qpid_mani_vel_damping_ << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1;
+    qpid_mani_acc_damping_ << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01;
+    qpid_base_vel_damping_ << 10, 10, 10;      // [vx, vy, wz]
+    qpid_base_acc_damping_ << 0.0001, 0.0001, 0.0001;
     link_task_kp_[ee_link_name_] << 100.0, 100.0, 100.0, 100.0, 100.0, 100.0;
     link_task_kv_[ee_link_name_] << 20.0,  20.0,  20.0,  20.0,  20.0,  20.0;
     link_qpik_tracking_[ee_link_name_] << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
@@ -107,8 +110,8 @@ FR3XLSController::FR3XLSController(const double dt)
 
     robot_controller_->setManipulatorJointGain(mani_joint_kp_, mani_joint_kv_);
     robot_controller_->setTaskGain(link_task_kp_, link_task_kv_);
-    robot_controller_->setQPIKGain(link_qpik_tracking_, qpik_damping_);
-    robot_controller_->setQPIDGain(link_qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_);
+    robot_controller_->setQPIKGain(link_qpik_tracking_, qpik_mani_damping_, qpik_base_damping_);
+    robot_controller_->setQPIDGain(link_qpid_tracking_, qpid_mani_vel_damping_, qpid_mani_acc_damping_, qpid_base_vel_damping_, qpid_base_acc_damping_);
 
 
     // Print FR3 URDF info
