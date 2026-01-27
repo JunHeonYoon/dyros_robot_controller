@@ -267,59 +267,75 @@ namespace drc
                 /**
                  * @brief Computes joint velocities to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data  (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
+                 * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
-                 * @return (Eigen::VectorXd) Desired joint velocities.
+                 * @return (bool) True if the problem was solved successfully.
                  */                          
-                virtual VectorXd QPIK(const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose=false);
+                virtual bool QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                  VectorXd& opt_qdot,
+                                  const bool time_verbose=false);
                 /**
                  * @brief Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
-                 * @return (Eigen::VectorXd) Desired joint velocities.
+                 * @return (bool) True if the problem was solved successfully.
                 */                      
-                virtual VectorXd QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose=false);
+                virtual bool QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      VectorXd& opt_qdot,
+                                      const bool time_verbose=false);
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint velocities using QP to follow the resulting trajectory.
                  * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time         (double) Current time.
                  * @param init_time            (double) Start time of the segment.
                  * @param duration             (double) Time duration
+                 * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
-                 * @return (Eigen::VectorXd) Desired joint velocities.
+                 * @return (bool) True if the problem was solved successfully.
                 */                           
-                virtual VectorXd QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                           const double& current_time,
-                                           const double& init_time,
-                                           const double& duration,
-                                           const bool time_verbose=false);
+                virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       const double& current_time,
+                                       const double& init_time,
+                                       const double& duration,
+                                       VectorXd& opt_qdot,
+                                       const bool time_verbose=false);
                 /**
                  * @brief Computes joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
-                 * @return (Eigen::VectorXd) Desired joint torques.
+                 * @return (bool) True if the problem was solved successfully.
                 */                            
-                virtual VectorXd QPID(const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose=false);
+                virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                  VectorXd& opt_torque,
+                                  const bool time_verbose=false);
                 /**
                  * @brief Computes joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse dynamics QP.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
-                 * @return (Eigen::VectorXd) Desired joint torques.
+                 * @return (bool) True if the problem was solved successfully.
                 */                        
-                virtual VectorXd QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose=false);
+                virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      VectorXd& opt_torque,
+                                      const bool time_verbose=false);
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint torques using QP to follow the resulting trajectory.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time           (double) Current time.
                  * @param init_time              (double) Start time of the segment.
                  * @param duration               (double) Time duration
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
-                 * @return (Eigen::VectorXd) Desired joint torques.
+                 * @return (bool) True if the problem was solved successfully.
                 */                             
-                virtual VectorXd QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                           const double& current_time,
-                                           const double& init_time,
-                                           const double& duration,
-                                           const bool time_verbose=false);
+                virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       const double& current_time,
+                                       const double& init_time,
+                                       const double& duration,
+                                       VectorXd& opt_torque,
+                                       const bool time_verbose=false);
 
             protected:
                 double dt_;                                          // Control time step in seconds.
@@ -340,8 +356,12 @@ namespace drc
 
                 virtual VectorXd CLIK(const std::map<std::string, Vector6d>& link_xdot_target, const VectorXd& null_qdot);
                 virtual VectorXd OSF(const std::map<std::string, Vector6d>& link_xddot_target, const VectorXd& null_torque);
-                virtual VectorXd QPIK(const std::map<std::string, Vector6d>& link_xdot_target, const bool time_verbose=false);
-                virtual VectorXd QPID(const std::map<std::string, Vector6d>& link_xddot_target, const bool time_verbose=false);
+                virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
+                                  VectorXd& opt_qdot,
+                                  const bool time_verbose=false);
+                virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
+                                  VectorXd& opt_torque,
+                                  const bool time_verbose=false);
         };
     } // namespace Manipulator
 } // namespace drc

@@ -175,7 +175,7 @@ namespace drc
         }
 
 
-        void RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
+        bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                    VectorXd& opt_qdot_mobile,
                                    VectorXd& opt_qdot_manipulator,
                                    const bool time_verbose)
@@ -183,7 +183,8 @@ namespace drc
             QP_moma_IK_->setDesiredTaskVel(link_xdot_target);
             VectorXd opt_qdot = VectorXd::Zero(actuator_dof_);
             QP::TimeDuration time_duration;
-            if(!QP_moma_IK_->getOptJointVel(opt_qdot, time_duration))
+            const bool qp_success = QP_moma_IK_->getOptJointVel(opt_qdot, time_duration);
+            if(!qp_success)
             {
                 std::cerr << "QP IK failed to compute optimal joint velocity." << std::endl;
                 opt_qdot.setZero(dof_);
@@ -208,9 +209,10 @@ namespace drc
                 std::cout << "\tDuration for solve QP [ms]         : " << time_duration.solve_qp*1000 << std::endl;
                 std::cout << "=================================================" << std::endl;
             }
+            return qp_success;
         }
 
-        void RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
+        bool RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
                                    VectorXd& opt_qdot_mobile,
                                    VectorXd& opt_qdot_manipulator,
                                    const bool time_verbose)
@@ -220,10 +222,10 @@ namespace drc
             {
                 link_xdot_target[link_name] = task_data.xdot_desired;
             }
-            QPIK(link_xdot_target, opt_qdot_mobile, opt_qdot_manipulator, time_verbose);
+            return QPIK(link_xdot_target, opt_qdot_mobile, opt_qdot_manipulator, time_verbose);
         }
 
-        void RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+        bool RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        VectorXd& opt_qdot_mobile,
                                        VectorXd& opt_qdot_manipulator,
                                        const bool time_verbose)
@@ -241,10 +243,10 @@ namespace drc
                 link_task_data_result[link_name].xdot_desired = Kp_task.asDiagonal() * x_error + task_data.xdot_desired;
             }
 
-            QPIK(link_task_data_result, opt_qdot_mobile, opt_qdot_manipulator, time_verbose);
+            return QPIK(link_task_data_result, opt_qdot_mobile, opt_qdot_manipulator, time_verbose);
         }
 
-        void RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+        bool RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
                                         const double& init_time,
                                         const double& duration,
@@ -260,10 +262,10 @@ namespace drc
                 link_task_data_result[link_name] = task_data_result;
             }
 
-            QPIKStep(link_task_data_result, opt_qdot_mobile, opt_qdot_manipulator, time_verbose);
+            return QPIKStep(link_task_data_result, opt_qdot_mobile, opt_qdot_manipulator, time_verbose);
         }
 
-        void RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
+        bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                    VectorXd& opt_qddot_mobile,
                                    VectorXd& opt_torque_manipulator,
                                    const bool time_verbose)
@@ -272,7 +274,8 @@ namespace drc
             VectorXd opt_qddot = VectorXd::Zero(dof_);
             VectorXd opt_torque = VectorXd::Zero(dof_);
             QP::TimeDuration time_duration;
-            if(!QP_moma_ID_->getOptJoint(opt_qddot, opt_torque, time_duration))
+            const bool qp_success = QP_moma_ID_->getOptJoint(opt_qddot, opt_torque, time_duration);
+            if(!qp_success)
             {
                 std::cerr << "QP ID failed to compute optimal joint torque." << std::endl;
                 opt_torque = robot_data_->getGravity();
@@ -298,9 +301,10 @@ namespace drc
                 std::cout << "\tDuration for solve QP [ms]         : " << time_duration.solve_qp*1000 << std::endl;
                 std::cout << "=================================================" << std::endl;
             }
+            return qp_success;
         }
 
-        void RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
+        bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                    VectorXd& opt_qddot_mobile,
                                    VectorXd& opt_torque_manipulator,
                                    const bool time_verbose)
@@ -310,10 +314,10 @@ namespace drc
             {
                 link_xddot_target[link_name] = task_data.xddot_desired;
             }
-            QPID(link_xddot_target, opt_qddot_mobile, opt_torque_manipulator, time_verbose);
+            return QPID(link_xddot_target, opt_qddot_mobile, opt_torque_manipulator, time_verbose);
         }
 
-        void RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+        bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        VectorXd& opt_qddot_mobile,
                                        VectorXd& opt_torque_manipulator,
                                        const bool time_verbose)
@@ -333,10 +337,10 @@ namespace drc
 
                 link_task_data_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
             }
-            QPID(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, time_verbose);
+            return QPID(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, time_verbose);
         }
 
-        void RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+        bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
                                         const double& init_time,
                                         const double& duration,
@@ -352,7 +356,7 @@ namespace drc
                 link_task_data_result[link_name] = task_data_result;
             }
 
-            QPIDStep(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, time_verbose);
+            return QPIDStep(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, time_verbose);
         }
     } // namespace MobileManipulator
 } // namespace drc

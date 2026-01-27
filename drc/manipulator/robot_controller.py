@@ -438,7 +438,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def QPIK(self, 
              link_task_data: dict[str, TaskSpaceData],
              time_verbose: bool = False,
-             ) -> np.ndarray:
+             ) -> tuple[bool, np.ndarray]:
         """
         Computes joint velocities to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
@@ -447,7 +447,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             time_verbose   : (bool) If true, print the computation time for QP. 
 
         Returns:
-            (np.ndarray) Desired joint velocities.
+            (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
@@ -458,7 +458,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def QPIK_step(self,
                   link_task_data: dict[str, TaskSpaceData],
                   time_verbose: bool = False,
-                  ) -> np.ndarray:
+                  ) -> tuple[bool, np.ndarray]:
         """
         Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
@@ -467,7 +467,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             time_verbose   : (bool) If true, print the computation time for QP. 
 
         Returns:
-            (np.ndarray) Desired joint velocities.
+            (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
@@ -481,7 +481,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
                    init_time: float,
                    duration: float,
                    time_verbose: bool = False,
-                   ) -> np.ndarray:
+                   ) -> tuple[bool, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint velocities using QP to follow the resulting trajectory.
 
@@ -493,7 +493,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             time_verbose : (bool) If true, print the computation time for QP. 
 
         Returns:
-            (np.ndarray) Desired joint velocities.
+            (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
@@ -509,7 +509,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def QPID(self, 
              link_task_data: dict[str, TaskSpaceData],
              time_verbose: bool = False,
-             ) -> np.ndarray:
+             ) -> tuple[bool, np.ndarray]:
         """
         Computes joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP.
 
@@ -518,7 +518,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             time_verbose   : (bool) If true, print the computation time for QP. 
 
         Returns:
-            (np.ndarray) Desired joint torques.
+            (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
@@ -529,7 +529,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def QPID_step(self, 
                   link_task_data: dict[str, TaskSpaceData],
                   time_verbose: bool = False,
-                  ) -> np.ndarray:
+                  ) -> tuple[bool, np.ndarray]:
         """
         Computes joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse dynamics QP.
 
@@ -538,7 +538,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             time_verbose   : (bool) If true, print the computation time for QP. 
 
         Returns:
-            (np.ndarray) Desired joint torques.
+            (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
@@ -552,7 +552,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
                    init_time: float,
                    duration: float,
                    time_verbose: bool = False,
-                   ) -> np.ndarray:
+                   ) -> tuple[bool, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint torques using QP to follow the resulting trajectory.
 
@@ -564,7 +564,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             time_verbose : (bool) If true, print the computation time for QP. 
 
         Returns:
-            (np.ndarray) Desired joint torques.
+            (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():

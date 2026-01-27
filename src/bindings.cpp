@@ -76,15 +76,15 @@ namespace
     bp::tuple MM_RC_QPIK_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qdot_mobi, qdot_mani;
-        self.QPIK(link_task_data, qdot_mobi, qdot_mani, time_verbose);
-        return bp::make_tuple( qdot_mobi, qdot_mani );
+        const bool qp_success = self.QPIK(link_task_data, qdot_mobi, qdot_mani, time_verbose);
+        return bp::make_tuple(qp_success, qdot_mobi, qdot_mani);
     }
     
     bp::tuple MM_RC_QPIKStep_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qdot_mobi, qdot_mani;
-        self.QPIKStep(link_task_data, qdot_mobi, qdot_mani, time_verbose);
-        return bp::make_tuple( qdot_mobi, qdot_mani );
+        const bool qp_success = self.QPIKStep(link_task_data, qdot_mobi, qdot_mani, time_verbose);
+        return bp::make_tuple(qp_success, qdot_mobi, qdot_mani);
     }
     
     bp::tuple MM_RC_QPIKCubic_tuple(MM_RC& self, 
@@ -95,22 +95,22 @@ namespace
                                     const bool time_verbose)
     {
         VectorXd qdot_mobi, qdot_mani;
-        self.QPIKCubic(link_task_data, current_time, init_time, duration, qdot_mobi, qdot_mani, time_verbose);
-        return bp::make_tuple( qdot_mobi, qdot_mani );
+        const bool qp_success = self.QPIKCubic(link_task_data, current_time, init_time, duration, qdot_mobi, qdot_mani, time_verbose);
+        return bp::make_tuple(qp_success, qdot_mobi, qdot_mani);
     }
 
     bp::tuple MM_RC_QPID_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qddot_mobi, torque_mani;
-        self.QPID(link_task_data, qddot_mobi, torque_mani, time_verbose);
-        return bp::make_tuple( qddot_mobi, torque_mani );
+        const bool qp_success = self.QPID(link_task_data, qddot_mobi, torque_mani, time_verbose);
+        return bp::make_tuple(qp_success, qddot_mobi, torque_mani);
     }
     
     bp::tuple MM_RC_QPIDStep_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qddot_mobi, torque_mani;
-        self.QPIDStep(link_task_data, qddot_mobi, torque_mani, time_verbose);
-        return bp::make_tuple( qddot_mobi, torque_mani );
+        const bool qp_success = self.QPIDStep(link_task_data, qddot_mobi, torque_mani, time_verbose);
+        return bp::make_tuple(qp_success, qddot_mobi, torque_mani);
     }
     
     bp::tuple MM_RC_QPIDCubic_tuple(MM_RC& self, 
@@ -121,8 +121,60 @@ namespace
                                     const bool time_verbose)
     {
         VectorXd qddot_mobi, torque_mani;
-        self.QPIDCubic(link_task_data, current_time, init_time, duration, qddot_mobi, torque_mani, time_verbose);
-        return bp::make_tuple( qddot_mobi, torque_mani );
+        const bool qp_success = self.QPIDCubic(link_task_data, current_time, init_time, duration, qddot_mobi, torque_mani, time_verbose);
+        return bp::make_tuple(qp_success, qddot_mobi, torque_mani);
+    }
+
+    bp::tuple MN_RC_QPIK_tuple(MN_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
+    {
+        VectorXd qdot;
+        const bool qp_success = self.QPIK(link_task_data, qdot, time_verbose);
+        return bp::make_tuple(qp_success, qdot);
+    }
+
+    bp::tuple MN_RC_QPIKStep_tuple(MN_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
+    {
+        VectorXd qdot;
+        const bool qp_success = self.QPIKStep(link_task_data, qdot, time_verbose);
+        return bp::make_tuple(qp_success, qdot);
+    }
+
+    bp::tuple MN_RC_QPIKCubic_tuple(MN_RC& self,
+                                    const std::map<std::string, TaskSpaceData>& link_task_data,
+                                    const double& current_time,
+                                    const double& init_time,
+                                    const double& duration,
+                                    const bool time_verbose)
+    {
+        VectorXd qdot;
+        const bool qp_success = self.QPIKCubic(link_task_data, current_time, init_time, duration, qdot, time_verbose);
+        return bp::make_tuple(qp_success, qdot);
+    }
+
+    bp::tuple MN_RC_QPID_tuple(MN_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
+    {
+        VectorXd torque;
+        const bool qp_success = self.QPID(link_task_data, torque, time_verbose);
+        return bp::make_tuple(qp_success, torque);
+    }
+
+    bp::tuple MN_RC_QPIDStep_tuple(MN_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
+    {
+        VectorXd torque;
+        const bool qp_success = self.QPIDStep(link_task_data, torque, time_verbose);
+        return bp::make_tuple(qp_success, torque);
+    }
+
+    bp::tuple MN_RC_QPIDCubic_tuple(MN_RC& self,
+                                    const std::map<std::string, TaskSpaceData>& link_task_data,
+                                    const double& current_time,
+                                    const double& init_time,
+                                    const double& duration,
+                                    const bool time_verbose)
+    {
+        VectorXd torque;
+        const bool qp_success = self.QPIDCubic(link_task_data, current_time, init_time, duration, torque, time_verbose);
+        return bp::make_tuple(qp_success, torque);
     }
 }
 
@@ -630,12 +682,12 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("OSF",                                                    static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const VectorXd&)>(&MN_RC::OSF))
         .def("OSFStep",                                                static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const VectorXd&)>(&MN_RC::OSFStep))
         .def("OSFCubic",  static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const double&, const double&, const double&, const VectorXd&)>(&MN_RC::OSFCubic))
-        .def("QPIK",                                                        static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const bool)>(&MN_RC::QPIK))
-        .def("QPIKStep",                                                                                                                                              &MN_RC::QPIKStep)
-        .def("QPIKCubic",                                                                                                                                             &MN_RC::QPIKCubic)
-        .def("QPID",                                                        static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const bool)>(&MN_RC::QPID))
-        .def("QPIDStep",                                                                                                                                              &MN_RC::QPIDStep)
-        .def("QPIDCubic",                                                                                                                                             &MN_RC::QPIDCubic)
+        .def("QPIK",                                                                                 &MN_RC_QPIK_tuple)
+        .def("QPIKStep",                                                                             &MN_RC_QPIKStep_tuple)
+        .def("QPIKCubic",                                                                            &MN_RC_QPIKCubic_tuple)
+        .def("QPID",                                                                                 &MN_RC_QPID_tuple)
+        .def("QPIDStep",                                                                             &MN_RC_QPIDStep_tuple)
+        .def("QPIDCubic",                                                                            &MN_RC_QPIDCubic_tuple)
         ;
 
     typedef VectorXd (MN_RC::*CLIKStep1)(const Affine3d&, const VectorXd&, const VectorXd&, const std::string&);

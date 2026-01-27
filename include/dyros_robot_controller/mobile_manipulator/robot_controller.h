@@ -188,8 +188,9 @@ namespace drc
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @return (bool) True if the problem was solved successfully.
                 */                                                  
-                virtual void QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
+                virtual bool QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   VectorXd& opt_qdot_mobile,
                                   VectorXd& opt_qdot_manipulator,
                                   const bool time_verbose=false);
@@ -200,8 +201,9 @@ namespace drc
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @return (bool) True if the problem was solved successfully.
                 */                    
-                virtual void QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                virtual bool QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       VectorXd& opt_qdot_mobile,
                                       VectorXd& opt_qdot_manipulator,
                                       const bool time_verbose=false);
@@ -215,8 +217,9 @@ namespace drc
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @return (bool) True if the problem was solved successfully.
                 */                      
-                virtual void QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
                                        const double& init_time,
                                        const double& duration,
@@ -230,8 +233,9 @@ namespace drc
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @return (bool) True if the problem was solved successfully.
                 */      
-                virtual void QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
+                virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   VectorXd& opt_qddot_mobile,
                                   VectorXd& opt_torque_manipulator,
                                   const bool time_verbose=false);
@@ -242,8 +246,9 @@ namespace drc
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @return (bool) True if the problem was solved successfully.
                 */                  
-                virtual void QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       VectorXd& opt_qddot_mobile,
                                       VectorXd& opt_torque_manipulator,
                                       const bool time_verbose=false);
@@ -257,8 +262,9 @@ namespace drc
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
                  * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @return (bool) True if the problem was solved successfully.
                 */
-                virtual void QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
                                        const double& init_time,
                                        const double& duration,
@@ -288,12 +294,12 @@ namespace drc
                 std::unique_ptr<MobileManipulator::QPIK> QP_moma_IK_;
                 std::unique_ptr<MobileManipulator::QPID> QP_moma_ID_;
 
-                virtual void QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
+                virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                   VectorXd& opt_qdot_mobile,
                                   VectorXd& opt_qdot_manipulator,
                                   const bool time_verbose=false);
 
-                virtual void QPID(const std::map<std::string, Vector6d>& link_xddot_target,
+                virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                   VectorXd& opt_qddot_mobile,
                                   VectorXd& opt_torque_manipulator,
                                   const bool time_verbose=false);

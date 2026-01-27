@@ -174,7 +174,7 @@ class FR3Controller:
             self.link_ee_task[self.ee_link_name].x_desired = self.link_ee_task[self.ee_link_name].x_init.copy()
             self.link_ee_task[self.ee_link_name].x_desired[0:3, 3] += np.array([0, 0.1, 0.1])  # +10 cm in Y and Z
 
-            self.qdot_desired = self.robot_controller.QPIK_cubic(
+            _, self.qdot_desired = self.robot_controller.QPIK_cubic(
                 link_task_data=self.link_ee_task,
                 init_time=self.control_start_time,
                 current_time=self.sim_time,
@@ -195,7 +195,7 @@ class FR3Controller:
         # --- Mode: Gravity Compensation W QPID (no tracking) ---
         elif self.control_mode == "Gravity Compensation W QPID":
             self.link_ee_task[self.ee_link_name].xddot = np.zeros(6)
-            self.tau_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
+            _, self.tau_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
 
         # Format output for simulator actuators
         return {f"fr3_joint{i+1}": float(self.tau_desired[i]) for i in range(self.dof)}

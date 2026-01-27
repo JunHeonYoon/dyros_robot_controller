@@ -139,10 +139,11 @@ std::unordered_map<std::string, double> FR3Controller::compute()
         link_ee_task_[ee_link_name_].x_desired = link_ee_task_[ee_link_name_].x_init;
         link_ee_task_[ee_link_name_].x_desired.translation() += Eigen::Vector3d(0.0, 0.1, 0.1); // +10 cm in Y and Z
 
-        qdot_desired_ = robot_controller_->QPIKCubic(link_ee_task_,
-                                                     sim_time_, 
-                                                     control_start_time_, 
-                                                     3.0);
+        robot_controller_->QPIKCubic(link_ee_task_,
+                                     sim_time_, 
+                                     control_start_time_, 
+                                     3.0,
+                                     qdot_desired_);
 
         // Simple Euler integrate desired joint positions from qdot_desired
         q_desired_   = q_ + qdot_desired_ * dt_;
@@ -159,7 +160,7 @@ std::unordered_map<std::string, double> FR3Controller::compute()
     else if (control_mode_ == "Gravity Compensation W QPID") 
     {
         link_ee_task_[ee_link_name_].xddot_desired.setZero();
-        tau_desired_ = robot_controller_->QPID(link_ee_task_);
+        robot_controller_->QPID(link_ee_task_, tau_desired_);
     }
 
     // Format output for simulator actuators

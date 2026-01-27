@@ -266,7 +266,7 @@ class FR3XLSController:
             self.link_ee_task[self.ee_link_name].x_desired = self.link_ee_task[self.ee_link_name].x_init.copy()
             self.link_ee_task[self.ee_link_name].x_desired[0:3, 3] += np.array([0, 0.1, 0.1])  # +10 cm in Y and Z
 
-            self.qdot_mobile_desired, self.qdot_mani_desired = self.robot_controller.QPIK_cubic(
+            _, self.qdot_mobile_desired, self.qdot_mani_desired = self.robot_controller.QPIK_cubic(
                 link_task_data=self.link_ee_task,
                 init_time=self.control_start_time,
                 current_time=self.sim_time,
@@ -283,7 +283,7 @@ class FR3XLSController:
         # --- Mode: Gravity Compensation W QPID (task-space QPID with zero desired acceleration) ---
         elif self.control_mode == "Gravity Compensation W QPID":
             self.link_ee_task[self.ee_link_name].xddot = np.zeros(6)
-            qddot_mobile_desired, self.tau_mani_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
+            _, qddot_mobile_desired, self.tau_mani_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
             # Integrate mobile acceleration output to wheel velocity command
             self.qdot_mobile_desired = self.qdot_mobile + qddot_mobile_desired * self.dt
 
