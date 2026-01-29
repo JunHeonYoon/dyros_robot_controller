@@ -162,8 +162,19 @@ namespace drc
     
             // Manipulator Joint Angle Limit (CBF)
             const auto q_lim = robot_data_->getJointPositionLimit();
-            const VectorXd q_min = q_lim.first;
-            const VectorXd q_max = q_lim.second;
+            const VectorXd q_min_raw = q_lim.first;
+            const VectorXd q_max_raw = q_lim.second;
+            const VectorXd q_min =
+                (q_min_raw.array() < 0.0)
+                    .select(q_min_raw.array() * 0.9, q_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd q_max =
+                (q_max_raw.array() > 0.0)
+                    .select(q_max_raw.array() * 0.9, q_max_raw.array() * 1.9)
+                    .matrix();
+            // const auto q_lim = robot_data_->getJointPositionLimit();
+            // const VectorXd q_min = q_lim.first;
+            // const VectorXd q_max = q_lim.second;
     
             const VectorXd q = robot_data_->getJointPosition();
             const VectorXd qdot = robot_data_->getJointVelocity();
@@ -178,8 +189,20 @@ namespace drc
     
             // Manipulator Joint Velocity Limit (CBF)
             const auto qdot_lim = robot_data_->getJointVelocityLimit();
-            const VectorXd qdot_min = qdot_lim.first;
-            const VectorXd qdot_max = qdot_lim.second;
+            const VectorXd qdot_min_raw = qdot_lim.first;
+            const VectorXd qdot_max_raw = qdot_lim.second;
+            const VectorXd qdot_min =
+                (qdot_min_raw.array() < 0.0)
+                    .select(qdot_min_raw.array() * 0.9, qdot_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd qdot_max =
+                (qdot_max_raw.array() > 0.0)
+                    .select(qdot_max_raw.array() * 0.9, qdot_max_raw.array() * 1.9)
+                    .matrix();
+
+            // const auto qdot_lim = robot_data_->getJointVelocityLimit();
+            // const VectorXd qdot_min = qdot_lim.first;
+            // const VectorXd qdot_max = qdot_lim.second;
     
             A_ineq_ds_.block(si_index_.con_qdot_min_start, si_index_.qddot_start, si_index_.con_qdot_min_size, si_index_.qddot_size) = MatrixXd::Identity(si_index_.con_qdot_min_size, si_index_.qddot_size);
             A_ineq_ds_.block(si_index_.con_qdot_min_start, si_index_.slack_qdot_min_start, si_index_.con_qdot_min_size, si_index_.slack_qdot_min_size) = MatrixXd::Identity(si_index_.con_qdot_min_size, si_index_.slack_qdot_min_size);

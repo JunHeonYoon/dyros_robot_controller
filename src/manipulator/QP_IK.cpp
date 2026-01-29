@@ -116,8 +116,23 @@ namespace drc
             u_bound_ds_.setConstant(nbc_,OSQP_INFTY);
 
             // Manipulator Joint Velocity Limit
-            l_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = robot_data_->getJointVelocityLimit().first;
-            u_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = robot_data_->getJointVelocityLimit().second;
+            const auto qdot_lim = robot_data_->getJointVelocityLimit();
+            const VectorXd qdot_min_raw = qdot_lim.first;
+            const VectorXd qdot_max_raw = qdot_lim.second;
+            const VectorXd qdot_min =
+                (qdot_min_raw.array() < 0.0)
+                    .select(qdot_min_raw.array() * 0.9, qdot_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd qdot_max =
+                (qdot_max_raw.array() > 0.0)
+                    .select(qdot_max_raw.array() * 0.9, qdot_max_raw.array() * 1.9)
+                    .matrix();
+
+            l_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = qdot_min;
+            u_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = qdot_max;
+            
+            // l_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = robot_data_->getJointVelocityLimit().first;
+            // u_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = robot_data_->getJointVelocityLimit().second;
 
             // for slack
             l_bound_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size).setZero();
@@ -135,8 +150,20 @@ namespace drc
             const double alpha = 50.;
     
             // Manipulator Joint Angle Limit (CBF)
-            const VectorXd q_min = robot_data_->getJointPositionLimit().first;
-            const VectorXd q_max = robot_data_->getJointPositionLimit().second;
+            const auto q_lim = robot_data_->getJointPositionLimit();
+            const VectorXd q_min_raw = q_lim.first;
+            const VectorXd q_max_raw = q_lim.second;
+            const VectorXd q_min =
+                (q_min_raw.array() < 0.0)
+                    .select(q_min_raw.array() * 0.9, q_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd q_max =
+                (q_max_raw.array() > 0.0)
+                    .select(q_max_raw.array() * 0.9, q_max_raw.array() * 1.9)
+                    .matrix();
+
+            // const VectorXd q_min = robot_data_->getJointPositionLimit().first;
+            // const VectorXd q_max = robot_data_->getJointPositionLimit().second;
            
             const VectorXd q = robot_data_->getJointPosition();
                 

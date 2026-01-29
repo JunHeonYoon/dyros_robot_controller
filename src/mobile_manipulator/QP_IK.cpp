@@ -136,10 +136,24 @@ namespace drc
             u_bound_ds_.setConstant(nbc_,OSQP_INFTY);
             
             // Manipulator Joint Velocity Limit
+            const auto qdot_lim = robot_data_->getJointVelocityLimit();
+            const VectorXd qdot_mani_min_raw = qdot_lim.first.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const VectorXd qdot_mani_max_raw = qdot_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const VectorXd qdot_mani_min =
+                (qdot_mani_min_raw.array() < 0.0)
+                    .select(qdot_mani_min_raw.array() * 0.9, qdot_mani_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd qdot_mani_max =
+                (qdot_mani_max_raw.array() > 0.0)
+                    .select(qdot_mani_max_raw.array() * 0.9, qdot_mani_max_raw.array() * 1.9)
+                    .matrix();
+
             l_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-                                mani_dof_) = robot_data_->getJointVelocityLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+                                mani_dof_) = qdot_mani_min;
+                                // mani_dof_) = robot_data_->getJointVelocityLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
             u_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-                                mani_dof_) = robot_data_->getJointVelocityLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+                                mani_dof_) = qdot_mani_max;
+                                // mani_dof_) = robot_data_->getJointVelocityLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
 
             // for slack
             l_bound_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size).setZero();
@@ -157,8 +171,19 @@ namespace drc
             const double alpha = 50.;
     
             // Manipulator Joint Angle Limit (CBF)
-            const VectorXd q_mani_min = robot_data_->getJointPositionLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
-            const VectorXd q_mani_max = robot_data_->getJointPositionLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            const auto q_lim = robot_data_->getJointPositionLimit();
+            const VectorXd q_mani_min_raw = q_lim.first.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const VectorXd q_mani_max_raw = q_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const VectorXd q_mani_min =
+                (q_mani_min_raw.array() < 0.0)
+                    .select(q_mani_min_raw.array() * 0.9, q_mani_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd q_mani_max =
+                (q_mani_max_raw.array() > 0.0)
+                    .select(q_mani_max_raw.array() * 0.9, q_mani_max_raw.array() * 1.9)
+                    .matrix();
+            // const VectorXd q_mani_min = robot_data_->getJointPositionLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            // const VectorXd q_mani_max = robot_data_->getJointPositionLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
            
             const VectorXd q_mani = robot_data_->getJointPosition().segment(robot_data_->getJointIndex().mani_start,mani_dof_);
             
