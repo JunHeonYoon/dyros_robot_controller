@@ -300,7 +300,7 @@ namespace drc
             const bool qp_success = QP_moma_ID_->getOptJoint(opt_qddot, opt_torque, time_duration);
             if(!qp_success)
             {
-                opt_torque = robot_data_->getGravity();
+                opt_torque = robot_data_->getGravityActuated();
                 opt_qddot.setZero();
             }
 
