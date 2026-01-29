@@ -266,11 +266,11 @@ namespace drc
             const VectorXd qdot_mani_max_raw = qdot_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
             const VectorXd qdot_mani_min =
                 (qdot_mani_min_raw.array() < 0.0)
-                    .select(qdot_mani_min_raw.array() * 0.8, qdot_mani_min_raw.array() * 1.8)
+                    .select(qdot_mani_min_raw.array() * 0.9, qdot_mani_min_raw.array() * 1.9)
                     .matrix();
             const VectorXd qdot_mani_max =
                 (qdot_mani_max_raw.array() > 0.0)
-                    .select(qdot_mani_max_raw.array() * 0.8, qdot_mani_max_raw.array() * 1.8)
+                    .select(qdot_mani_max_raw.array() * 0.9, qdot_mani_max_raw.array() * 1.9)
                     .matrix();
     
             A_ineq_ds_.block(si_index_.con_qdot_mani_min_start, 
