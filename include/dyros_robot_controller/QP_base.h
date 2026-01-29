@@ -180,12 +180,22 @@ namespace drc
                     time_status.set_solver = timer_.elapsedAndReset();
 
                     // solve the QP problem
-                    if (solver_.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return false;
+                    if (solver_.solveProblem() != OsqpEigen::ErrorExitFlag::NoError)
+                    {
+                        last_primal_.setZero(nx_);
+                        last_dual_.setZero(nc_);
+                        return false;
+                    }
                     qp_status_ = solver_.getStatus();
                     // if (solver_.getStatus() != OsqpEigen::Status::Solved) return false;
                     // if (solver.getStatus() != OsqpStatus::Solved && solver.getStatus() != OsqpStatus::SolvedInaccurate) return false;
                     // TODO: near constraints, QP failed witihin timelimit
-                     if (solver_.getStatus() != OsqpEigen::Status::Solved && solver_.getStatus() != OsqpEigen::Status::TimeLimitReached) return false;
+                     if (solver_.getStatus() != OsqpEigen::Status::Solved && solver_.getStatus() != OsqpEigen::Status::TimeLimitReached)
+                     {
+                         last_primal_.setZero(nx_);
+                         last_dual_.setZero(nc_);
+                         return false;
+                     }
 
                     time_status.solve_qp = timer_.elapsedAndReset();
 
