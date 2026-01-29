@@ -221,8 +221,16 @@ namespace drc
     
             // Manipulator Joint Angle Limit
             const auto q_lim = robot_data_->getJointPositionLimit();
-            const VectorXd q_mani_min = q_lim.first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
-            const VectorXd q_mani_max = q_lim.second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            const VectorXd q_mani_min_raw = q_lim.first.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const VectorXd q_mani_max_raw = q_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const VectorXd q_mani_min =
+                (q_mani_min_raw.array() < 0.0)
+                    .select(q_mani_min_raw.array() * 0.8, q_mani_min_raw.array() * 1.8)
+                    .matrix();
+            const VectorXd q_mani_max =
+                (q_mani_max_raw.array() > 0.0)
+                    .select(q_mani_max_raw.array() * 0.8, q_mani_max_raw.array() * 1.8)
+                    .matrix();
     
             const VectorXd q_actuated = robot_data_->getJointPositionActuated();
             const VectorXd qdot_actuated = robot_data_->getJointVelocityActuated();
@@ -254,8 +262,16 @@ namespace drc
     
             // Manipulator Joint Velocity Limit
             const auto qdot_lim = robot_data_->getJointVelocityLimit();
-            const VectorXd qdot_mani_min = qdot_lim.first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
-            const VectorXd qdot_mani_max = qdot_lim.second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
+            const VectorXd qdot_mani_min_raw = qdot_lim.first.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const VectorXd qdot_mani_max_raw = qdot_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const VectorXd qdot_mani_min =
+                (qdot_mani_min_raw.array() < 0.0)
+                    .select(qdot_mani_min_raw.array() * 0.8, qdot_mani_min_raw.array() * 1.8)
+                    .matrix();
+            const VectorXd qdot_mani_max =
+                (qdot_mani_max_raw.array() > 0.0)
+                    .select(qdot_mani_max_raw.array() * 0.8, qdot_mani_max_raw.array() * 1.8)
+                    .matrix();
     
             A_ineq_ds_.block(si_index_.con_qdot_mani_min_start, 
                              si_index_.eta_dot_start + robot_data_->getActuatorIndex().mani_start, 
