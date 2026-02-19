@@ -93,6 +93,22 @@ namespace drc
             QP_moma_IK_->setWeight(link_w_tracking, w_mani_damping, w_base_damping);
         }
 
+        void RobotController::setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking)
+        {
+            QP_moma_IK_->setTrackingWeight(link_w_tracking);
+        }
+
+        void RobotController::setQPIKManiJointVelGain(const Eigen::Ref<const VectorXd>& w_mani_damping)
+        {
+            QP_moma_IK_->setManiJointVelWeight(w_mani_damping);
+        }
+
+        void RobotController::setQPIKBaseVelGain(const Eigen::Vector3d& w_base_damping)
+        {
+            QP_moma_IK_->setBaseVelWeight(w_base_damping);
+        }
+
+
         void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, 
                                           const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
                                           const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
@@ -103,6 +119,32 @@ namespace drc
             assert(w_mani_acc_damping.size() == mani_dof_);
             QP_moma_ID_->setWeight(link_w_tracking, w_mani_vel_damping, w_mani_acc_damping, w_base_vel_damping, w_base_acc_damping);
         }
+
+        void RobotController::setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking)
+        {
+            QP_moma_ID_->setTrackingWeight(link_w_tracking);
+        }
+
+        void RobotController::setQPIDManiJointVelGain(const Eigen::Ref<const VectorXd>& w_mani_vel_damping)
+        {
+            QP_moma_ID_->setManiJointVelWeight(w_mani_vel_damping);
+        }
+
+        void RobotController::setQPIDManiJointAccGain(const Eigen::Ref<const VectorXd>& w_mani_acc_damping)
+        {
+            QP_moma_ID_->setManiJointAccWeight(w_mani_acc_damping);
+        }
+
+        void RobotController::setQPIDBaseVelGain(const Eigen::Vector3d& w_base_vel_damping)
+        {
+            QP_moma_ID_->setBaseVelWeight(w_base_vel_damping);
+        }
+
+        void RobotController::setQPIDBaseAccGain(const Eigen::Vector3d& w_base_acc_damping)
+        {
+            QP_moma_ID_->setBaseAccWeight(w_base_acc_damping);
+        }
+
 
         VectorXd RobotController::computeMobileWheelVel(const Vector3d& base_vel)
         {

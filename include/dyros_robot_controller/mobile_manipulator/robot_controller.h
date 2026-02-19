@@ -72,6 +72,11 @@ namespace drc
                 void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, 
                                  const Eigen::Ref<const VectorXd>& w_mani_damping,
                                  const Eigen::Vector3d& w_base_damping);
+
+                void setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+                void setQPIKManiJointVelGain(const Eigen::Ref<const VectorXd>& w_mani_damping);
+                void setQPIKBaseVelGain(const Eigen::Vector3d& w_base_damping);
+
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPID
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
@@ -86,6 +91,12 @@ namespace drc
                                  const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                                  const Eigen::Vector3d& w_base_vel_damping,
                                  const Eigen::Vector3d& w_base_acc_damping);
+
+                void setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+                void setQPIDManiJointVelGain(const Eigen::Ref<const VectorXd>& w_mani_vel_damping);
+                void setQPIDManiJointAccGain(const Eigen::Ref<const VectorXd>& w_mani_acc_damping);
+                void setQPIDBaseVelGain(const Eigen::Vector3d& w_base_vel_damping);
+                void setQPIDBaseAccGain(const Eigen::Vector3d& w_base_acc_damping);
 
                 // TODO: modify comments, add bindings and python func, add python comment, add to notion
                 // ================================== Mobile Functions ===================================

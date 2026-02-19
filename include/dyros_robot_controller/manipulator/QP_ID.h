@@ -39,6 +39,11 @@ namespace drc
                  * @param link_xddot_desired (std::map<std::string, Vector6d>) Desired task space acceleration (6D twist) per links.
                  * @param link_name     (std::string) Name of the link.
                  */
+
+                void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
+                void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_vel_damping) { w_vel_damping_ = w_vel_damping; }
+                void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
+                
                 // TODO: add document to notion
                 void setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired);
                 /**

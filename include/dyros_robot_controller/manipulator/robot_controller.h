@@ -67,6 +67,10 @@ namespace drc
                  */
                 // TODO: add document to notion
                 void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping);
+
+                void setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+                void setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_damping);
+
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPID
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
@@ -76,6 +80,9 @@ namespace drc
                 // TODO: add document to notion
                 void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
                 
+                void setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+                void setQPIDJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping);
+                void setQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
                 
                 // ================================ Joint space Functions ================================
                 /**

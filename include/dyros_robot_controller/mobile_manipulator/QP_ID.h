@@ -36,6 +36,14 @@ namespace drc
                                const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                                const Eigen::Vector3d& w_base_vel_damping,
                                const Eigen::Vector3d& w_base_acc_damping);
+
+                void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
+                void setManiJointVelWeight(const Eigen::Ref<const VectorXd>& w_mani_vel_damping) { w_mani_vel_damping_ = w_mani_vel_damping; }
+                void setManiJointAccWeight(const Eigen::Ref<const VectorXd>& w_mani_acc_damping) { w_mani_acc_damping_ = w_mani_acc_damping; }
+                void setBaseVelWeight(const Eigen::Vector3d& w_base_vel_damping) { w_base_vel_damping_ = w_base_vel_damping; }
+                void setBaseAccWeight(const Eigen::Vector3d& w_base_acc_damping) { w_base_acc_damping_ = w_base_acc_damping; }
+
+
                 /**
                  * @brief Set the desired task space acceleration for the link.
                   * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.

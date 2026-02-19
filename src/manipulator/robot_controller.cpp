@@ -86,10 +86,37 @@ namespace drc
             QP_mani_IK_->setWeight(link_w_tracking, w_damping);
         }
 
+        void RobotController::setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking)
+        {
+            QP_mani_IK_->setTrackingWeight(link_w_tracking);
+        }
+
+        void RobotController::setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_damping)
+        {
+            assert(w_damping.size() == dof_);
+            QP_mani_IK_->setJointVelWeight(w_damping);
+        }
+
         void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             QP_mani_ID_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
         }
+
+        void RobotController::setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking)
+        {
+            QP_mani_ID_->setTrackingWeight(link_w_tracking);
+        }
+
+        void RobotController::setQPIDJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping)
+        {
+            QP_mani_ID_->setJointVelWeight(w_vel_damping);
+        }
+
+        void RobotController::setQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            QP_mani_ID_->setJointAccWeight(w_acc_damping);
+        }
+
 
         VectorXd RobotController::moveJointPositionCubic(const Eigen::Ref<const VectorXd>& q_target,
                                                          const Eigen::Ref<const VectorXd>& qdot_target,
@@ -189,8 +216,14 @@ namespace drc
 
             const MatrixXd J_total_pinv = DyrosMath::PinvCOD(J_total);
             const MatrixXd null_proj = MatrixXd::Identity(dof_, dof_) - J_total_pinv * J_total;
-    
-            return J_total_pinv * x_dot_target_total + null_proj * null_qdot;
+
+            VectorXd qdot_task(dof_);
+            qdot_task.noalias() = J_total_pinv * x_dot_target_total;
+
+            VectorXd qdot_null(dof_);
+            qdot_null.noalias() = null_proj * null_qdot;
+
+            return qdot_task + qdot_null;
         }
 
         VectorXd RobotController::CLIK(const std::map<std::string, TaskSpaceData>& link_task_data, const Eigen::Ref<const VectorXd>& null_qdot)

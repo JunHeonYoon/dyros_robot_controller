@@ -32,6 +32,9 @@ namespace drc
                 // TODO: add document to notion
                 void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
                                const Eigen::Ref<const VectorXd>& w_damping);
+
+                void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
+                void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_damping) { w_damping_ = w_damping; }
                 /**
                  * @brief Set the desired task space velocity for the link.
                  * @param link_xdot_desired (std::map<std::string, Vector6d>) Desired task space velocity (6D twist) per links.

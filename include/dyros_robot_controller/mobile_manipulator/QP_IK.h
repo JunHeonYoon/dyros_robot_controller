@@ -34,6 +34,11 @@ namespace drc
                 void setWeight(const std::map<std::string, Vector6d>& link_w_tracking, 
                                const Eigen::Ref<const VectorXd>& w_mani_damping,
                                const Eigen::Vector3d& w_base_damping);
+
+                void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
+                void setManiJointVelWeight(const Eigen::Ref<const VectorXd>& w_mani_damping) { w_mani_damping_ = w_mani_damping; }
+                void setBaseVelWeight(const Eigen::Vector3d& w_base_damping) { w_base_damping_ = w_base_damping; }
+
                 /**
                  * @brief Set the desired task space velocity for the link.
                  * @param link_xdot_desired (std::map<std::string, Vector6d>) Desired task space velocity (6D twist) per links.
