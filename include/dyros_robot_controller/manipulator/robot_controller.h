@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include "dyros_robot_controller/manipulator/robot_data.h"
 #include "dyros_robot_controller/manipulator/QP_IK.h"
 #include "dyros_robot_controller/manipulator/QP_ID.h"
@@ -268,9 +269,19 @@ namespace drc
                  * @brief Computes joint velocities to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data  (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
                  * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
-                 * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
-                 */                          
+                 */
+                virtual bool QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                  std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of QPIK.
+                 * @param link_task_data  (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
+                 * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if the problem was solved successfully.
+                 */
                 virtual bool QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                   const bool time_verbose=false);
@@ -278,9 +289,19 @@ namespace drc
                  * @brief Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
                  * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
-                 * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */                      
+                virtual bool QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                      std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of QPIKStep.
+                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if the problem was solved successfully.
+                */
                 virtual bool QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                       const bool time_verbose=false);
@@ -291,9 +312,25 @@ namespace drc
                  * @param init_time            (double) Start time of the segment.
                  * @param duration             (double) Time duration
                  * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
-                 * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */                           
+                virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       const double& current_time,
+                                       const double& init_time,
+                                       const double& duration,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                       std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of QPIKCubic.
+                 * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+                 * @param current_time         (double) Current time.
+                 * @param init_time            (double) Start time of the segment.
+                 * @param duration             (double) Time duration
+                 * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if the problem was solved successfully.
+                */
                 virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
                                        const double& init_time,
@@ -304,9 +341,19 @@ namespace drc
                  * @brief Computes joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
                  * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
-                 * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */                            
+                virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                  Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                  std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of QPID.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if the problem was solved successfully.
+                */
                 virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
                                   const bool time_verbose=false);
@@ -314,9 +361,19 @@ namespace drc
                  * @brief Computes joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse dynamics QP.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
                  * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
-                 * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */                        
+                virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                      std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of QPIDStep.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if the problem was solved successfully.
+                */
                 virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
                                       const bool time_verbose=false);
@@ -327,9 +384,25 @@ namespace drc
                  * @param init_time              (double) Start time of the segment.
                  * @param duration               (double) Time duration
                  * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
-                 * @param time_verbose  (bool) If true, print the computation time for QP. 
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */                             
+                virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       const double& current_time,
+                                       const double& init_time,
+                                       const double& duration,
+                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                       std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of QPIDCubic.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+                 * @param current_time           (double) Current time.
+                 * @param init_time              (double) Start time of the segment.
+                 * @param duration               (double) Time duration
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if the problem was solved successfully.
+                */
                 virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
                                        const double& init_time,
@@ -356,9 +429,27 @@ namespace drc
 
                 virtual VectorXd CLIK(const std::map<std::string, Vector6d>& link_xdot_target, const Eigen::Ref<const VectorXd>& null_qdot);
                 virtual VectorXd OSF(const std::map<std::string, Vector6d>& link_xddot_target, const Eigen::Ref<const VectorXd>& null_torque);
+                /**
+                 * @brief Internal QPIK overload that stores QP timing information in a string.
+                 */
+                virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                  std::string& time_verbose);
+                /**
+                 * @brief Internal compatibility overload of QPIK with legacy bool argument.
+                 */
                 virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                   const bool time_verbose=false);
+                /**
+                 * @brief Internal QPID overload that stores QP timing information in a string.
+                 */
+                virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
+                                  Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                  std::string& time_verbose);
+                /**
+                 * @brief Internal compatibility overload of QPID with legacy bool argument.
+                 */
                 virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
                                   const bool time_verbose=false);

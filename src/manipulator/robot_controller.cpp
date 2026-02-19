@@ -1,4 +1,34 @@
 #include "dyros_robot_controller/manipulator/robot_controller.h"
+#include <iostream>
+#include <sstream>
+
+namespace
+{
+    std::string formatQPTimeInfo(const std::string& qp_name, const drc::QP::TimeDuration& time_duration)
+    {
+        std::ostringstream oss;
+        oss << "============ " << qp_name << " Time Information ==============\n";
+        oss << "Duration for total [ms]: " << (time_duration.set_qp + time_duration.set_solver + time_duration.solve_qp) * 1000 << "\n";
+        oss << "\tDuration for set up QP problem [ms]: " << time_duration.set_qp * 1000 << "\n";
+        oss << "\t\tDuration for set up cost [ms]      : " << time_duration.set_cost * 1000 << "\n";
+        oss << "\t\tDuration for set up constraint [ms]: " << time_duration.set_constraint * 1000 << "\n";
+        oss << "\t\t\tDuration for set up bound [ms]: " << time_duration.set_bound * 1000 << "\n";
+        oss << "\t\t\tDuration for set up ineq [ms] : " << time_duration.set_ineq * 1000 << "\n";
+        oss << "\t\t\tDuration for set up eq [ms]   : " << time_duration.set_eq * 1000 << "\n";
+        oss << "\tDuration for set up QP solver [ms] : " << time_duration.set_solver * 1000 << "\n";
+        oss << "\tDuration for solve QP [ms]         : " << time_duration.solve_qp * 1000 << "\n";
+        oss << "=================================================";
+        return oss.str();
+    }
+
+    void printQPTimeInfoIfEnabled(const bool time_verbose, const std::string& verbose)
+    {
+        if(time_verbose && !verbose.empty())
+        {
+            std::cout << verbose << std::endl;
+        }
+    }
+}
 
 namespace drc
 {
@@ -330,8 +360,9 @@ namespace drc
 
         bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                    Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                   const bool time_verbose)
+                                   std::string& time_verbose)
         {
+            time_verbose.clear();
             if(opt_qdot.size() != dof_)
             {
                 std::cerr << "Size of opt_qdot(" << opt_qdot.size() << ") is not same as dof_(" << dof_ << ")" << std::endl;
@@ -347,40 +378,46 @@ namespace drc
                 opt_qdot.setZero();
             }
 
-            if(time_verbose)
-            {
-                std::cout << "============ QPIK Time Information ==============" << std::endl;
-                std::cout << "Duration for total [ms]: " << (time_duration.set_qp + time_duration.set_solver + time_duration.solve_qp)*1000 << std::endl;
-                std::cout << "\tDuration for set up QP problem [ms]: " << time_duration.set_qp*1000 << std::endl;
-                std::cout << "\t\tDuration for set up cost [ms]      : " << time_duration.set_cost*1000 << std::endl;
-                std::cout << "\t\tDuration for set up constraint [ms]: " << time_duration.set_constraint*1000 << std::endl;
-                std::cout << "\t\t\tDuration for set up bound [ms]: " << time_duration.set_bound*1000 << std::endl;
-                std::cout << "\t\t\tDuration for set up ineq [ms] : " << time_duration.set_ineq*1000 << std::endl;
-                std::cout << "\t\t\tDuration for set up eq [ms]   : " << time_duration.set_eq*1000 << std::endl;
-                std::cout << "\tDuration for set up QP solver [ms] : " << time_duration.set_solver*1000 << std::endl;
-                std::cout << "\tDuration for solve QP [ms]         : " << time_duration.solve_qp*1000 << std::endl;
-                std::cout << "=================================================" << std::endl;
-            }
-        
+            time_verbose = formatQPTimeInfo("QPIK", time_duration);
+            return qp_success;
+        }
+
+        bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                   const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = QPIK(link_xdot_target, opt_qdot, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
 
         bool RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
                                    Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                   const bool time_verbose)
-        {  
+                                   std::string& time_verbose)
+        {
             std::map<std::string, Vector6d> link_xdot_target;
             for (auto &[link_name, task_data] : link_task_data)
             {
                 link_xdot_target[link_name] = task_data.xdot_desired;
             }
-        
+
             return QPIK(link_xdot_target, opt_qdot, time_verbose);
+        }
+
+        bool RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                   const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = QPIK(link_task_data, opt_qdot, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
         }
 
         bool RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                       const bool time_verbose)
+                                       std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
@@ -388,7 +425,7 @@ namespace drc
                 Vector6d x_error, xdot_error;
                 DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
 
-                Vector6d Kp_task; Kp_task.setOnes(); 
+                Vector6d Kp_task; Kp_task.setOnes();
                 auto iter = link_Kp_task_.find(link_name);
                 if(iter != link_Kp_task_.end()) Kp_task = iter->second;
 
@@ -396,13 +433,23 @@ namespace drc
             }
             return QPIK(link_task_data_result, opt_qdot, time_verbose);
         }
-    
+
+        bool RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                       const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = QPIKStep(link_task_data, opt_qdot, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
         bool RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
                                         const double& init_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                        const bool time_verbose)
+                                        std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
@@ -411,14 +458,28 @@ namespace drc
                 DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
-    
+
             return QPIKStep(link_task_data_result, opt_qdot, time_verbose);
+        }
+
+        bool RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                        const double& current_time,
+                                        const double& init_time,
+                                        const double& duration,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                        const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = QPIKCubic(link_task_data, current_time, init_time, duration, opt_qdot, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
         }
 
         bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                    Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                   const bool time_verbose)
+                                   std::string& time_verbose)
         {
+            time_verbose.clear();
             QP_mani_ID_->setDesiredTaskAcc(link_xddot_target);
             VectorXd opt_qddot = VectorXd::Zero(dof_);
             if(opt_torque.size() != dof_)
@@ -434,27 +495,23 @@ namespace drc
                 opt_torque = robot_data_->getGravity();
             }
 
-            if(time_verbose)
-            {
-                std::cout << "============ QPID Time Information ==============" << std::endl;
-                std::cout << "Duration for total [ms]: " << (time_duration.set_qp + time_duration.set_solver + time_duration.solve_qp)*1000 << std::endl;
-                std::cout << "\tDuration for set up QP problem [ms]: " << time_duration.set_qp*1000 << std::endl;
-                std::cout << "\t\tDuration for set up cost [ms]      : " << time_duration.set_cost*1000 << std::endl;
-                std::cout << "\t\tDuration for set up constraint [ms]: " << time_duration.set_constraint*1000 << std::endl;
-                std::cout << "\t\t\tDuration for set up bound [ms]: " << time_duration.set_bound*1000 << std::endl;
-                std::cout << "\t\t\tDuration for set up ineq [ms] : " << time_duration.set_ineq*1000 << std::endl;
-                std::cout << "\t\t\tDuration for set up eq [ms]   : " << time_duration.set_eq*1000 << std::endl;
-                std::cout << "\tDuration for set up QP solver [ms] : " << time_duration.set_solver*1000 << std::endl;
-                std::cout << "\tDuration for solve QP [ms]         : " << time_duration.solve_qp*1000 << std::endl;
-                std::cout << "=================================================" << std::endl;
-            }
-        
+            time_verbose = formatQPTimeInfo("QPID", time_duration);
+            return qp_success;
+        }
+
+        bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                   const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = QPID(link_xddot_target, opt_torque, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
 
         bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                    Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                   const bool time_verbose)
+                                   std::string& time_verbose)
         {
             std::map<std::string, Vector6d> link_xddot_target;
             for (auto &[link_name, task_data] : link_task_data)
@@ -465,9 +522,19 @@ namespace drc
             return QPID(link_xddot_target, opt_torque, time_verbose);
         }
 
+        bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                   const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = QPID(link_task_data, opt_torque, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
         bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                       const bool time_verbose)
+                                       std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
@@ -475,8 +542,8 @@ namespace drc
                 Vector6d x_error, xdot_error;
                 DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
 
-                Vector6d Kp_task; Kp_task.setOnes(); 
-                Vector6d Kv_task; Kv_task.setOnes(); 
+                Vector6d Kp_task; Kp_task.setOnes();
+                Vector6d Kv_task; Kv_task.setOnes();
                 auto iter_kp = link_Kp_task_.find(link_name);
                 if(iter_kp != link_Kp_task_.end()) Kp_task = iter_kp->second;
                 auto iter_kv = link_Kv_task_.find(link_name);
@@ -484,17 +551,26 @@ namespace drc
 
                 link_task_data_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
             }
-            
+
             return QPID(link_task_data_result, opt_torque, time_verbose);
         }
-    
-    
+
+        bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                       const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = QPIDStep(link_task_data, opt_torque, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
         bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
                                         const double& init_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                        const bool time_verbose)
+                                        std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
@@ -503,8 +579,21 @@ namespace drc
                 DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
-    
+
             return QPIDStep(link_task_data_result, opt_torque, time_verbose);
+        }
+
+        bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                        const double& current_time,
+                                        const double& init_time,
+                                        const double& duration,
+                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                        const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = QPIDCubic(link_task_data, current_time, init_time, duration, opt_torque, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
         }
     } // namespace Manipulator
 } // namespace drc
