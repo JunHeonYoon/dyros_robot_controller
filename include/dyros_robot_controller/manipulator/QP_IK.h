@@ -32,8 +32,15 @@ namespace drc
                 // TODO: add document to notion
                 void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
                                const Eigen::Ref<const VectorXd>& w_damping);
-
+                /**
+                 * @brief Set task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space velocity tracking per links.
+                 */
                 void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
+                /**
+                 * @brief Set joint velocity damping weights only.
+                 * @param w_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
                 void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_damping) { w_damping_ = w_damping; }
                 /**
                  * @brief Set the desired task space velocity for the link.

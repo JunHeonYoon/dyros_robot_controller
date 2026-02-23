@@ -83,7 +83,15 @@ namespace drc
 
                 using Manipulator::RobotData::getVerbose;
                 using Mobile::RobotData::getVerbose;
+                /**
+                 * @brief Print current mobile manipulator state and parameters in formatted text.
+                 * @return (std::string) Human-readable debug information string.
+                 */
                 std::string getVerbose() const;
+                /**
+                 * @brief Get control time step.
+                 * @return (double) Control loop time step in seconds.
+                 */
                 double getDt() const { return Mobile::RobotData::getDt(); }
                                                
                 using Manipulator::RobotData::updateState; 

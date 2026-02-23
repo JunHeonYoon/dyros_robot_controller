@@ -159,20 +159,58 @@ namespace drc
                 virtual ManipulabilityResult computeManipulability(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name);
                 
                 // ================================ Get Functions ================================
+                /**
+                 * @brief Get the configured URDF source path.
+                 * @return (std::string) URDF path string.
+                 */
                 const std::string getURDFPath() const {return urdf_path_;}
+                /**
+                 * @brief Get the configured SRDF source path.
+                 * @return (std::string) SRDF path string.
+                 */
                 const std::string getSRDFPath() const {return srdf_path_;}
+                /**
+                 * @brief Get the configured package search path.
+                 * @return (std::string) Package path string.
+                 */
                 const std::string getPackagePath() const {return packages_path_;}
+                /**
+                 * @brief Get control time step.
+                 * @return (double) Control loop time step in seconds.
+                 */
                 double getDt() const {return dt_;}
 
                 // Link frames (BODY)
+                /**
+                 * @brief Get all link frame names discovered from the model.
+                 * @return (std::vector<std::string>) Link frame name list.
+                 */
                 const std::vector<std::string>& getLinkFrameVector() const { return link_frame_names_; }
+                /**
+                 * @brief Check whether a link frame exists in the model.
+                 * @param name (std::string) Link frame name.
+                 * @return (bool) True if the link frame exists.
+                 */
                 bool hasLinkFrame(const std::string& name) const;
 
                 // Joint frames (JOINT)
+                /**
+                 * @brief Get all joint frame names discovered from the model.
+                 * @return (std::vector<std::string>) Joint frame name list.
+                 */
                 const std::vector<std::string>& getJointFrameVector() const { return joint_frame_names_; }
+                /**
+                 * @brief Check whether a joint frame exists in the model.
+                 * @param name (std::string) Joint frame name.
+                 * @return (bool) True if the joint frame exists.
+                 */
                 bool hasJointFrame(const std::string& name) const;
 
                 // Root link (base link default)
+                /**
+                 * @brief Get the root link name of the current robot model.
+                 * @return (std::string) Root link name.
+                 */
                 const std::string& getRootLinkName() const { return root_link_name_; }
 
                 /**

@@ -27,7 +27,10 @@ namespace drc
                  * @param param (RobotData::Mobile::KinematicParam) Kinematic parameter object containing drive type and geometry.
                 */
                 RobotData(const double dt, const KinematicParam& param);
-
+                /**
+                 * @brief Print current mobile robot state and parameters in formatted text.
+                 * @return (std::string) Human-readable debug information string.
+                 */
                 virtual std::string getVerbose() const;
 
                 /**

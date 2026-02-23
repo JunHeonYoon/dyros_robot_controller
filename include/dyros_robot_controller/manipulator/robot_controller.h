@@ -67,8 +67,15 @@ namespace drc
                  */
                 // TODO: add document to notion
                 void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping);
-
+                /**
+                 * @brief Set QPIK task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 */
                 void setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+                /**
+                 * @brief Set QPIK joint velocity damping weights only.
+                 * @param w_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
                 void setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_damping);
 
                 /**
@@ -79,9 +86,20 @@ namespace drc
                  */
                 // TODO: add document to notion
                 void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
-                
+                /**
+                 * @brief Set QPID task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
+                 */
                 void setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+                /**
+                 * @brief Set QPID joint velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
                 void setQPIDJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping);
+                /**
+                 * @brief Set QPID joint acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
                 void setQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
                 
                 // ================================ Joint space Functions ================================
@@ -433,8 +451,13 @@ namespace drc
                 // QP solvers
                 std::unique_ptr<Manipulator::QPIK> QP_mani_IK_;
                 std::unique_ptr<Manipulator::QPID> QP_mani_ID_;
-
+                /**
+                 * @brief Internal CLIK overload that receives desired task velocities directly.
+                 */
                 virtual VectorXd CLIK(const std::map<std::string, Vector6d>& link_xdot_target, const Eigen::Ref<const VectorXd>& null_qdot);
+                /**
+                 * @brief Internal OSF overload that receives desired task accelerations directly.
+                 */
                 virtual VectorXd OSF(const std::map<std::string, Vector6d>& link_xddot_target, const Eigen::Ref<const VectorXd>& null_torque);
                 /**
                  * @brief Internal QPIK overload that stores QP timing information in a string.

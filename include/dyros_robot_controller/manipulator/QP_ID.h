@@ -35,14 +35,24 @@ namespace drc
                                const Eigen::Ref<const VectorXd>& w_vel_damping,
                                const Eigen::Ref<const VectorXd>& w_acc_damping);
                 /**
-                 * @brief Set the desired task space acceleration for the link.
-                 * @param link_xddot_desired (std::map<std::string, Vector6d>) Desired task space acceleration (6D twist) per links.
-                 * @param link_name     (std::string) Name of the link.
+                 * @brief Set task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space acceleration tracking per links.
                  */
-
                 void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
+                /**
+                 * @brief Set joint velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator dof.
+                 */
                 void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_vel_damping) { w_vel_damping_ = w_vel_damping; }
+                /**
+                 * @brief Set joint acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as actuator dof.
+                 */
                 void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
+                /**
+                 * @brief Set the desired task space acceleration for each link.
+                 * @param link_xddot_desired (std::map<std::string, Vector6d>) Desired task space acceleration (6D twist) per links.
+                 */
                 
                 // TODO: add document to notion
                 void setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired);

@@ -19,16 +19,33 @@
 class XLSController 
 {
 public:
+  /**
+   * @brief Construct XLS mobile-base example controller.
+   * @param dt (double) Control loop time step in seconds.
+   */
   XLSController(const double dt);
+  /**
+   * @brief Destructor. Stops keyboard listener and releases resources.
+   */
   ~XLSController();
-
+  /**
+   * @brief Update internal model/state from simulator measurements.
+   * @param current_time (double) Current simulation time in seconds.
+   * @param qpos_dict (std::unordered_map<std::string, Eigen::VectorXd>) Joint position map keyed by model name.
+   * @param qvel_dict (std::unordered_map<std::string, Eigen::VectorXd>) Joint velocity map keyed by model name.
+   */
   void updateModel(const double current_time,
                    const std::unordered_map<std::string, Eigen::VectorXd>& qpos_dict,
                    const std::unordered_map<std::string, Eigen::VectorXd>& qvel_dict);
-
-  // Compute control for the current mode.
-  // Returns: actuator velocity map (wheel joint name -> command).
+  /**
+   * @brief Compute wheel commands for the current control mode.
+   * @return (std::unordered_map<std::string, double>) Actuator velocity map (wheel joint name -> command).
+   */
   std::unordered_map<std::string, double> compute();
+  /**
+   * @brief Set high-level control mode for the next compute cycle.
+   * @param control_mode (std::string) Mode name.
+   */
   void setMode(const std::string& control_mode);
 
 private:
@@ -53,13 +70,31 @@ private:
   std::shared_ptr<drc::Mobile::RobotController> robot_controller_;
 
   // --- Keyboard interface (non-blocking; background thread) ---
+  /**
+   * @brief Start background keyboard listener thread.
+   */
   void startKeyListener_();
+  /**
+   * @brief Stop background keyboard listener thread.
+   */
   void stopKeyListener_();
+  /**
+   * @brief Keyboard polling loop running in background thread.
+   */
   void keyLoop_();
+  /**
+   * @brief Switch terminal to non-canonical raw input mode.
+   */
   void setRawMode_();
+  /**
+   * @brief Restore terminal mode saved before setRawMode_().
+   */
   void restoreTerm_();
 
-  // Map currently held keys -> desired base twist [vx, vy, w]
+  /**
+   * @brief Convert current key state into desired base velocity command.
+   * @return (Eigen::Vector3d) Desired base twist [vx, vy, w] in base frame.
+   */
   Eigen::Vector3d keysToxdot() const;
 
   // Internal key state (for continuous commands)

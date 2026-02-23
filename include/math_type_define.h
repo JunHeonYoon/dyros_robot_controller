@@ -59,6 +59,9 @@ namespace DyrosMath
 	//constexpr double GRAVITY {9.80665};
 	//constexpr double DEG2RAD {};
 
+	/**
+	 * @brief Scalar cubic interpolation with boundary position/velocity conditions.
+	 */
 	static double cubic(double time,     ///< Current time
 		double time_0,   ///< Start time
 		double time_f,   ///< End time
@@ -101,6 +104,9 @@ namespace DyrosMath
 		return x_t;
 	}
 
+	/**
+	 * @brief Time derivative of scalar cubic interpolation.
+	 */
 	static double cubicDot(double time,     ///< Current time
 		double time_0,   ///< Start time
 		double time_f,   ///< End time
@@ -143,6 +149,9 @@ namespace DyrosMath
 		return x_t;
 	}
 
+	/**
+	 * @brief Construct a 3x3 skew-symmetric matrix from a 3D vector.
+	 */
 	static Eigen::Matrix3d skew(Eigen::Vector3d src)
 	{
 		Eigen::Matrix3d skew;
@@ -158,6 +167,9 @@ namespace DyrosMath
 	}
 
 	template <int N>
+	/**
+	 * @brief Element-wise cubic interpolation for fixed-size vectors.
+	 */
 	static Eigen::Matrix<double, N, 1> cubicVector(double time,     ///< Current time
 		double time_0,   ///< Start time
 		double time_f,   ///< End time
@@ -176,6 +188,9 @@ namespace DyrosMath
 		return res;
 	}
 
+	/**
+	 * @brief Element-wise cubic interpolation for dynamic-size vectors.
+	 */
 	static Eigen::VectorXd cubicVector(double time,
 									   double time_0,
 									   double time_f,
@@ -194,6 +209,9 @@ namespace DyrosMath
 	}
 
 	template <int N>
+	/**
+	 * @brief Element-wise derivative of cubic interpolation for fixed-size vectors.
+	 */
 	static Eigen::Matrix<double, N, 1> cubicDotVector(double time,     ///< Current time
 		double time_0,   ///< Start time
 		double time_f,   ///< End time
@@ -212,6 +230,9 @@ namespace DyrosMath
 		return res;
 	}
 
+	/**
+	 * @brief Element-wise derivative of cubic interpolation for dynamic-size vectors.
+	 */
 	static Eigen::VectorXd cubicDotVector(double time,
                                    double time_0,
                                    double time_f,
@@ -232,6 +253,9 @@ namespace DyrosMath
 	// Original Paper
 	// Kang, I. G., and F. C. Park.
 	// "Cubic spline algorithms for orientation interpolation."
+	/**
+	 * @brief Cubic interpolation of rotation matrices on SO(3).
+	 */
 	const static Eigen::Matrix3d rotationCubic(double time,
 		double time_0,
 		double time_f,
@@ -254,6 +278,9 @@ namespace DyrosMath
 		return result;
 	}
 
+	/**
+	 * @brief Angular velocity profile associated with rotationCubic().
+	 */
 	const static Eigen::Vector3d rotationCubicDot(
 		double time, double time_0, double time_f,
 		const Eigen::Vector3d &w_0, const Eigen::Vector3d &a_0,
@@ -280,6 +307,9 @@ namespace DyrosMath
 		return rd;//3 * a * pow(tau, 2) + 2 * b * tau + c;
 	}
 	
+	/**
+	 * @brief Orientation error vector between current and desired rotations.
+	 */
 	static Eigen::Vector3d getPhi(Eigen::Matrix3d current_rotation,
 		Eigen::Matrix3d desired_rotation)
 	{
@@ -297,6 +327,9 @@ namespace DyrosMath
 		return phi;
 	}
 
+	/**
+	 * @brief Multiply two isometries without building full homogeneous matrices.
+	 */
 	static Eigen::Isometry3d multiplyIsometry3d(Eigen::Isometry3d A,
 		Eigen::Isometry3d B)
 	{
@@ -307,6 +340,9 @@ namespace DyrosMath
 		return AB;
 	}
 
+	/**
+	 * @brief Compute inverse of an isometry.
+	 */
 	static Eigen::Isometry3d inverseIsometry3d(Eigen::Isometry3d A)
 	{
 		Eigen::Isometry3d A_inv;
@@ -316,6 +352,9 @@ namespace DyrosMath
 		return A_inv;
 	}
 
+	/**
+	 * @brief Rotation matrix for yaw (Z-axis) angle.
+	 */
 	static Eigen::Matrix3d rotateWithZ(double yaw_angle)
 	{
 		Eigen::Matrix3d rotate_wth_z(3, 3);
@@ -335,6 +374,9 @@ namespace DyrosMath
 		return rotate_wth_z;
 	}
 
+	/**
+	 * @brief Rotation matrix for pitch (Y-axis) angle.
+	 */
 	static Eigen::Matrix3d rotateWithY(double pitch_angle)
 	{
 		Eigen::Matrix3d rotate_wth_y(3, 3);
@@ -354,6 +396,9 @@ namespace DyrosMath
 		return rotate_wth_y;
 	}
 
+	/**
+	 * @brief Rotation matrix for roll (X-axis) angle.
+	 */
 	static Eigen::Matrix3d rotateWithX(double roll_angle)
 	{
 		Eigen::Matrix3d rotate_wth_x(3, 3);
@@ -373,6 +418,9 @@ namespace DyrosMath
 		return rotate_wth_x;
 	}
 
+	/**
+	 * @brief Convert rotation matrix to Euler angle vector.
+	 */
 	static Eigen::Vector3d rot2Euler(Eigen::Matrix3d Rot)
 	{
 		double beta;
@@ -392,6 +440,9 @@ namespace DyrosMath
 	}
 
 	template <typename _Matrix_Type_>
+	/**
+	 * @brief Compute pseudo-inverse using SVD.
+	 */
 	static _Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double epsilon = std::numeric_limits<double>::epsilon())
 	{
 		Eigen::JacobiSVD< _Matrix_Type_ > svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
@@ -401,6 +452,9 @@ namespace DyrosMath
 	}
 
 
+	/**
+	 * @brief Express trunk pose in a yaw-aligned reference frame.
+	 */
 	static void floatGyroframe(Eigen::Isometry3d trunk, Eigen::Isometry3d reference, Eigen::Isometry3d new_trunk)
 	{
 		Eigen::Vector3d rpy_ang;
@@ -415,6 +469,9 @@ namespace DyrosMath
 
 
 	template <int _State_Size_, int _Input_Size_>
+	/**
+	 * @brief Solve discrete algebraic Riccati equation (DARE) using eigen decomposition.
+	 */
 	Eigen::Matrix<double, _State_Size_, _State_Size_> discreteRiccatiEquation(
 		Eigen::Matrix<double, _State_Size_, _State_Size_> a,
 		Eigen::Matrix<double, _State_Size_, _Input_Size_> b,
@@ -522,6 +579,9 @@ namespace DyrosMath
 		return X_sol;
 	}
 
+	/**
+	 * @brief Compute orientation error used in legacy leg controller implementation.
+	 */
 	static Eigen::Vector3d legGetPhi(Eigen::Isometry3d rotation_matrix1, Eigen::Isometry3d active_r1, Eigen::Vector6d ctrl_pos_ori)
 	{
 		Eigen::Matrix3d active_r, rotation_matrix, x_rot, y_rot, z_rot, d_rot, s1_skew, s2_skew, s3_skew;
@@ -560,6 +620,9 @@ namespace DyrosMath
 		return phi;
 	}
 
+	/**
+	 * @brief Compute pseudo-inverse via complete orthogonal decomposition.
+	 */
 	static Eigen::MatrixXd PinvCOD(const Eigen::MatrixXd &A)
     {
         Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(A.rows(), A.cols());
@@ -594,6 +657,9 @@ namespace DyrosMath
     //     ret = cod.pseudoInverse();
     // }
 
+	/**
+	 * @brief Relaxed barrier function used in optimization constraints.
+	 */
 	inline double getRBF(const double &h, const double &delta=-0.5)
 	{
 		// Grandia, Ruben, et al. 
@@ -605,6 +671,9 @@ namespace DyrosMath
 		return result;
 	}
 
+	/**
+	 * @brief Vectorized relaxed barrier function.
+	 */
 	inline Eigen::VectorXd getRBF(const Eigen::VectorXd &h, const double &delta=-0.5)
 	{
 		Eigen::VectorXd result(h.size());
@@ -612,6 +681,9 @@ namespace DyrosMath
 		return result;
 	}
 
+	/**
+	 * @brief Derivative of relaxed barrier function.
+	 */
 	inline double getDRBF(const double &h, const double &delta=-0.5)
 	{
 		// Grandia, Ruben, et al. 
@@ -623,6 +695,9 @@ namespace DyrosMath
 		return result;
 	}
 
+	/**
+	 * @brief Vectorized derivative of relaxed barrier function.
+	 */
 	inline Eigen::VectorXd getDRBF(const Eigen::VectorXd &h, const double &delta=-0.5)
 	{
 		Eigen::VectorXd result(h.size());
@@ -630,12 +705,15 @@ namespace DyrosMath
 		return result;
 	}
 
+	/**
+	 * @brief Compute task-space pose and velocity tracking errors.
+	 */
     static void getTaskSpaceError(const Eigen::Affine3d& x_target, 
-						          const Eigen::Vector6d& xdot_target,
-						          const Eigen::Affine3d& x,
-						          const Eigen::Vector6d& xdot,
-						          Eigen::Vector6d& x_error,
-						          Eigen::Vector6d& xdot_error)
+                                  const Eigen::Vector6d& xdot_target,
+                                  const Eigen::Affine3d& x,
+                                  const Eigen::Vector6d& xdot,
+                                  Eigen::Vector6d& x_error,
+                                  Eigen::Vector6d& xdot_error)
 	{
 		x_error.setZero();
 		xdot_error.setZero();
@@ -644,9 +722,12 @@ namespace DyrosMath
 		xdot_error = xdot_target - xdot;
 	}
 
+	/**
+	 * @brief Generate cubic task-space pose/velocity trajectory between two states.
+	 */
     static void getTaskSpaceCubic(const Eigen::Affine3d& x_target,
-						          const Eigen::Vector6d& xdot_target,
-						          const Eigen::Affine3d& x_init,
+							          const Eigen::Vector6d& xdot_target,
+							          const Eigen::Affine3d& x_init,
 						          const Eigen::VectorXd& xdot_init,
 						          const double& current_time,
 						          const double& init_time,

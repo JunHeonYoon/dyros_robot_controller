@@ -34,9 +34,20 @@ namespace drc
                 void setWeight(const std::map<std::string, Vector6d>& link_w_tracking, 
                                const Eigen::Ref<const VectorXd>& w_mani_damping,
                                const Eigen::Vector3d& w_base_damping);
-
+                /**
+                 * @brief Set task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 */
                 void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
+                /**
+                 * @brief Set manipulator joint velocity damping weights only.
+                 * @param w_mani_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 */
                 void setManiJointVelWeight(const Eigen::Ref<const VectorXd>& w_mani_damping) { w_mani_damping_ = w_mani_damping; }
+                /**
+                 * @brief Set mobile base velocity damping weights only.
+                 * @param w_base_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
+                 */
                 void setBaseVelWeight(const Eigen::Vector3d& w_base_damping) { w_base_damping_ = w_base_damping; }
 
                 /**
