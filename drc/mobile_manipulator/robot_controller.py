@@ -93,6 +93,40 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             link_w_tracking[k] = v.reshape(-1)
             assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
         super().setQPIKGain(link_w_tracking, w_mani_damping, w_base_damping)
+
+    def set_QPIK_tracking_gain(self, link_w_tracking: dict[str, np.ndarray]):
+        """
+        Set QPIK task tracking weights only.
+
+        Parameters:
+            link_w_tracking : (dict[str, np.ndarray]) Weight for task velocity tracking per links.
+        """
+        for k, v in link_w_tracking.items():
+            link_w_tracking[k] = v.reshape(-1)
+            assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
+        super().setQPIKTrackingGain(link_w_tracking)
+
+    def set_QPIK_mani_joint_vel_gain(self, w_mani_damping: np.ndarray):
+        """
+        Set QPIK manipulator joint velocity damping weights only.
+
+        Parameters:
+            w_mani_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+        """
+        w_mani_damping = w_mani_damping.reshape(-1)
+        assert w_mani_damping.size == self._robot_data.mani_dof, f"Size of w_mani_damping {w_mani_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+        super().setQPIKManiJointVelGain(w_mani_damping)
+
+    def set_QPIK_base_vel_gain(self, w_base_damping: np.ndarray):
+        """
+        Set QPIK mobile base velocity damping weights only.
+
+        Parameters:
+            w_base_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
+        """
+        w_base_damping = np.asarray(w_base_damping).reshape(-1)
+        assert w_base_damping.size == 3, f"Size of w_base_damping {w_base_damping.size} is not equal to 3"
+        super().setQPIKBaseVelGain(w_base_damping)
         
     def set_QPID_gain(self, 
                       link_w_tracking: dict[str, np.ndarray], 
@@ -122,6 +156,62 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             link_w_tracking[k] = v.reshape(-1)
             assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
         super().setQPIDGain(link_w_tracking, w_mani_vel_damping, w_mani_acc_damping, w_base_vel_damping, w_base_acc_damping)
+
+    def set_QPID_tracking_gain(self, link_w_tracking: dict[str, np.ndarray]):
+        """
+        Set QPID task tracking weights only.
+
+        Parameters:
+            link_w_tracking : (dict[str, np.ndarray]) Weight for task acceleration tracking per links.
+        """
+        for k, v in link_w_tracking.items():
+            link_w_tracking[k] = v.reshape(-1)
+            assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
+        super().setQPIDTrackingGain(link_w_tracking)
+
+    def set_QPID_mani_joint_vel_gain(self, w_mani_vel_damping: np.ndarray):
+        """
+        Set QPID manipulator joint velocity damping weights only.
+
+        Parameters:
+            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+        """
+        w_mani_vel_damping = w_mani_vel_damping.reshape(-1)
+        assert w_mani_vel_damping.size == self._robot_data.mani_dof, f"Size of w_mani_vel_damping {w_mani_vel_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+        super().setQPIDManiJointVelGain(w_mani_vel_damping)
+
+    def set_QPID_mani_joint_acc_gain(self, w_mani_acc_damping: np.ndarray):
+        """
+        Set QPID manipulator joint acceleration damping weights only.
+
+        Parameters:
+            w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+        """
+        w_mani_acc_damping = w_mani_acc_damping.reshape(-1)
+        assert w_mani_acc_damping.size == self._robot_data.mani_dof, f"Size of w_mani_acc_damping {w_mani_acc_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+        super().setQPIDManiJointAccGain(w_mani_acc_damping)
+
+    def set_QPID_base_vel_gain(self, w_base_vel_damping: np.ndarray):
+        """
+        Set QPID mobile base velocity damping weights only.
+
+        Parameters:
+            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
+        """
+        w_base_vel_damping = np.asarray(w_base_vel_damping).reshape(-1)
+        assert w_base_vel_damping.size == 3, f"Size of w_base_vel_damping {w_base_vel_damping.size} is not equal to 3"
+        super().setQPIDBaseVelGain(w_base_vel_damping)
+
+    def set_QPID_base_acc_gain(self, w_base_acc_damping: np.ndarray):
+        """
+        Set QPID mobile base acceleration damping weights only.
+
+        Parameters:
+            w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
+        """
+        w_base_acc_damping = np.asarray(w_base_acc_damping).reshape(-1)
+        assert w_base_acc_damping.size == 3, f"Size of w_base_acc_damping {w_base_acc_damping.size} is not equal to 3"
+        super().setQPIDBaseAccGain(w_base_acc_damping)
 
     # ================================ Joint space Functions ================================        
 

@@ -21,6 +21,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
                  urdf_path: str,
                  srdf_path: str="",
                  packages_path: str="",
+                 use_xml: bool=False,
                  ):
         """
         Constructor.
@@ -33,19 +34,31 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             urdf_path     : (str) Path to the URDF file.
             srdf_path     : (str) Path to the SRDF file.
             packages_path : (str) Path to the packages directory.
+            use_xml       : (bool) If True, treat urdf_path/srdf_path as XML strings.
         """
         self._dt = float(dt)
         self._mobile_kine_param = mobile_param
         self._joint_idx = joint_idx
         self._actuator_idx = actuator_idx
-        super().__init__(self._dt,
-                         self._mobile_kine_param.cpp(),
-                         self._joint_idx.cpp(),
-                         self._actuator_idx.cpp(),
-                         urdf_path,
-                         srdf_path,
-                         packages_path,
-                         )
+        if use_xml:
+            super().__init__(self._dt,
+                             self._mobile_kine_param.cpp(),
+                             self._joint_idx.cpp(),
+                             self._actuator_idx.cpp(),
+                             urdf_path,
+                             srdf_path,
+                             packages_path,
+                             True,
+                             )
+        else:
+            super().__init__(self._dt,
+                             self._mobile_kine_param.cpp(),
+                             self._joint_idx.cpp(),
+                             self._actuator_idx.cpp(),
+                             urdf_path,
+                             srdf_path,
+                             packages_path,
+                             )
         self.mani_dof     = int(super().getManipulatorDof())
         self.mobi_dof     = int(super().getMobileDof())
         self.virtual_dof  = 3
@@ -627,21 +640,75 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
 
     # ================================ Get Functions ================================
     def get_urdf_path(self) -> str:
+        """
+        Get the configured URDF source path.
+
+        Return:
+            (str) URDF path string.
+        """
         return super().getURDFPath()
     def get_srdf_path(self) -> str:
+        """
+        Get the configured SRDF source path.
+
+        Return:
+            (str) SRDF path string.
+        """
         return super().getSRDFPath()
     def get_packages_path(self) -> str:
+        """
+        Get the configured package search path.
+
+        Return:
+            (str) Package path string.
+        """
         return super().getPackagePath()
     def get_root_link_name(self) -> str:
+        """
+        Get the root link name of the current robot model.
+
+        Return:
+            (str) Root link name.
+        """
         return super().getRootLinkName()
     def get_link_frame_vector(self) -> list:
+        """
+        Get all link frame names discovered from the model.
+
+        Return:
+            (list) Link frame name list.
+        """
         return super().getLinkFrameVector()
     def get_joint_frame_vector(self) -> list:
+        """
+        Get all joint frame names discovered from the model.
+
+        Return:
+            (list) Joint frame name list.
+        """
         return super().getJointFrameVector()
     def has_link_frame(self, name:str) -> bool:
-        return super.hasLinkFrame(name)
+        """
+        Check whether a link frame exists in the model.
+
+        Parameters:
+            name : (str) Link frame name.
+
+        Return:
+            (bool) True if the link frame exists.
+        """
+        return super().hasLinkFrame(name)
     def has_joint_frame(self, name:str) -> bool:
-        return super.hasJointFrame(name)
+        """
+        Check whether a joint frame exists in the model.
+
+        Parameters:
+            name : (str) Joint frame name.
+
+        Return:
+            (bool) True if the joint frame exists.
+        """
+        return super().hasJointFrame(name)
     def get_dof(self) -> int:
         """
         Get the full degrees of freedom of the robot.
