@@ -199,6 +199,16 @@ struct Affine3dToPython
   }
 };
 
+struct Affine2dToPython
+{
+  static PyObject* convert(const Affine2d& T)
+  {
+    const Matrix3d& M = T.matrix();
+    bp::object mat(M);
+    return bp::incref(mat.ptr());
+  }
+};
+
 struct VecDoubleToPython
 {
     static PyObject *convert(const std::vector<double> &v)
@@ -460,6 +470,7 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
 
     bp::to_python_converter<std::pair<VectorXd, VectorXd>, PairVectorXdToPython>();
     bp::to_python_converter<Affine3d, Affine3dToPython>();
+    bp::to_python_converter<Affine2d, Affine2dToPython>();
     bp::to_python_converter<std::vector<double>, VecDoubleToPython>();
     bp::to_python_converter<std::vector<Vector2d>, Vec2dToPython>();
     bp::to_python_converter<std::map<std::string, Vector6d>, MapStrVec6dToPython>();
@@ -538,8 +549,11 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
     bp::class_<MO_RD, boost::noncopyable>("MobileRobotData", bp::init<const double, const Mobile::KinematicParam&>())
         .def("getVerbose",        &MO_RD::getVerbose)
         .def("updateState",       &MO_RD::updateState)
+        .def("initBasePose",      &MO_RD::initBasePose,
+             (bp::arg("x") = 0.0, bp::arg("y") = 0.0, bp::arg("yaw") = 0.0))
         .def("computeBaseVel",    &MO_RD::computeBaseVel)
         .def("computeFKJacobian", &MO_RD::computeFKJacobian)
+        .def("computeBasePose",   &MO_RD::computeBasePose)
         .def("getWheelNum",       &MO_RD::getWheelNum, bp::return_value_policy<bp::return_by_value>())
         .def("getKineParam",      &MO_RD::getKineParam,     bp::return_internal_reference<>())
         .def("getDt",             &MO_RD::getDt)
@@ -547,6 +561,7 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("getWheelVelocity",  &MO_RD::getWheelVelocity, bp::return_internal_reference<>())
         .def("getBaseVel",        &MO_RD::getBaseVel,       bp::return_internal_reference<>())
         .def("getFKJacobian",     &MO_RD::getFKJacobian,    bp::return_internal_reference<>())
+        .def("getBasePose",       +[](const MO_RD& self){ return self.getBasePose(); })
         ;
 
     bp::class_<MN_RD, boost::noncopyable>("ManipulatorRobotData", bp::init<const double, const std::string&, const std::string&, const std::string&>())
@@ -577,6 +592,7 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("getJointVelocity",             &MN_RD::getJointVelocity)
         .def("getJointPositionLimit",        &MN_RD::getJointPositionLimit)
         .def("getJointVelocityLimit",        &MN_RD::getJointVelocityLimit)
+        .def("getJointEffortLimit",          &MN_RD::getJointEffortLimit)
         .def("getMassMatrix",                &MN_RD::getMassMatrix)
         .def("getMassMatrixInv",             &MN_RD::getMassMatrixInv)
         .def("getCoriolis",                  &MN_RD::getCoriolis)
@@ -601,6 +617,7 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
     typedef Manipulator::ManipulabilityResult (MM_RD::*Man5)(const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const bool&, const bool&, const std::string&);
 
     bp::class_<MM_RD, bp::bases<MN_RD, MO_RD>, boost::noncopyable>("MobileManipulatorRobotData", bp::init<const double, const Mobile::KinematicParam&, const MobileManipulator::JointIndex&, const MobileManipulator::ActuatorIndex&, const std::string&, const std::string&, const std::string&>())
+        .def(bp::init<const double, const Mobile::KinematicParam&, const MobileManipulator::JointIndex&, const MobileManipulator::ActuatorIndex&, const std::string&, const std::string&, const std::string&, const bool>())
         .def("getVerbose",                                     &MM_RD::getVerbose)
         .def("updateState",                  static_cast<Upd6>(&MM_RD::updateState))
         .def("computeMassMatrix",            static_cast<Mat3>(&MM_RD::computeMassMatrix))
@@ -670,7 +687,12 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("setTaskKpGain",                                                                                                                                         &MN_RC::setTaskKpGain)
         .def("setTaskKvGain",                                                                                                                                         &MN_RC::setTaskKvGain)
         .def("setQPIKGain",                                                                                                                                           &MN_RC::setQPIKGain)
+        .def("setQPIKTrackingGain",                                                                                                                                   &MN_RC::setQPIKTrackingGain)
+        .def("setQPIKJointVelGain",                                                                                                                                   &MN_RC::setQPIKJointVelGain)
         .def("setQPIDGain",                                                                                                                                           &MN_RC::setQPIDGain)
+        .def("setQPIDTrackingGain",                                                                                                                                   &MN_RC::setQPIDTrackingGain)
+        .def("setQPIDJointVelGain",                                                                                                                                   &MN_RC::setQPIDJointVelGain)
+        .def("setQPIDJointAccGain",                                                                                                                                   &MN_RC::setQPIDJointAccGain)
         .def("moveJointPositionCubic",                                                                                                                                &MN_RC::moveJointPositionCubic)
         .def("moveJointVelocityCubic",                                                                                                                                &MN_RC::moveJointVelocityCubic)
         .def("moveJointTorqueStep",                                                                     static_cast<VectorXd (MN_RC::*)(const Eigen::Ref<const VectorXd>&, const bool)>(&MN_RC::moveJointTorqueStep))
@@ -701,8 +723,16 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("setTaskKvGain",                                                                                                &MM_RC::setTaskKvGain)
         .def("setQPIKGain",                                                                                                  &MM_RC::setQPIKGain,
              (bp::arg("link_w_tracking"), bp::arg("w_mani_damping"), bp::arg("w_base_damping")))
+        .def("setQPIKTrackingGain",                                                                                          &MM_RC::setQPIKTrackingGain)
+        .def("setQPIKManiJointVelGain",                                                                                      &MM_RC::setQPIKManiJointVelGain)
+        .def("setQPIKBaseVelGain",                                                                                           &MM_RC::setQPIKBaseVelGain)
         .def("setQPIDGain",                                                                                                  &MM_RC::setQPIDGain,
              (bp::arg("link_w_tracking"), bp::arg("w_mani_vel_damping"), bp::arg("w_mani_acc_damping"), bp::arg("w_base_vel_damping"), bp::arg("w_base_acc_damping")))
+        .def("setQPIDTrackingGain",                                                                                          &MM_RC::setQPIDTrackingGain)
+        .def("setQPIDManiJointVelGain",                                                                                      &MM_RC::setQPIDManiJointVelGain)
+        .def("setQPIDManiJointAccGain",                                                                                      &MM_RC::setQPIDManiJointAccGain)
+        .def("setQPIDBaseVelGain",                                                                                           &MM_RC::setQPIDBaseVelGain)
+        .def("setQPIDBaseAccGain",                                                                                           &MM_RC::setQPIDBaseAccGain)
         .def("computeMobileWheelVel",                                                                                        &MM_RC::computeMobileWheelVel)
         .def("computeMobileIKJacobian",                                                                                      &MM_RC::computeMobileIKJacobian)
         .def("MobileVelocityCommand",                                                                                        &MM_RC::MobileVelocityCommand)
