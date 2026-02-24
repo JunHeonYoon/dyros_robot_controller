@@ -197,6 +197,8 @@ namespace drc
 
         bool RobotData::updateKinematics(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         {
+            pinocchio::forwardKinematics(model_, data_, q, qdot);
+            pinocchio::updateFramePlacements(model_, data_);
             pinocchio::computeJointJacobians(model_, data_, q);
             pinocchio::computeJointJacobiansTimeVariation(model_, data_, q, qdot);
         
