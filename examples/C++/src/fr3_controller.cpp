@@ -47,7 +47,8 @@ FR3Controller::FR3Controller(const double dt)
     link_qpid_tracking_[ee_link_name_] << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     robot_controller_->setJointGain(joint_kp_, joint_kv_);
-    robot_controller_->setTaskGain(link_task_kp_, link_task_kv_);
+    robot_controller_->setIKGain(link_task_kp_);
+    robot_controller_->setIDGain(link_task_kp_, link_task_kv_);
     robot_controller_->setQPIKGain(link_qpik_tracking_, qpik_damping_);
     robot_controller_->setQPIDGain(link_qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_);
 

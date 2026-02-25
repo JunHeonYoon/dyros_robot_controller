@@ -41,6 +41,10 @@ namespace drc
             Kp_joint_ = VectorXd::Constant(dof_, 400);
             Kv_joint_ = VectorXd::Constant(dof_, 40);
     
+            link_IK_Kp_task_.clear();
+            link_ID_Kp_task_.clear();
+            link_ID_Kv_task_.clear();
+    
             QP_mani_IK_ = std::make_unique<Manipulator::QPIK>(robot_data_, dt_);
             QP_mani_ID_ = std::make_unique<Manipulator::QPID>(robot_data_, dt_);
         }
@@ -64,21 +68,109 @@ namespace drc
             Kv_joint_ = Kv;
         }
     
-        void RobotController::setTaskGain(const std::map<std::string, Vector6d>& link_Kp, const std::map<std::string, Vector6d>& link_Kv)
+        // void RobotController::setTaskGain(const std::map<std::string, Vector6d>& link_Kp, const std::map<std::string, Vector6d>& link_Kv)
+        // {
+        //     link_Kp_task_ = link_Kp;
+        //     link_Kv_task_ = link_Kv;
+        // }
+
+        // void RobotController::setTaskKpGain(const std::map<std::string, Vector6d>& link_Kp)
+        // {
+        //     link_Kp_task_ = link_Kp;
+        // }
+
+        // void RobotController::setTaskKvGain(const std::map<std::string, Vector6d>& link_Kv)
+        // {
+        //     link_Kv_task_ = link_Kv;
+        // }
+
+        void RobotController::setIKGain(const std::map<std::string, Vector6d>& link_Kp)
         {
-            link_Kp_task_ = link_Kp;
-            link_Kv_task_ = link_Kv;
+            for(const auto& [link_name, Kp] :link_Kp)
+            {
+                if(!robot_data_->hasLinkFrame(link_name))
+                {
+                    std::cerr << "\033[1;31m" << "Warn: Link name " << link_name << " not found in URDF." << "\033[0m" << std::endl;
+                }
+                else
+                {
+                    link_IK_Kp_task_[link_name] = Kp;
+                }
+            }
         }
 
-        void RobotController::setTaskKpGain(const std::map<std::string, Vector6d>& link_Kp)
+        void RobotController::setIKGain(const Vector6d& Kp)
         {
-            link_Kp_task_ = link_Kp;
+            std::map<std::string, Vector6d> link_IK_Kp_task;
+            for(const auto& link_name : robot_data_->getLinkFrameVector())
+            {
+                link_IK_Kp_task[link_name] = Kp;
+            }
+            setIKGain(link_IK_Kp_task);
         }
 
-        void RobotController::setTaskKvGain(const std::map<std::string, Vector6d>& link_Kv)
+        void RobotController::setIDGain(const std::map<std::string, Vector6d>& link_Kp, const std::map<std::string, Vector6d>& link_Kv)
         {
-            link_Kv_task_ = link_Kv;
+            setIDKpGain(link_Kp);
+            setIDKvGain(link_Kv);
         }
+
+        void RobotController::setIDGain(const Vector6d& Kp, const Vector6d& Kv)
+        {
+            setIDKpGain(Kp);
+            setIDKvGain(Kv);
+        }
+
+        void RobotController::setIDKpGain(const std::map<std::string, Vector6d>& link_Kp)
+        {
+            for(const auto& [link_name, Kp] :link_Kp)
+            {
+                if(!robot_data_->hasLinkFrame(link_name))
+                {
+                    std::cerr << "\033[1;31m" << "Warn: Link name " << link_name << " not found in URDF." << "\033[0m" << std::endl;
+                }
+                else
+                {
+                    link_ID_Kp_task_[link_name] = Kp;
+                }
+            }
+        }
+
+        void RobotController::setIDKpGain(const Vector6d& Kp)
+        {
+            std::map<std::string, Vector6d> link_ID_Kp_task;
+            for(const auto& link_name : robot_data_->getLinkFrameVector())
+            {
+                link_ID_Kp_task[link_name] = Kp;
+            }
+            setIDKpGain(link_ID_Kp_task);
+        }
+
+        void RobotController::setIDKvGain(const std::map<std::string, Vector6d>& link_Kv)
+        {
+            for(const auto& [link_name, Kv] :link_Kv)
+            {
+                if(!robot_data_->hasLinkFrame(link_name))
+                {
+                    std::cerr << "\033[1;31m" << "Warn: Link name " << link_name << " not found in URDF." << "\033[0m" << std::endl;
+                }
+                else
+                {
+                    link_ID_Kv_task_[link_name] = Kv;
+                }
+            }
+        }
+
+        void RobotController::setIDKvGain(const Vector6d& Kv)
+        {
+            std::map<std::string, Vector6d> link_ID_Kv_task;
+            for(const auto& link_name : robot_data_->getLinkFrameVector())
+            {
+                link_ID_Kv_task[link_name] = Kv;
+            }
+            setIDKvGain(link_ID_Kv_task);
+        }
+
 
         void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping)
         {
@@ -252,8 +344,8 @@ namespace drc
                 DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
 
                 Vector6d Kp_task; Kp_task.setOnes(); 
-                auto iter = link_Kp_task_.find(link_name);
-                if(iter != link_Kp_task_.end()) Kp_task = iter->second;
+                auto iter = link_IK_Kp_task_.find(link_name);
+                if(iter != link_IK_Kp_task_.end()) Kp_task = iter->second;
 
                 link_task_data_result[link_name].xdot_desired = Kp_task.asDiagonal() * x_error + task_data.xdot_desired;
             }
@@ -350,10 +442,10 @@ namespace drc
 
                 Vector6d Kp_task; Kp_task.setOnes(); 
                 Vector6d Kv_task; Kv_task.setOnes(); 
-                auto iter_kp = link_Kp_task_.find(link_name);
-                if(iter_kp != link_Kp_task_.end()) Kp_task = iter_kp->second;
-                auto iter_kv = link_Kv_task_.find(link_name);
-                if(iter_kv != link_Kv_task_.end()) Kv_task = iter_kv->second;
+                auto iter_kp = link_ID_Kp_task_.find(link_name);
+                if(iter_kp != link_ID_Kp_task_.end()) Kp_task = iter_kp->second;
+                auto iter_kv = link_ID_Kv_task_.find(link_name);
+                if(iter_kv != link_ID_Kv_task_.end()) Kv_task = iter_kv->second;
 
                 link_task_data_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
             }
@@ -459,8 +551,8 @@ namespace drc
                 DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
 
                 Vector6d Kp_task; Kp_task.setOnes();
-                auto iter = link_Kp_task_.find(link_name);
-                if(iter != link_Kp_task_.end()) Kp_task = iter->second;
+                auto iter = link_IK_Kp_task_.find(link_name);
+                if(iter != link_IK_Kp_task_.end()) Kp_task = iter->second;
 
                 link_task_data_result[link_name].xdot_desired = Kp_task.asDiagonal() * x_error + task_data.xdot_desired;
             }
@@ -577,10 +669,10 @@ namespace drc
 
                 Vector6d Kp_task; Kp_task.setOnes();
                 Vector6d Kv_task; Kv_task.setOnes();
-                auto iter_kp = link_Kp_task_.find(link_name);
-                if(iter_kp != link_Kp_task_.end()) Kp_task = iter_kp->second;
-                auto iter_kv = link_Kv_task_.find(link_name);
-                if(iter_kv != link_Kv_task_.end()) Kv_task = iter_kv->second;
+                auto iter_kp = link_ID_Kp_task_.find(link_name);
+                if(iter_kp != link_ID_Kp_task_.end()) Kp_task = iter_kp->second;
+                auto iter_kv = link_ID_Kv_task_.find(link_name);
+                if(iter_kv != link_ID_Kv_task_.end()) Kv_task = iter_kv->second;
 
                 link_task_data_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
             }

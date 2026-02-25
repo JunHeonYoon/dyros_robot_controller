@@ -45,23 +45,17 @@ namespace drc
                  * @param Kv (Eigen::VectorXd) Derivative gains; its size must same as mani_dof.
                 */ 
                 virtual void setManipulatorJointKvGain(const Eigen::Ref<const VectorXd>& Kv);
-                /**
-                 * @brief Set task space PD gains for the robot per links.
-                 * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
-                 * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
-                */
-                virtual void setTaskGain(const std::map<std::string, Vector6d>& link_Kp, 
+
+                virtual void setIKGain(const std::map<std::string, Vector6d>& link_Kp);
+                virtual void setIKGain(const Vector6d& Kp);
+                virtual void setIDGain(const std::map<std::string, Vector6d>& link_Kp,
                                          const std::map<std::string, Vector6d>& link_Kv);
-                /**
-                 * @brief Set task space P gains for the robot per links.
-                 * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
-                 */                         
-                virtual void setTaskKpGain(const std::map<std::string, Vector6d>& link_Kp);
-                /**
-                 * @brief Set task space D gains for the robot per links.
-                 * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
-                 */
-                virtual void setTaskKvGain(const std::map<std::string, Vector6d>& link_Kv);      
+                virtual void setIDGain(const Vector6d& Kp,
+                                       const Vector6d& Kv);
+                virtual void setIDKpGain(const std::map<std::string, Vector6d>& link_Kp);
+                virtual void setIDKpGain(const Vector6d& Kp);
+                virtual void setIDKvGain(const std::map<std::string, Vector6d>& link_Kv);
+                virtual void setIDKvGain(const Vector6d& Kv);
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPIK
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
@@ -417,9 +411,10 @@ namespace drc
                 int actuator_dof_;                                          // Number of actuated joints
                 std::shared_ptr<MobileManipulator::RobotData> robot_data_;  // Shared pointer to the robot data.
 
-                // Task space gains per links
-                std::map<std::string, Vector6d> link_Kp_task_;
-                std::map<std::string, Vector6d> link_Kv_task_;
+                // Task-space gains
+                std::map<std::string, Vector6d> link_IK_Kp_task_;
+                std::map<std::string, Vector6d> link_ID_Kp_task_;
+                std::map<std::string, Vector6d> link_ID_Kv_task_;
 
                 // Joint space gains
                 VectorXd Kp_mani_joint_;

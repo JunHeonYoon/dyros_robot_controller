@@ -109,7 +109,8 @@ FR3XLSController::FR3XLSController(const double dt)
     link_qpid_tracking_[ee_link_name_] << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     robot_controller_->setManipulatorJointGain(mani_joint_kp_, mani_joint_kv_);
-    robot_controller_->setTaskGain(link_task_kp_, link_task_kv_);
+    robot_controller_->setIKGain(link_task_kp_);
+    robot_controller_->setIDGain(link_task_kp_, link_task_kv_);
     robot_controller_->setQPIKGain(link_qpik_tracking_, qpik_mani_damping_, qpik_base_damping_);
     robot_controller_->setQPIDGain(link_qpid_tracking_, qpid_mani_vel_damping_, qpid_mani_acc_damping_, qpid_base_vel_damping_, qpid_base_acc_damping_);
 

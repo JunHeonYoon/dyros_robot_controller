@@ -54,23 +54,51 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
                       link_kv: dict[str, np.ndarray] | None = None,
                       ):
         """
-        Set task space PD gains for the robot per links.
+        Backward-compatible task gain setter.
 
         Parameters:
-            link_kp : (dict[str, np.ndarray]) Proportional gains.
-            link_kv : (dict[str, np.ndarray]) Derivative gains.
+            link_kp : (dict[str, np.ndarray]) Proportional gains. Applied to IK and ID Kp.
+            link_kv : (dict[str, np.ndarray]) Derivative gains. Applied to ID Kv.
         """
         if link_kp is not None:
             for k, v in link_kp.items():
                 link_kp[k] = v.reshape(-1)
                 assert link_kp[k].size == 6, f"Size of kp {link_kp[k].size} at link {k} is not equal to 6"
-            super().setTaskKpGain(link_kp)
+            super().setIKGain(link_kp)
+            super().setIDKpGain(link_kp)
             
         if link_kv is not None:
             for k, v in link_kv.items():
                 link_kv[k] = v.reshape(-1)
                 assert link_kv[k].size == 6, f"Size of kv {link_kv[k].size} at link {k} is not equal to 6"
-            super().setTaskKvGain(link_kv)
+            super().setIDKvGain(link_kv)
+
+    def set_IK_gain(self, link_kp: dict[str, np.ndarray]):
+        """
+        Set IK task-space Kp gains used by QPIK-step family.
+        """
+        for k, v in link_kp.items():
+            link_kp[k] = v.reshape(-1)
+            assert link_kp[k].size == 6, f"Size of kp {link_kp[k].size} at link {k} is not equal to 6"
+        super().setIKGain(link_kp)
+
+    def set_ID_gain(self,
+                    link_kp: dict[str, np.ndarray] | None = None,
+                    link_kv: dict[str, np.ndarray] | None = None):
+        """
+        Set ID task-space gains used by QPID-step family.
+        """
+        if link_kp is not None:
+            for k, v in link_kp.items():
+                link_kp[k] = v.reshape(-1)
+                assert link_kp[k].size == 6, f"Size of kp {link_kp[k].size} at link {k} is not equal to 6"
+            super().setIDKpGain(link_kp)
+
+        if link_kv is not None:
+            for k, v in link_kv.items():
+                link_kv[k] = v.reshape(-1)
+                assert link_kv[k].size == 6, f"Size of kv {link_kv[k].size} at link {k} is not equal to 6"
+            super().setIDKvGain(link_kv)
     
     def set_QPIK_gain(self, 
                       link_w_tracking: dict[str, np.ndarray],

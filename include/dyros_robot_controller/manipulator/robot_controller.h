@@ -42,23 +42,37 @@ namespace drc
                  * @param Kv (Eigen::VectorXd) Derivative gains; its size must same as dof.
                  */ 
                 virtual void setJointKvGain(const Eigen::Ref<const VectorXd>& Kv);
-                /**
-                 * @brief Set task space PD gains for the manipulator per links.
-                 * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
-                 * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
-                 */
-                virtual void setTaskGain(const std::map<std::string, Vector6d>& link_Kp, 
+                
+                // deprecated
+                // /**
+                //  * @brief Set task space PD gains for the manipulator per links.
+                //  * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
+                //  * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
+                //  */
+                // virtual void setTaskGain(const std::map<std::string, Vector6d>& link_Kp, 
+                //                          const std::map<std::string, Vector6d>& link_Kv);
+                // /**
+                //  * @brief Set task space P gains for the manipulator per links.
+                //  * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
+                //  */                          
+                // virtual void setTaskKpGain(const std::map<std::string, Vector6d>& link_Kp);
+                // /**
+                //  * @brief Set task space D gains for the manipulator per links.
+                //  * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
+                //  */ 
+                // virtual void setTaskKvGain(const std::map<std::string, Vector6d>& link_Kv);      
+
+                virtual void setIKGain(const std::map<std::string, Vector6d>& link_Kp);
+                virtual void setIKGain(const Vector6d& Kp);
+                virtual void setIDGain(const std::map<std::string, Vector6d>& link_Kp,
                                          const std::map<std::string, Vector6d>& link_Kv);
-                /**
-                 * @brief Set task space P gains for the manipulator per links.
-                 * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
-                 */                          
-                virtual void setTaskKpGain(const std::map<std::string, Vector6d>& link_Kp);
-                /**
-                 * @brief Set task space D gains for the manipulator per links.
-                 * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
-                 */ 
-                virtual void setTaskKvGain(const std::map<std::string, Vector6d>& link_Kv);      
+                virtual void setIDGain(const Vector6d& Kp,
+                                       const Vector6d& Kv);
+                virtual void setIDKpGain(const std::map<std::string, Vector6d>& link_Kp);
+                virtual void setIDKpGain(const Vector6d& Kp);
+                virtual void setIDKvGain(const std::map<std::string, Vector6d>& link_Kv);
+                virtual void setIDKvGain(const Vector6d& Kv);
+
                 
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPIK
