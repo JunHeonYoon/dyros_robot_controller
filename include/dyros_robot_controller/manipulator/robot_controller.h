@@ -65,7 +65,7 @@ namespace drc
                 virtual void setIKGain(const std::map<std::string, Vector6d>& link_Kp);
                 virtual void setIKGain(const Vector6d& Kp);
                 virtual void setIDGain(const std::map<std::string, Vector6d>& link_Kp,
-                                         const std::map<std::string, Vector6d>& link_Kv);
+                                       const std::map<std::string, Vector6d>& link_Kv);
                 virtual void setIDGain(const Vector6d& Kp,
                                        const Vector6d& Kv);
                 virtual void setIDKpGain(const std::map<std::string, Vector6d>& link_Kp);
@@ -82,6 +82,15 @@ namespace drc
                 // TODO: add document to notion
                 void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping);
                 /**
+                 * @brief Set the wight vector for the cost terms of the QPIK
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking,
+                                 const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                 const Eigen::Ref<const VectorXd>& w_acc_damping);
+                /**
                  * @brief Set QPIK task tracking weights only.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
                  */
@@ -91,6 +100,11 @@ namespace drc
                  * @param w_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  */
                 void setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_damping);
+                /**
+                 * @brief Set QPIK joint acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPID
@@ -455,8 +469,12 @@ namespace drc
                 std::shared_ptr<Manipulator::RobotData> robot_data_; // Shared pointer to the robot data class.
 
                 // Task space gains
-                std::map<std::string, Vector6d> link_Kp_task_;
-                std::map<std::string, Vector6d> link_Kv_task_;
+                // std::map<std::string, Vector6d> link_Kp_task_;
+                // std::map<std::string, Vector6d> link_Kv_task_;
+
+                std::map<std::string, Vector6d> link_IK_Kp_task_;
+                std::map<std::string, Vector6d> link_ID_Kp_task_;
+                std::map<std::string, Vector6d> link_ID_Kv_task_;
 
                 // Joint space gains
                 VectorXd Kp_joint_;

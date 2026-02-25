@@ -44,6 +44,7 @@ namespace drc
             si_index_.con_sel_col_start   = si_index_.con_sing_start  + si_index_.con_sing_size;
 
             w_damping_.setOnes(joint_dof_);
+            w_acc_damping_.setOnes(joint_dof_);
 
         }
     
@@ -81,11 +82,21 @@ namespace drc
             link_w_tracking_ = link_w_tracking;
             w_damping_ = w_damping;
         }
+
+        void QPIK::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            link_w_tracking_ = link_w_tracking;
+            w_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
+        }
     
         void QPIK::setCost()
         {
             P_ds_.setZero(nx_, nx_);
             q_ds_.setZero(nx_);
+            const VectorXd qdot_now = robot_data_->getJointVelocity();
 
             // for task space velocity tracking
             for(const auto& [link_name, xdot_desired] : link_xdot_desired_)
@@ -102,6 +113,11 @@ namespace drc
             
             // for joint velocity damping
             P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * w_damping_.asDiagonal();
+
+            // for joint acceleration damping: qddot = (qdot - qdot_now) / dt
+            const double dt_sq_inv = 1.0 / (dt_ * dt_);
+            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * dt_sq_inv * w_acc_damping_.asDiagonal();
+            q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * dt_sq_inv * w_acc_damping_.asDiagonal() * qdot_now;
             
             // for slack
             q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 1000.0);

@@ -45,7 +45,7 @@ namespace drc
             actuator_dof_ = mani_dof_ + mobi_dof_;
             Kp_mani_joint_ = VectorXd::Constant(mani_dof_, 400);
             Kv_mani_joint_ = VectorXd::Constant(mani_dof_, 40);
-            
+
             link_IK_Kp_task_.clear();
             link_ID_Kp_task_.clear();
             link_ID_Kv_task_.clear();
@@ -131,7 +131,7 @@ namespace drc
         {
             std::map<std::string, Vector6d> link_ID_Kp_task;
             for(const auto& link_name : robot_data_->getLinkFrameVector())
-        {
+            {
                 link_ID_Kp_task[link_name] = Kp;
             }
             setIDKpGain(link_ID_Kp_task);
@@ -156,7 +156,7 @@ namespace drc
         {
             std::map<std::string, Vector6d> link_ID_Kv_task;
             for(const auto& link_name : robot_data_->getLinkFrameVector())
-        {
+            {
                 link_ID_Kv_task[link_name] = Kv;
             }
             setIDKvGain(link_ID_Kv_task);

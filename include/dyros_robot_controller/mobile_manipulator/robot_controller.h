@@ -49,7 +49,7 @@ namespace drc
                 virtual void setIKGain(const std::map<std::string, Vector6d>& link_Kp);
                 virtual void setIKGain(const Vector6d& Kp);
                 virtual void setIDGain(const std::map<std::string, Vector6d>& link_Kp,
-                                         const std::map<std::string, Vector6d>& link_Kv);
+                                       const std::map<std::string, Vector6d>& link_Kv);
                 virtual void setIDGain(const Vector6d& Kp,
                                        const Vector6d& Kv);
                 virtual void setIDKpGain(const std::map<std::string, Vector6d>& link_Kp);
