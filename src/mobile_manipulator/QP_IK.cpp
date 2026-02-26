@@ -51,10 +51,48 @@ namespace drc
             si_index_.con_base_vel_start      = si_index_.con_sel_col_start    + si_index_.con_sel_col_size;
             si_index_.con_base_acc_start      = si_index_.con_base_vel_start   + si_index_.con_base_vel_size;
 
-            w_mani_damping_.setOnes(mani_dof_);
-            w_base_damping_.setOnes();
+            w_mani_vel_damping_.setOnes(mani_dof_);
+            w_mani_acc_damping_.setOnes(mani_dof_);
+            w_base_vel_damping_.setOnes();
+            w_base_acc_damping_.setOnes();
         }
     
+        void QPIK::setTrackingWeight(const Vector6d w_tracking)
+        {
+            std::map<std::string, Vector6d> link_w_tracking;
+            for(const auto& link_name : robot_data_->getLinkFrameVector())
+            {
+                link_w_tracking[link_name] = w_tracking;
+            }
+            link_w_tracking_ = link_w_tracking;
+        }
+
+        void QPIK::setWeight(const std::map<std::string, Vector6d>& link_w_tracking, 
+                             const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                             const Eigen::Vector3d& w_base_damping,
+                             const Eigen::Vector3d& w_base_acc_damping)
+        {
+            link_w_tracking_ = link_w_tracking;
+            w_mani_vel_damping_ = w_mani_vel_damping;
+            w_mani_acc_damping_ = w_mani_acc_damping;
+            w_base_vel_damping_ = w_base_damping;
+            w_base_acc_damping_ = w_base_acc_damping;
+        }
+
+        void QPIK::setWeight(const Vector6d& w_tracking, 
+                             const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                             const Eigen::Vector3d& w_base_damping,
+                             const Eigen::Vector3d& w_base_acc_damping)
+        {
+            setTrackingWeight(w_tracking);
+            w_mani_vel_damping_ = w_mani_vel_damping;
+            w_mani_acc_damping_ = w_mani_acc_damping;
+            w_base_vel_damping_ = w_base_damping;
+            w_base_acc_damping_ = w_base_acc_damping;
+        }
+
         void QPIK::setDesiredTaskVel(const std::map<std::string, Vector6d> &link_xdot_desired)
         {
             link_xdot_desired_ = link_xdot_desired;
@@ -83,15 +121,6 @@ namespace drc
             }
         }
         
-        void QPIK::setWeight(const std::map<std::string, Vector6d>& link_w_tracking, 
-                               const Eigen::Ref<const VectorXd>& w_mani_damping,
-                               const Eigen::Vector3d& w_base_damping)
-        {
-            link_w_tracking_ = link_w_tracking;
-            w_mani_damping_ = w_mani_damping;
-            w_base_damping_ = w_base_damping;
-        }
-    
         void QPIK::setCost()
         {
             P_ds_.setZero(nx_, nx_);
@@ -110,18 +139,37 @@ namespace drc
                 q_ds_.segment(si_index_.eta_start,si_index_.eta_size) += -2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * xdot_desired;
             }
 
-            // for manipulator joint velocity damping
-            P_ds_.block(si_index_.eta_start+robot_data_->getActuatorIndex().mani_start,
-                        si_index_.eta_start+robot_data_->getActuatorIndex().mani_start,
+            const int mani_start = robot_data_->getActuatorIndex().mani_start;
+            const int mobi_start = robot_data_->getActuatorIndex().mobi_start;
+            const double dt_sq_inv = 1.0 / (dt_ * dt_);
+
+            // for manipulator joint velocity/acceleration damping
+            P_ds_.block(si_index_.eta_start+mani_start,
+                        si_index_.eta_start+mani_start,
                         mani_dof_,
-                        mani_dof_) += 2.0 * w_mani_damping_.asDiagonal();
+                        mani_dof_) += 2.0 * w_mani_vel_damping_.asDiagonal()
+                                     + 2.0 * dt_sq_inv * w_mani_acc_damping_.asDiagonal();
+            q_ds_.segment(si_index_.eta_start+mani_start, mani_dof_) +=
+                -2.0 * dt_sq_inv * w_mani_acc_damping_.asDiagonal() * robot_data_->getManiJointVelocity();
 
             // for mobile base velocity damping
             const MatrixXd J_mobile = robot_data_->getMobileFKJacobian();
-            P_ds_.block(si_index_.eta_start+robot_data_->getActuatorIndex().mobi_start,
-                        si_index_.eta_start+robot_data_->getActuatorIndex().mobi_start,
+            const MatrixXd J_mobile_T = J_mobile.transpose();
+            const Matrix3d w_base_vel = w_base_vel_damping_.asDiagonal();
+            const Matrix3d w_base_acc = w_base_acc_damping_.asDiagonal();
+            P_ds_.block(si_index_.eta_start+mobi_start,
+                        si_index_.eta_start+mobi_start,
                         mobi_dof_,
-                        mobi_dof_) += 2.0 * J_mobile.transpose() * w_base_damping_.asDiagonal() * J_mobile;
+                        mobi_dof_) += 2.0 * J_mobile_T * w_base_vel * J_mobile;
+
+            // for mobile base acceleration damping: a_base = (v_base - v_base_now) / dt
+            const Vector3d base_vel_now = robot_data_->getMobileBaseVel().head<3>();
+            P_ds_.block(si_index_.eta_start+mobi_start,
+                        si_index_.eta_start+mobi_start,
+                        mobi_dof_,
+                        mobi_dof_) += 2.0 * dt_sq_inv * J_mobile_T * w_base_acc * J_mobile;
+            q_ds_.segment(si_index_.eta_start+mobi_start,
+                          mobi_dof_) += -2.0 * dt_sq_inv * J_mobile_T * w_base_acc * base_vel_now;
 
             // for slack
             q_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size) = VectorXd::Constant(si_index_.slack_q_mani_min_size, 1000.0);

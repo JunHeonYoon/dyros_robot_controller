@@ -67,22 +67,6 @@ namespace drc
             assert(Kv.size() == dof_);
             Kv_joint_ = Kv;
         }
-    
-        // void RobotController::setTaskGain(const std::map<std::string, Vector6d>& link_Kp, const std::map<std::string, Vector6d>& link_Kv)
-        // {
-        //     link_Kp_task_ = link_Kp;
-        //     link_Kv_task_ = link_Kv;
-        // }
-
-        // void RobotController::setTaskKpGain(const std::map<std::string, Vector6d>& link_Kp)
-        // {
-        //     link_Kp_task_ = link_Kp;
-        // }
-
-        // void RobotController::setTaskKvGain(const std::map<std::string, Vector6d>& link_Kv)
-        // {
-        //     link_Kv_task_ = link_Kv;
-        // }
 
         void RobotController::setIKGain(const std::map<std::string, Vector6d>& link_Kp)
         {
@@ -171,11 +155,35 @@ namespace drc
             setIDKvGain(link_ID_Kv_task);
         }
 
-
-        void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping)
+        void RobotController::setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking)
         {
-            assert(w_damping.size() == dof_);
-            QP_mani_IK_->setWeight(link_w_tracking, w_damping);
+            QP_mani_IK_->setTrackingWeight(link_w_tracking);
+        }
+
+        void RobotController::setQPIKTrackingGain(const Vector6d& w_tracking)
+        {
+            QP_mani_IK_->setTrackingWeight(w_tracking);
+        }
+
+        void RobotController::setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping)
+        {
+            assert(w_vel_damping.size() == dof_);
+            QP_mani_IK_->setJointVelWeight(w_vel_damping);
+        }
+
+        void RobotController::setQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            assert(w_acc_damping.size() == dof_);
+            QP_mani_IK_->setJointAccWeight(w_acc_damping);
+        }
+        
+        void RobotController::setQPIKGain(const Vector6d& w_tracking,
+                                          const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                          const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            assert(w_vel_damping.size() == dof_);
+            assert(w_acc_damping.size() == dof_);
+            QP_mani_IK_->setWeight(w_tracking, w_vel_damping, w_acc_damping);
         }
 
         void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking,
@@ -187,26 +195,9 @@ namespace drc
             QP_mani_IK_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
         }
 
-        void RobotController::setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking)
+        void RobotController::setQPIDTrackingGain(const Vector6d& w_tracking)
         {
-            QP_mani_IK_->setTrackingWeight(link_w_tracking);
-        }
-
-        void RobotController::setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_damping)
-        {
-            assert(w_damping.size() == dof_);
-            QP_mani_IK_->setJointVelWeight(w_damping);
-        }
-
-        void RobotController::setQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping)
-        {
-            assert(w_acc_damping.size() == dof_);
-            QP_mani_IK_->setJointAccWeight(w_acc_damping);
-        }
-
-        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
-        {
-            QP_mani_ID_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
+            QP_mani_ID_->setTrackingWeight(w_tracking);
         }
 
         void RobotController::setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking)
@@ -224,6 +215,15 @@ namespace drc
             QP_mani_ID_->setJointAccWeight(w_acc_damping);
         }
 
+        void RobotController::setQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            QP_mani_ID_->setWeight(w_tracking, w_vel_damping, w_acc_damping);
+        }
+        
+        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            QP_mani_ID_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
+        }
 
         VectorXd RobotController::moveJointPositionCubic(const Eigen::Ref<const VectorXd>& q_target,
                                                          const Eigen::Ref<const VectorXd>& qdot_target,

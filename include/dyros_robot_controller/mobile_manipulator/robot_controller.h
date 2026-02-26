@@ -46,41 +46,173 @@ namespace drc
                 */ 
                 virtual void setManipulatorJointKvGain(const Eigen::Ref<const VectorXd>& Kv);
 
+                /**
+                 * @brief Set IK task-space proportional gains for specified links.
+                 * @param link_Kp (std::map<std::string, Vector6d>) Link-name to 6D task gain map.
+                 * Invalid link names are ignored with a warning.
+                 */
                 virtual void setIKGain(const std::map<std::string, Vector6d>& link_Kp);
+
+                /**
+                 * @brief Set the same IK task-space proportional gain for all link frames.
+                 * @param Kp (Vector6d) 6D task-space proportional gain applied to every link.
+                 */
                 virtual void setIKGain(const Vector6d& Kp);
+
+                /**
+                 * @brief Set ID task-space proportional/derivative gains for specified links.
+                 * @param link_Kp (std::map<std::string, Vector6d>) Link-name to 6D proportional gain map.
+                 * @param link_Kv (std::map<std::string, Vector6d>) Link-name to 6D derivative gain map.
+                 */
                 virtual void setIDGain(const std::map<std::string, Vector6d>& link_Kp,
                                        const std::map<std::string, Vector6d>& link_Kv);
+
+                /**
+                 * @brief Set the same ID task-space proportional/derivative gains for all link frames.
+                 * @param Kp (Vector6d) 6D proportional gain applied to every link.
+                 * @param Kv (Vector6d) 6D derivative gain applied to every link.
+                 */
                 virtual void setIDGain(const Vector6d& Kp,
                                        const Vector6d& Kv);
-                virtual void setIDKpGain(const std::map<std::string, Vector6d>& link_Kp);
-                virtual void setIDKpGain(const Vector6d& Kp);
-                virtual void setIDKvGain(const std::map<std::string, Vector6d>& link_Kv);
-                virtual void setIDKvGain(const Vector6d& Kv);
+
                 /**
-                 * @brief Set the wight vector for  the cost terms of the QPIK
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
-                 * @param w_mani_damping  (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-                 * @param w_base_damping  (Eigen::Vector3d) Weight for mobile base velocity damping.
+                 * @brief Set ID task-space proportional gains for specified links.
+                 * @param link_Kp (std::map<std::string, Vector6d>) Link-name to 6D proportional gain map.
                  */
-                // TODO: add document to notion
-                void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, 
-                                 const Eigen::Ref<const VectorXd>& w_mani_damping,
-                                 const Eigen::Vector3d& w_base_damping);
+                virtual void setIDKpGain(const std::map<std::string, Vector6d>& link_Kp);
+
+                /**
+                 * @brief Set the same ID task-space proportional gain for all link frames.
+                 * @param Kp (Vector6d) 6D proportional gain applied to every link.
+                 */
+                virtual void setIDKpGain(const Vector6d& Kp);
+
+                /**
+                 * @brief Set ID task-space derivative gains for specified links.
+                 * @param link_Kv (std::map<std::string, Vector6d>) Link-name to 6D derivative gain map.
+                 */
+                virtual void setIDKvGain(const std::map<std::string, Vector6d>& link_Kv);
+
+                /**
+                 * @brief Set the same ID task-space derivative gain for all link frames.
+                 * @param Kv (Vector6d) 6D derivative gain applied to every link.
+                 */
+                virtual void setIDKvGain(const Vector6d& Kv);
+
+                /**
+                 * @brief Set QPIK task tracking weights only.
+                 * @param w_tracking (Vector6d) Weight for task velocity tracking for every link.
+                 */
+                void setQPIKTrackingGain(const Vector6d& w_tracking);
+
                 /**
                  * @brief Set QPIK task tracking weights only.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
                  */
                 void setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+
                 /**
                  * @brief Set QPIK manipulator joint velocity damping weights only.
-                 * @param w_mani_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
                  */
-                void setQPIKManiJointVelGain(const Eigen::Ref<const VectorXd>& w_mani_damping);
+                void setQPIKManiJointVelGain(const Eigen::Ref<const VectorXd>& w_mani_vel_damping);
+
+                /**
+                 * @brief Set QPIK manipulator joint acceleration damping weights only.
+                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 */
+                void setQPIKManiJointAccGain(const Eigen::Ref<const VectorXd>& w_mani_acc_damping);
+
                 /**
                  * @brief Set QPIK mobile base velocity damping weights only.
                  * @param w_base_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
                  */
-                void setQPIKBaseVelGain(const Eigen::Vector3d& w_base_damping);
+                void setQPIKBaseVelGain(const Eigen::Vector3d& w_base_vel_damping);
+
+                /**
+                 * @brief Set QPIK mobile base acceleration damping weights only.
+                 * @param w_base_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 */
+                void setQPIKBaseAccGain(const Eigen::Vector3d& w_base_acc_damping);
+
+                /**
+                 * @brief Set the wight vector for  the cost terms of the QPIK
+                 * @param w_tracking (Vector6d) Weight for task velocity tracking for every link.
+                 * @param w_mani_vel_damping  (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @param w_mani_acc_damping  (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 * @param w_base_vel_damping  (Eigen::Vector3d) Weight for mobile base velocity damping.
+                 * @param w_base_acc_damping  (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 */
+                void setQPIKGain(const Vector6d& w_tracking, 
+                                 const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
+                                 const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                                 const Eigen::Vector3d& w_base_vel_damping,
+                                 const Eigen::Vector3d& w_base_acc_damping);
+
+                /**
+                 * @brief Set the wight vector for  the cost terms of the QPIK
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 * @param w_mani_vel_damping  (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @param w_mani_acc_damping  (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 * @param w_base_vel_damping  (Eigen::Vector3d) Weight for mobile base velocity damping.
+                 * @param w_base_acc_damping  (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 */
+                void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, 
+                                 const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
+                                 const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                                 const Eigen::Vector3d& w_base_vel_damping,
+                                 const Eigen::Vector3d& w_base_acc_damping);
+                                 
+
+                /**
+                 * @brief Set QPID task tracking weights only.
+                 * @param w_tracking (Vector6d) Weight for task acceleration tracking for every link.
+                 */
+                void setQPIDTrackingGain(const Vector6d& w_tracking);
+
+                /**
+                 * @brief Set QPID task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
+                 */
+                void setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+
+                /**
+                 * @brief Set QPID manipulator joint velocity damping weights only.
+                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 */
+                void setQPIDManiJointVelGain(const Eigen::Ref<const VectorXd>& w_mani_vel_damping);
+
+                /**
+                 * @brief Set QPID manipulator joint acceleration damping weights only.
+                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 */
+                void setQPIDManiJointAccGain(const Eigen::Ref<const VectorXd>& w_mani_acc_damping);
+
+                /**
+                 * @brief Set QPID mobile base velocity damping weights only.
+                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
+                 */
+                void setQPIDBaseVelGain(const Eigen::Vector3d& w_base_vel_damping);
+
+                /**
+                 * @brief Set QPID mobile base acceleration damping weights only.
+                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 */
+                void setQPIDBaseAccGain(const Eigen::Vector3d& w_base_acc_damping);
+               
+                /**
+                 * @brief Set the wight vector for the cost terms of the QPID
+                 * @param w_tracking (Vector6d) Weight for task acceleration tracking for every link.
+                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
+                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 */
+                void setQPIDGain(const Vector6d& w_tracking, 
+                                 const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
+                                 const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                                 const Eigen::Vector3d& w_base_vel_damping,
+                                 const Eigen::Vector3d& w_base_acc_damping);
 
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPID
@@ -90,39 +222,13 @@ namespace drc
                  * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
                  * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
                  */
-                // TODO: add document to notion
                 void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, 
                                  const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
                                  const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                                  const Eigen::Vector3d& w_base_vel_damping,
                                  const Eigen::Vector3d& w_base_acc_damping);
-                /**
-                 * @brief Set QPID task tracking weights only.
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
-                 */
-                void setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
-                /**
-                 * @brief Set QPID manipulator joint velocity damping weights only.
-                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-                 */
-                void setQPIDManiJointVelGain(const Eigen::Ref<const VectorXd>& w_mani_vel_damping);
-                /**
-                 * @brief Set QPID manipulator joint acceleration damping weights only.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-                 */
-                void setQPIDManiJointAccGain(const Eigen::Ref<const VectorXd>& w_mani_acc_damping);
-                /**
-                 * @brief Set QPID mobile base velocity damping weights only.
-                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
-                 */
-                void setQPIDBaseVelGain(const Eigen::Vector3d& w_base_vel_damping);
-                /**
-                 * @brief Set QPID mobile base acceleration damping weights only.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
-                 */
-                void setQPIDBaseAccGain(const Eigen::Vector3d& w_base_acc_damping);
+                
 
-                // TODO: modify comments, add bindings and python func, add python comment, add to notion
                 // ================================== Mobile Functions ===================================
                 /**
                  * @brief Compute wheel velocities from desired base velocity using inverse kinematics.
@@ -190,7 +296,6 @@ namespace drc
                  * @param use_mass          (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired manipulator joint torques.
                 */                             
-                // TODO: add document to notion that add use_mass                       
                 virtual VectorXd moveManipulatorJointTorqueStep(const Eigen::Ref<const VectorXd>& qddot_mani_target, const bool use_mass = true);
                 /**
                  * @brief Computes joint torques to achieve desired manipulator joint positions & velocities using PD control law.
@@ -199,7 +304,6 @@ namespace drc
                  * @param use_mass          (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired manipulator joint torques.
                  */
-                // TODO: add document to notion that add use_mass
                 virtual VectorXd moveManipulatorJointTorqueStep(const Eigen::Ref<const VectorXd>& q_mani_target,
                                                                 const Eigen::Ref<const VectorXd>& qdot_mani_target,
                                                                 const bool use_mass = true);
@@ -216,7 +320,6 @@ namespace drc
                  * @param use_mass    (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired manipulator joint torques.
                  */          
-                // TODO: add document to notion that add use_mass                                      
                 virtual VectorXd moveManipulatorJointTorqueCubic(const Eigen::Ref<const VectorXd>& q_mani_target,
                                                                  const Eigen::Ref<const VectorXd>& qdot_mani_target,
                                                                  const Eigen::Ref<const VectorXd>& q_mani_init,

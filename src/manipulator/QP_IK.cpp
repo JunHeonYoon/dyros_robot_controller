@@ -43,11 +43,39 @@ namespace drc
             si_index_.con_sing_start      = si_index_.con_q_max_start + si_index_.con_q_max_size;
             si_index_.con_sel_col_start   = si_index_.con_sing_start  + si_index_.con_sing_size;
 
-            w_damping_.setOnes(joint_dof_);
+            w_vel_damping_.setOnes(joint_dof_);
             w_acc_damping_.setOnes(joint_dof_);
 
         }
-    
+
+        void QPIK::setTrackingWeight(const Vector6d w_tracking)
+        {
+            std::map<std::string, Vector6d> link_w_tracking;
+            for(const auto& link_name : robot_data_->getLinkFrameVector())
+            {
+                link_w_tracking[link_name] = w_tracking;
+            }
+            link_w_tracking_ = link_w_tracking;
+        }
+
+        void QPIK::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            link_w_tracking_ = link_w_tracking;
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
+        }
+
+        void QPIK::setWeight(const Vector6d w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            setTrackingWeight(w_tracking);
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
+        }
+
         void QPIK::setDesiredTaskVel(const std::map<std::string, Vector6d> &link_xdot_desired)
         {
             link_xdot_desired_ = link_xdot_desired;
@@ -75,22 +103,6 @@ namespace drc
                 return true;
             }
         }
-
-        void QPIK::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_damping)
-        {
-            link_w_tracking_ = link_w_tracking;
-            w_damping_ = w_damping;
-        }
-
-        void QPIK::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_vel_damping,
-                             const Eigen::Ref<const VectorXd>& w_acc_damping)
-        {
-            link_w_tracking_ = link_w_tracking;
-            w_damping_ = w_vel_damping;
-            w_acc_damping_ = w_acc_damping;
-        }
     
         void QPIK::setCost()
         {
@@ -112,7 +124,7 @@ namespace drc
             }
             
             // for joint velocity damping
-            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * w_damping_.asDiagonal();
+            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * w_vel_damping_.asDiagonal();
 
             // for joint acceleration damping: qddot = (qdot - qdot_now) / dt
             const double dt_sq_inv = 1.0 / (dt_ * dt_);

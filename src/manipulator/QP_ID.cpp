@@ -63,7 +63,35 @@ namespace drc
             w_vel_damping_.setOnes(joint_dof_);
             w_acc_damping_.setOnes(joint_dof_);
         }
-    
+
+        void QPID::setTrackingWeight(const Vector6d w_tracking)
+        {
+            std::map<std::string, Vector6d> link_w_tracking;
+            for(const auto& link_name : robot_data_->getLinkFrameVector())
+            {
+                link_w_tracking[link_name] = w_tracking;
+            }
+            link_w_tracking_ = link_w_tracking;
+        }
+
+        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            link_w_tracking_ = link_w_tracking;
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
+        }
+
+        void QPID::setWeight(const Vector6d w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            setTrackingWeight(w_tracking);
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
+        }
+
         void QPID::setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired)
         {
             link_xddot_desired_ = link_xddot_desired;
@@ -93,15 +121,6 @@ namespace drc
                 return true;
             }
         }
-
-        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_vel_damping,
-                             const Eigen::Ref<const VectorXd>& w_acc_damping)
-        {
-            link_w_tracking_ = link_w_tracking;
-            w_vel_damping_ = w_vel_damping;
-            w_acc_damping_ = w_acc_damping;
-        }
     
         void QPID::setCost()
         {
@@ -124,8 +143,8 @@ namespace drc
             }
 
             // for joint velocity/acceleration damping
-            P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) += 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix();// + 
-                                                                                                                //   2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
+            P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) += 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix() + 
+                                                                                                                  2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
             q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * qdot;
 
             // for slack

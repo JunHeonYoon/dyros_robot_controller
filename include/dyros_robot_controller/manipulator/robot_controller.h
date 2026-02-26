@@ -41,46 +41,95 @@ namespace drc
                  * @brief Set joint space D gains for the manipulator.
                  * @param Kv (Eigen::VectorXd) Derivative gains; its size must same as dof.
                  */ 
-                virtual void setJointKvGain(const Eigen::Ref<const VectorXd>& Kv);
-                
-                // deprecated
-                // /**
-                //  * @brief Set task space PD gains for the manipulator per links.
-                //  * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
-                //  * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
-                //  */
-                // virtual void setTaskGain(const std::map<std::string, Vector6d>& link_Kp, 
-                //                          const std::map<std::string, Vector6d>& link_Kv);
-                // /**
-                //  * @brief Set task space P gains for the manipulator per links.
-                //  * @param link_Kp (std::map<std::string, Vector6d>) Proportional gains.
-                //  */                          
-                // virtual void setTaskKpGain(const std::map<std::string, Vector6d>& link_Kp);
-                // /**
-                //  * @brief Set task space D gains for the manipulator per links.
-                //  * @param link_Kv (std::map<std::string, Vector6d>) Derivative gains.
-                //  */ 
-                // virtual void setTaskKvGain(const std::map<std::string, Vector6d>& link_Kv);      
+                virtual void setJointKvGain(const Eigen::Ref<const VectorXd>& Kv);     
 
+                /**
+                 * @brief Set IK task-space proportional gains for specified links.
+                 * @param link_Kp (std::map<std::string, Vector6d>) Link-name to 6D task gain map.
+                 * Invalid link names are ignored with a warning.
+                 */
                 virtual void setIKGain(const std::map<std::string, Vector6d>& link_Kp);
+
+                /**
+                 * @brief Set the same IK task-space proportional gain for all link frames.
+                 * @param Kp (Vector6d) 6D task-space proportional gain applied to every link.
+                 */
                 virtual void setIKGain(const Vector6d& Kp);
+
+                /**
+                 * @brief Set ID task-space proportional/derivative gains for specified links.
+                 * @param link_Kp (std::map<std::string, Vector6d>) Link-name to 6D proportional gain map.
+                 * @param link_Kv (std::map<std::string, Vector6d>) Link-name to 6D derivative gain map.
+                 */
                 virtual void setIDGain(const std::map<std::string, Vector6d>& link_Kp,
                                        const std::map<std::string, Vector6d>& link_Kv);
+
+                /**
+                 * @brief Set the same ID task-space proportional/derivative gains for all link frames.
+                 * @param Kp (Vector6d) 6D proportional gain applied to every link.
+                 * @param Kv (Vector6d) 6D derivative gain applied to every link.
+                 */
                 virtual void setIDGain(const Vector6d& Kp,
                                        const Vector6d& Kv);
+
+                /**
+                 * @brief Set ID task-space proportional gains for specified links.
+                 * @param link_Kp (std::map<std::string, Vector6d>) Link-name to 6D proportional gain map.
+                 */
                 virtual void setIDKpGain(const std::map<std::string, Vector6d>& link_Kp);
+
+                /**
+                 * @brief Set the same ID task-space proportional gain for all link frames.
+                 * @param Kp (Vector6d) 6D proportional gain applied to every link.
+                 */
                 virtual void setIDKpGain(const Vector6d& Kp);
+
+                /**
+                 * @brief Set ID task-space derivative gains for specified links.
+                 * @param link_Kv (std::map<std::string, Vector6d>) Link-name to 6D derivative gain map.
+                 */
                 virtual void setIDKvGain(const std::map<std::string, Vector6d>& link_Kv);
+
+                /**
+                 * @brief Set the same ID task-space derivative gain for all link frames.
+                 * @param Kv (Vector6d) 6D derivative gain applied to every link.
+                 */
                 virtual void setIDKvGain(const Vector6d& Kv);
 
+                /**
+                 * @brief Set QPIK task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking for every link.
+                 */
+                void setQPIKTrackingGain(const Vector6d& w_tracking);
+
+                /**
+                 * @brief Set QPIK task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 */
+                void setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+
+                /**
+                 * @brief Set QPIK joint velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
+                void setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping);
+
+                /**
+                 * @brief Set QPIK joint acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
                 
                 /**
-                 * @brief Set the wight vector for  the cost terms of the QPIK
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
-                 * @param w_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @brief Set the wight vector for the cost terms of the QPIK
+                 * @param link_w_tracking (Vector6d) Weight for task velocity tracking for every link.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
-                // TODO: add document to notion
-                void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_damping);
+                void setQPIKGain(const Vector6d& w_tracking,
+                                 const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                 const Eigen::Ref<const VectorXd>& w_acc_damping);
+
                 /**
                  * @brief Set the wight vector for the cost terms of the QPIK
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
@@ -90,21 +139,39 @@ namespace drc
                 void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking,
                                  const Eigen::Ref<const VectorXd>& w_vel_damping,
                                  const Eigen::Ref<const VectorXd>& w_acc_damping);
+
                 /**
-                 * @brief Set QPIK task tracking weights only.
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 * @brief Set QPID task tracking weights only.
+                 * @param link_w_tracking (Vector6d) Weight for task acceleration tracking for every link.
                  */
-                void setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+                void setQPIDTrackingGain(const Vector6d& w_tracking);
+                
                 /**
-                 * @brief Set QPIK joint velocity damping weights only.
-                 * @param w_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @brief Set QPID task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
                  */
-                void setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_damping);
+                void setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+
                 /**
-                 * @brief Set QPIK joint acceleration damping weights only.
+                 * @brief Set QPID joint velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
+
+                void setQPIDJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping);
+                /**
+                 * @brief Set QPID joint acceleration damping weights only.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
-                void setQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
+
+                void setQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
+
+                /**
+                 * @brief Set the wight vector for  the cost terms of the QPID
+                 * @param link_w_tracking (Vector6d) Weight for task acceleration tracking for every link.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
                  * @brief Set the wight vector for  the cost terms of the QPID
@@ -112,23 +179,8 @@ namespace drc
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
-                // TODO: add document to notion
                 void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
-                /**
-                 * @brief Set QPID task tracking weights only.
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
-                 */
-                void setQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
-                /**
-                 * @brief Set QPID joint velocity damping weights only.
-                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
-                 */
-                void setQPIDJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping);
-                /**
-                 * @brief Set QPID joint acceleration damping weights only.
-                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
-                 */
-                void setQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
+                
                 
                 // ================================ Joint space Functions ================================
                 /**
@@ -173,7 +225,6 @@ namespace drc
                  * @param use_mass     (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired joint torques.
                  */
-                // TODO: add document to notion that add use_mass
                 virtual VectorXd moveJointTorqueStep(const Eigen::Ref<const VectorXd>& qddot_target, const bool use_mass = true);
                 /**
                  * @brief Computes joint torques to achieve desired joint positions & velocities using PD control law.
@@ -182,7 +233,6 @@ namespace drc
                  * @param use_mass    (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired joint torques.
                  */
-                // TODO: add document to notion that add use_mass
                 virtual VectorXd moveJointTorqueStep(const Eigen::Ref<const VectorXd>& q_target,
                                                      const Eigen::Ref<const VectorXd>& qdot_target,
                                                      const bool use_mass = true);
@@ -198,7 +248,6 @@ namespace drc
                  * @param use_mass      (bool) Whether use mass matrix.
                  * @return (Eigen::VectorXd) Desired joint torques.
                  */                          
-                // TODO: add document to notion that add use_mass           
                 virtual VectorXd moveJointTorqueCubic(const Eigen::Ref<const VectorXd>& q_target,
                                                       const Eigen::Ref<const VectorXd>& qdot_target,
                                                       const Eigen::Ref<const VectorXd>& q_init,

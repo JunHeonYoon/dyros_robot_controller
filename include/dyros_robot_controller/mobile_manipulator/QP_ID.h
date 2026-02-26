@@ -22,8 +22,58 @@ namespace drc
                  * @param robot_data (std::shared_ptr<MobileManipulator::RobotData>) Shared pointer to the RobotData class.
                  * @param dt (double) Control loop time step in seconds.
                  */
-                // TODO: add document to notion that add dt
                 QPID(std::shared_ptr<MobileManipulator::RobotData> robot_data, const double dt);
+
+                /**
+                 * @brief Set task tracking weights only.
+                 * @param w_tracking (Vector6d) Weight for task space acceleration tracking for all the links in the URDF.
+                 */
+                void setTrackingWeight(const Vector6d w_tracking);
+
+                /**
+                 * @brief Set task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space acceleration tracking per links.
+                 */
+                void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
+
+                /**
+                 * @brief Set manipulator joint velocity damping weights only.
+                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 */
+                void setManiJointVelWeight(const Eigen::Ref<const VectorXd>& w_mani_vel_damping) { w_mani_vel_damping_ = w_mani_vel_damping; }
+
+                /**
+                 * @brief Set manipulator joint acceleration damping weights only.
+                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 */
+                void setManiJointAccWeight(const Eigen::Ref<const VectorXd>& w_mani_acc_damping) { w_mani_acc_damping_ = w_mani_acc_damping; }
+
+                /**
+                 * @brief Set mobile base velocity damping weights only.
+                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
+                 */
+                void setBaseVelWeight(const Eigen::Vector3d& w_base_vel_damping) { w_base_vel_damping_ = w_base_vel_damping; }
+
+                /**
+                 * @brief Set mobile base acceleration damping weights only.
+                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 */
+                void setBaseAccWeight(const Eigen::Vector3d& w_base_acc_damping) { w_base_acc_damping_ = w_base_acc_damping; }
+
+                /**
+                 * @brief Set the weight vectors for the cost terms.
+                 * @param w_tracking (Vector6d) Weight for task space acceleration tracking for all the links in the URDF.
+                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
+                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 */
+                void setWeight(const Vector6d w_tracking,
+                               const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
+                               const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                               const Eigen::Vector3d& w_base_vel_damping,
+                               const Eigen::Vector3d& w_base_acc_damping);
+                
                 /**
                  * @brief Set the weight vectors for the cost terms.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space acceleration tracking per links.
@@ -32,44 +82,16 @@ namespace drc
                  * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
                  * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
                  */
-                // TODO: add document to notion
                 void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
                                const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
                                const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                                const Eigen::Vector3d& w_base_vel_damping,
                                const Eigen::Vector3d& w_base_acc_damping);
-                /**
-                 * @brief Set task tracking weights only.
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
-                 */
-                void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
-                /**
-                 * @brief Set manipulator joint velocity damping weights only.
-                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-                 */
-                void setManiJointVelWeight(const Eigen::Ref<const VectorXd>& w_mani_vel_damping) { w_mani_vel_damping_ = w_mani_vel_damping; }
-                /**
-                 * @brief Set manipulator joint acceleration damping weights only.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-                 */
-                void setManiJointAccWeight(const Eigen::Ref<const VectorXd>& w_mani_acc_damping) { w_mani_acc_damping_ = w_mani_acc_damping; }
-                /**
-                 * @brief Set mobile base velocity damping weights only.
-                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
-                 */
-                void setBaseVelWeight(const Eigen::Vector3d& w_base_vel_damping) { w_base_vel_damping_ = w_base_vel_damping; }
-                /**
-                 * @brief Set mobile base acceleration damping weights only.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
-                 */
-                void setBaseAccWeight(const Eigen::Vector3d& w_base_acc_damping) { w_base_acc_damping_ = w_base_acc_damping; }
-
 
                 /**
                  * @brief Set the desired task space acceleration for each link.
                  * @param link_xddot_desired (std::map<std::string, Vector6d>) Desired task space acceleration (6D twist) per links.
                  */
-                // TODO: add document to notion
                 void setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired);
                 /**
                  * @brief Get the optimal joint acceleration and torque by solving QP.

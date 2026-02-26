@@ -92,6 +92,41 @@ namespace drc
             w_base_acc_damping_.setOnes();
         }
         
+        void QPID::setTrackingWeight(const Vector6d w_tracking)
+        {
+            std::map<std::string, Vector6d> link_w_tracking;
+            for(const auto& link_name : robot_data_->getLinkFrameVector())
+            {
+                link_w_tracking[link_name] = w_tracking;
+            }
+            link_w_tracking_ = link_w_tracking;
+        }
+
+        void QPID::setWeight(const Vector6d w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
+                             const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                             const Eigen::Vector3d& w_base_vel_damping,
+                             const Eigen::Vector3d& w_base_acc_damping)
+        {
+            setTrackingWeight(w_tracking);
+            w_mani_vel_damping_ = w_mani_vel_damping;
+            w_mani_acc_damping_ = w_mani_acc_damping;
+            w_base_vel_damping_ = w_base_vel_damping;
+            w_base_acc_damping_ = w_base_acc_damping;
+        }
+
+        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
+                             const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
+                             const Eigen::Vector3d& w_base_vel_damping,
+                             const Eigen::Vector3d& w_base_acc_damping)
+        {
+            link_w_tracking_ = link_w_tracking;
+            w_mani_vel_damping_ = w_mani_vel_damping;
+            w_mani_acc_damping_ = w_mani_acc_damping;
+            w_base_vel_damping_ = w_base_vel_damping;
+            w_base_acc_damping_ = w_base_acc_damping;
+        }
 
         void QPID::setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired)
         {
@@ -123,18 +158,7 @@ namespace drc
             }
         }
 
-        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
-                             const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                             const Eigen::Vector3d& w_base_vel_damping,
-                             const Eigen::Vector3d& w_base_acc_damping)
-        {
-            link_w_tracking_ = link_w_tracking;
-            w_mani_vel_damping_ = w_mani_vel_damping;
-            w_mani_acc_damping_ = w_mani_acc_damping;
-            w_base_vel_damping_ = w_base_vel_damping;
-            w_base_acc_damping_ = w_base_acc_damping;
-        }
+        
 
     
         void QPID::setCost()
