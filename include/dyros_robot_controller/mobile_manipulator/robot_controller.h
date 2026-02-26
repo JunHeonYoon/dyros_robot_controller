@@ -331,6 +331,87 @@ namespace drc
 
                 // ================================ Task space Functions ================================
                 /**
+                 * @brief Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics, projecting null_qdot into null space to exploit redundancy.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
+                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
+                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
+                 * @param null_qdot             (Eigen::VectorXd) Desired actuated joint velocity to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool CLIK(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
+                                  const Eigen::Ref<const VectorXd>& null_qdot);
+                /**
+                 * @brief Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
+                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
+                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool CLIK(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator);
+
+                /**
+                 * @brief Computes mobile base and manipulator joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics, projecting null_qdot into null space.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
+                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
+                 * @param null_qdot             (Eigen::VectorXd) Desired actuated joint velocity to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
+                                      const Eigen::Ref<const VectorXd>& null_qdot);
+                /**
+                 * @brief Computes mobile base and manipulator joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
+                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator);
+
+                /**
+                 * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK with null_qdot.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+                 * @param current_time          (double) Current time.
+                 * @param init_time             (double) Start time of the segment.
+                 * @param duration              (double) Time duration.
+                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
+                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
+                 * @param null_qdot             (Eigen::VectorXd) Desired actuated joint velocity to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       const double& current_time,
+                                       const double& init_time,
+                                       const double& duration,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
+                                       const Eigen::Ref<const VectorXd>& null_qdot);
+                /**
+                 * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+                 * @param current_time          (double) Current time.
+                 * @param init_time             (double) Start time of the segment.
+                 * @param duration              (double) Time duration.
+                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
+                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       const double& current_time,
+                                       const double& init_time,
+                                       const double& duration,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator);
+
+                /**
                  * @brief Computes velocities for mobile base and manipulator joints to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
@@ -526,6 +607,14 @@ namespace drc
                 // QP solvers
                 std::unique_ptr<MobileManipulator::QPIK> QP_moma_IK_;
                 std::unique_ptr<MobileManipulator::QPID> QP_moma_ID_;
+
+                /**
+                 * @brief Internal CLIK overload that receives desired task velocities directly.
+                 */
+                virtual bool CLIK(const std::map<std::string, Vector6d>& link_xdot_target,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
+                                  const Eigen::Ref<const VectorXd>& null_qdot);
 
                 /**
                  * @brief Internal QPIK overload that stores QP timing information in a string.

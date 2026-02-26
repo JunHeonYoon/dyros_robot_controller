@@ -403,6 +403,87 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
                                                        )
 
     # ================================ Task space Functions ================================
+    def CLIK(self,
+             link_task_data: dict[str, TaskSpaceData],
+             null_qdot: np.ndarray | None = None,
+             ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics, projecting null_qdot into null space if provided.
+
+        Parameters:
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xdot_desired.
+            null_qdot      : (np.ndarray) [Optional] Desired actuated joint velocity to be projected on null space.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
+        """
+        link_task_data_cpp = {}
+        for k, v in link_task_data.items():
+            if hasattr(v, "cpp"):
+                link_task_data_cpp[k] = v.cpp()
+        if null_qdot is None:
+            null_qdot = np.zeros(self._robot_data.actuated_dof)
+        else:
+            null_qdot = null_qdot.reshape(-1)
+            assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+        return super().CLIK(link_task_data_cpp, null_qdot)
+
+    def CLIK_step(self,
+                  link_task_data: dict[str, TaskSpaceData],
+                  null_qdot: np.ndarray | None = None,
+                  ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Computes mobile base and manipulator joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics, projecting null_qdot into null space if provided.
+
+        Parameters:
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
+            null_qdot      : (np.ndarray) [Optional] Desired actuated joint velocity to be projected on null space.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
+        """
+        link_task_data_cpp = {}
+        for k, v in link_task_data.items():
+            if hasattr(v, "cpp"):
+                link_task_data_cpp[k] = v.cpp()
+        if null_qdot is None:
+            null_qdot = np.zeros(self._robot_data.actuated_dof)
+        else:
+            null_qdot = null_qdot.reshape(-1)
+            assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+        return super().CLIKStep(link_task_data_cpp, null_qdot)
+
+    def CLIK_cubic(self,
+                   link_task_data: dict[str, TaskSpaceData],
+                   current_time: float,
+                   init_time: float,
+                   duration: float,
+                   null_qdot: np.ndarray | None = None,
+                   ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK, projecting null_qdot into null space if provided.
+
+        Parameters:
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+            current_time : (float) Current time.
+            init_time    : (float) Start time of the segment.
+            duration     : (float) Time duration.
+            null_qdot    : (np.ndarray) [Optional] Desired actuated joint velocity to be projected on null space.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
+        """
+        link_task_data_cpp = {}
+        for k, v in link_task_data.items():
+            if hasattr(v, "cpp"):
+                link_task_data_cpp[k] = v.cpp()
+        if null_qdot is None:
+            null_qdot = np.zeros(self._robot_data.actuated_dof)
+        else:
+            null_qdot = null_qdot.reshape(-1)
+            assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+        return super().CLIKCubic(link_task_data_cpp, current_time, init_time, duration, null_qdot)
+
     def QPIK(self, 
              link_task_data: dict[str, TaskSpaceData],
              time_verbose: bool = False,

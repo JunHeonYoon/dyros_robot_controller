@@ -374,6 +374,139 @@ namespace drc
             return moveManipulatorJointTorqueStep(q_mani_desired, qdot_mani_desired, use_mass);
         }
 
+        bool RobotController::CLIK(const std::map<std::string, Vector6d>& link_xdot_target,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
+                                   const Eigen::Ref<const VectorXd>& null_qdot)
+        {
+            if(opt_qdot_mobile.size() != mobi_dof_ || opt_qdot_manipulator.size() != mani_dof_)
+            {
+                std::cerr << "Size of opt_qdot_mobile(" << opt_qdot_mobile.size() << ") or opt_qdot_manipulator(" << opt_qdot_manipulator.size()
+                          << ") are not same as mobi_dof_(" << mobi_dof_ << ") and mani_dof_(" << mani_dof_ << ")" << std::endl;
+                return false;
+            }
+            if(null_qdot.size() != actuator_dof_)
+            {
+                std::cerr << "Size of null_qdot(" << null_qdot.size() << ") is not same as actuator_dof_(" << actuator_dof_ << ")" << std::endl;
+                return false;
+            }
+            if(link_xdot_target.empty())
+            {
+                opt_qdot_mobile.setZero();
+                opt_qdot_manipulator.setZero();
+                return false;
+            }
+
+            MatrixXd J_total;
+            J_total.setZero(6 * link_xdot_target.size(), actuator_dof_);
+
+            VectorXd x_dot_target_total;
+            x_dot_target_total.setZero(6 * link_xdot_target.size());
+
+            int i = 0;
+            for (const auto& [link_name, xdot_target] : link_xdot_target)
+            {
+                J_total.block(6 * i, 0, 6, actuator_dof_) = robot_data_->getJacobianActuated(link_name);
+                x_dot_target_total.segment(6 * i, 6) = xdot_target;
+                ++i;
+            }
+
+            const MatrixXd J_total_pinv = DyrosMath::PinvCOD(J_total);
+            const MatrixXd null_proj = MatrixXd::Identity(actuator_dof_, actuator_dof_) - J_total_pinv * J_total;
+
+            VectorXd qdot_task(actuator_dof_);
+            qdot_task.noalias() = J_total_pinv * x_dot_target_total;
+
+            VectorXd qdot_null(actuator_dof_);
+            qdot_null.noalias() = null_proj * null_qdot;
+
+            const VectorXd qdot_total = qdot_task + qdot_null;
+
+            opt_qdot_mobile = qdot_total.segment(robot_data_->getActuatorIndex().mobi_start, mobi_dof_);
+            opt_qdot_manipulator = qdot_total.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_);
+            return true;
+        }
+
+        bool RobotController::CLIK(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
+                                   const Eigen::Ref<const VectorXd>& null_qdot)
+        {
+            std::map<std::string, Vector6d> link_xdot_target;
+            for (const auto& [link_name, task_data] : link_task_data)
+            {
+                link_xdot_target[link_name] = task_data.xdot_desired;
+            }
+            return CLIK(link_xdot_target, opt_qdot_mobile, opt_qdot_manipulator, null_qdot);
+        }
+
+        bool RobotController::CLIK(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator)
+        {
+            const VectorXd null_qdot = VectorXd::Zero(actuator_dof_);
+            return CLIK(link_task_data, opt_qdot_mobile, opt_qdot_manipulator, null_qdot);
+        }
+
+        bool RobotController::CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
+                                       const Eigen::Ref<const VectorXd>& null_qdot)
+        {
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (const auto& [link_name, task_data] : link_task_data)
+            {
+                Vector6d x_error, xdot_error;
+                DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+
+                Vector6d Kp_task; Kp_task.setOnes();
+                auto iter = link_IK_Kp_task_.find(link_name);
+                if(iter != link_IK_Kp_task_.end()) Kp_task = iter->second;
+
+                link_task_data_result[link_name].xdot_desired = Kp_task.asDiagonal() * x_error + task_data.xdot_desired;
+            }
+
+            return CLIK(link_task_data_result, opt_qdot_mobile, opt_qdot_manipulator, null_qdot);
+        }
+
+        bool RobotController::CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator)
+        {
+            const VectorXd null_qdot = VectorXd::Zero(actuator_dof_);
+            return CLIKStep(link_task_data, opt_qdot_mobile, opt_qdot_manipulator, null_qdot);
+        }
+
+        bool RobotController::CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                        const double& current_time,
+                                        const double& init_time,
+                                        const double& duration,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
+                                        const Eigen::Ref<const VectorXd>& null_qdot)
+        {
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (const auto& [link_name, task_data] : link_task_data)
+            {
+                TaskSpaceData task_data_result = task_data;
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                link_task_data_result[link_name] = task_data_result;
+            }
+
+            return CLIKStep(link_task_data_result, opt_qdot_mobile, opt_qdot_manipulator, null_qdot);
+        }
+
+        bool RobotController::CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                        const double& current_time,
+                                        const double& init_time,
+                                        const double& duration,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator)
+        {
+            const VectorXd null_qdot = VectorXd::Zero(actuator_dof_);
+            return CLIKCubic(link_task_data, current_time, init_time, duration, opt_qdot_mobile, opt_qdot_manipulator, null_qdot);
+        }
+
 
         bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                    Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
