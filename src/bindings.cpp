@@ -129,6 +129,36 @@ namespace
         return bp::make_tuple(success, qdot_mobi, qdot_mani);
     }
 
+    bp::tuple MM_RC_OSF_tuple(MM_RC& self,
+                              const std::map<std::string, TaskSpaceData>& link_task_data,
+                              const Eigen::Ref<const VectorXd>& null_torque)
+    {
+        VectorXd qddot_mobi, torque_mani;
+        const bool success = self.OSF(link_task_data, qddot_mobi, torque_mani, null_torque);
+        return bp::make_tuple(success, qddot_mobi, torque_mani);
+    }
+
+    bp::tuple MM_RC_OSFStep_tuple(MM_RC& self,
+                                  const std::map<std::string, TaskSpaceData>& link_task_data,
+                                  const Eigen::Ref<const VectorXd>& null_torque)
+    {
+        VectorXd qddot_mobi, torque_mani;
+        const bool success = self.OSFStep(link_task_data, qddot_mobi, torque_mani, null_torque);
+        return bp::make_tuple(success, qddot_mobi, torque_mani);
+    }
+
+    bp::tuple MM_RC_OSFCubic_tuple(MM_RC& self,
+                                   const std::map<std::string, TaskSpaceData>& link_task_data,
+                                   const double& current_time,
+                                   const double& init_time,
+                                   const double& duration,
+                                   const Eigen::Ref<const VectorXd>& null_torque)
+    {
+        VectorXd qddot_mobi, torque_mani;
+        const bool success = self.OSFCubic(link_task_data, current_time, init_time, duration, qddot_mobi, torque_mani, null_torque);
+        return bp::make_tuple(success, qddot_mobi, torque_mani);
+    }
+
     bp::tuple MM_RC_QPID_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd qddot_mobi, torque_mani;
@@ -793,6 +823,9 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("CLIK",                                                                                                         &MM_RC_CLIK_tuple)
         .def("CLIKStep",                                                                                                     &MM_RC_CLIKStep_tuple)
         .def("CLIKCubic",                                                                                                    &MM_RC_CLIKCubic_tuple)
+        .def("OSF",                                                                                                          &MM_RC_OSF_tuple)
+        .def("OSFStep",                                                                                                      &MM_RC_OSFStep_tuple)
+        .def("OSFCubic",                                                                                                     &MM_RC_OSFCubic_tuple)
         .def("QPIK",                                                                                                         &MM_RC_QPIK_tuple)
         .def("QPIKStep",                                                                                                     &MM_RC_QPIKStep_tuple)
         .def("QPIKCubic",                                                                                                    &MM_RC_QPIKCubic_tuple)

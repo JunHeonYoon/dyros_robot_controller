@@ -507,6 +507,142 @@ namespace drc
             return CLIKCubic(link_task_data, current_time, init_time, duration, opt_qdot_mobile, opt_qdot_manipulator, null_qdot);
         }
 
+        bool RobotController::OSF(const std::map<std::string, Vector6d>& link_xddot_target,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
+                                  const Eigen::Ref<const VectorXd>& null_torque)
+        {
+            if(opt_qddot_mobile.size() != mobi_dof_ || opt_torque_manipulator.size() != mani_dof_)
+            {
+                std::cerr << "Size of opt_qddot_mobile(" << opt_qddot_mobile.size() << ") or opt_torque_manipulator(" << opt_torque_manipulator.size()
+                          << ") are not same as mobi_dof_(" << mobi_dof_ << ") and mani_dof_(" << mani_dof_ << ")" << std::endl;
+                return false;
+            }
+            if(null_torque.size() != actuator_dof_)
+            {
+                std::cerr << "Size of null_torque(" << null_torque.size() << ") is not same as actuator_dof_(" << actuator_dof_ << ")" << std::endl;
+                return false;
+            }
+            if(link_xddot_target.empty())
+            {
+                opt_qddot_mobile.setZero();
+                opt_torque_manipulator.setZero();
+                return false;
+            }
+
+            MatrixXd J_total;
+            J_total.setZero(6 * link_xddot_target.size(), actuator_dof_);
+
+            VectorXd x_ddot_target_total;
+            x_ddot_target_total.setZero(6 * link_xddot_target.size());
+
+            int i = 0;
+            for (const auto& [link_name, xddot_target] : link_xddot_target)
+            {
+                J_total.block(6 * i, 0, 6, actuator_dof_) = robot_data_->getJacobianActuated(link_name);
+                x_ddot_target_total.segment(6 * i, 6) = xddot_target;
+                ++i;
+            }
+
+            const MatrixXd J_total_T = J_total.transpose();
+            const MatrixXd M_inv = robot_data_->getMassMatrixActuatedInv();
+
+            const MatrixXd M_task_total = DyrosMath::PinvCOD(J_total * M_inv * J_total_T);
+            const MatrixXd J_total_T_pinv = M_task_total * J_total * M_inv;
+            const MatrixXd null_proj = MatrixXd::Identity(actuator_dof_, actuator_dof_) - (J_total_T * J_total_T_pinv);
+
+            const VectorXd force_desired = M_task_total * x_ddot_target_total;
+            const VectorXd torque_actuated = J_total_T * force_desired + null_proj * null_torque + robot_data_->getGravityActuated();
+
+            const VectorXd qddot_actuated = M_inv * (torque_actuated - robot_data_->getNonlinearEffectsActuated());
+
+            opt_qddot_mobile = qddot_actuated.segment(robot_data_->getActuatorIndex().mobi_start, mobi_dof_);
+            opt_torque_manipulator = torque_actuated.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_);
+            return true;
+        }
+
+        bool RobotController::OSF(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
+                                  const Eigen::Ref<const VectorXd>& null_torque)
+        {
+            std::map<std::string, Vector6d> link_xddot_target;
+            for (const auto& [link_name, task_data] : link_task_data)
+            {
+                link_xddot_target[link_name] = task_data.xddot_desired;
+            }
+            return OSF(link_xddot_target, opt_qddot_mobile, opt_torque_manipulator, null_torque);
+        }
+
+        bool RobotController::OSF(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                  Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                  Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator)
+        {
+            const VectorXd null_torque = VectorXd::Zero(actuator_dof_);
+            return OSF(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_torque);
+        }
+
+        bool RobotController::OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                      Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
+                                      const Eigen::Ref<const VectorXd>& null_torque)
+        {
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (const auto& [link_name, task_data] : link_task_data)
+            {
+                Vector6d x_error, xdot_error;
+                DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+
+                Vector6d Kp_task; Kp_task.setOnes();
+                Vector6d Kv_task; Kv_task.setOnes();
+                auto iter_kp = link_ID_Kp_task_.find(link_name);
+                if(iter_kp != link_ID_Kp_task_.end()) Kp_task = iter_kp->second;
+                auto iter_kv = link_ID_Kv_task_.find(link_name);
+                if(iter_kv != link_ID_Kv_task_.end()) Kv_task = iter_kv->second;
+
+                link_task_data_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
+            }
+            return OSF(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, null_torque);
+        }
+
+        bool RobotController::OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                      Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator)
+        {
+            const VectorXd null_torque = VectorXd::Zero(actuator_dof_);
+            return OSFStep(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_torque);
+        }
+
+        bool RobotController::OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       const double& current_time,
+                                       const double& init_time,
+                                       const double& duration,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
+                                       const Eigen::Ref<const VectorXd>& null_torque)
+        {
+            std::map<std::string, TaskSpaceData> link_task_data_result;
+            for (const auto& [link_name, task_data] : link_task_data)
+            {
+                TaskSpaceData task_data_result = task_data;
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                link_task_data_result[link_name] = task_data_result;
+            }
+
+            return OSFStep(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, null_torque);
+        }
+
+        bool RobotController::OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                       const double& current_time,
+                                       const double& init_time,
+                                       const double& duration,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator)
+        {
+            const VectorXd null_torque = VectorXd::Zero(actuator_dof_);
+            return OSFCubic(link_task_data, current_time, init_time, duration, opt_qddot_mobile, opt_torque_manipulator, null_torque);
+        }
+
 
         bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                    Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,

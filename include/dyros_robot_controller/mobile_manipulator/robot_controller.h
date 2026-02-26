@@ -412,6 +412,87 @@ namespace drc
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator);
 
                 /**
+                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration (xddot_desired) of a link using operational space formulation, projecting null_torque into null space.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
+                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
+                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @param null_torque            (Eigen::VectorXd) Desired actuated joint torque to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool OSF(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                 Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                 Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
+                                 const Eigen::Ref<const VectorXd>& null_torque);
+                /**
+                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration (xddot_desired) of a link using operational space formulation.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
+                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
+                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool OSF(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                 Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                 Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator);
+
+                /**
+                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link using operational space formulation, projecting null_torque into null space.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
+                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @param null_torque            (Eigen::VectorXd) Desired actuated joint torque to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                     Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                     Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
+                                     const Eigen::Ref<const VectorXd>& null_torque);
+                /**
+                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link using operational space formulation.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
+                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                     Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                     Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator);
+
+                /**
+                 * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using OSF with null_torque.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+                 * @param current_time           (double) Current time.
+                 * @param init_time              (double) Start time of the segment.
+                 * @param duration               (double) Time duration.
+                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
+                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @param null_torque            (Eigen::VectorXd) Desired actuated joint torque to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      const double& current_time,
+                                      const double& init_time,
+                                      const double& duration,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                      Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
+                                      const Eigen::Ref<const VectorXd>& null_torque);
+                /**
+                 * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using OSF.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+                 * @param current_time           (double) Current time.
+                 * @param init_time              (double) Start time of the segment.
+                 * @param duration               (double) Time duration.
+                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
+                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @return (bool) True if sizes are valid and computation succeeded.
+                 */
+                virtual bool OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
+                                      const double& current_time,
+                                      const double& init_time,
+                                      const double& duration,
+                                      Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                      Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator);
+
+                /**
                  * @brief Computes velocities for mobile base and manipulator joints to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
@@ -623,6 +704,13 @@ namespace drc
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                   std::string& time_verbose);
+                /**
+                 * @brief Internal OSF overload that receives desired task accelerations directly.
+                 */
+                virtual bool OSF(const std::map<std::string, Vector6d>& link_xddot_target,
+                                 Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
+                                 Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
+                                 const Eigen::Ref<const VectorXd>& null_torque);
                 /**
                  * @brief Internal compatibility overload of QPIK with legacy bool argument.
                  */

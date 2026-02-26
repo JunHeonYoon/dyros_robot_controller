@@ -484,6 +484,87 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
         return super().CLIKCubic(link_task_data_cpp, current_time, init_time, duration, null_qdot)
 
+    def OSF(self,
+            link_task_data: dict[str, TaskSpaceData],
+            null_torque: np.ndarray | None = None,
+            ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration (xddot_desired) of a link using operational space formulation, projecting null_torque into null space if provided.
+
+        Parameters:
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
+            null_torque    : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
+        """
+        link_task_data_cpp = {}
+        for k, v in link_task_data.items():
+            if hasattr(v, "cpp"):
+                link_task_data_cpp[k] = v.cpp()
+        if null_torque is None:
+            null_torque = np.zeros(self._robot_data.actuated_dof)
+        else:
+            null_torque = null_torque.reshape(-1)
+            assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+        return super().OSF(link_task_data_cpp, null_torque)
+
+    def OSF_step(self,
+                 link_task_data: dict[str, TaskSpaceData],
+                 null_torque: np.ndarray | None = None,
+                 ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Computes mobile base accelerations and manipulator joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link using operational space formulation, projecting null_torque into null space if provided.
+
+        Parameters:
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
+            null_torque    : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
+        """
+        link_task_data_cpp = {}
+        for k, v in link_task_data.items():
+            if hasattr(v, "cpp"):
+                link_task_data_cpp[k] = v.cpp()
+        if null_torque is None:
+            null_torque = np.zeros(self._robot_data.actuated_dof)
+        else:
+            null_torque = null_torque.reshape(-1)
+            assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+        return super().OSFStep(link_task_data_cpp, null_torque)
+
+    def OSF_cubic(self,
+                  link_task_data: dict[str, TaskSpaceData],
+                  current_time: float,
+                  init_time: float,
+                  duration: float,
+                  null_torque: np.ndarray | None = None,
+                  ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using OSF, projecting null_torque into null space if provided.
+
+        Parameters:
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+            current_time : (float) Current time.
+            init_time    : (float) Start time of the segment.
+            duration     : (float) Time duration.
+            null_torque  : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
+        """
+        link_task_data_cpp = {}
+        for k, v in link_task_data.items():
+            if hasattr(v, "cpp"):
+                link_task_data_cpp[k] = v.cpp()
+        if null_torque is None:
+            null_torque = np.zeros(self._robot_data.actuated_dof)
+        else:
+            null_torque = null_torque.reshape(-1)
+            assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+        return super().OSFCubic(link_task_data_cpp, current_time, init_time, duration, null_torque)
+
     def QPIK(self, 
              link_task_data: dict[str, TaskSpaceData],
              time_verbose: bool = False,
