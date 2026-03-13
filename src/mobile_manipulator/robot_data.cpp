@@ -9,17 +9,6 @@ namespace drc
                              const Mobile::KinematicParam& mobile_param,
                              const JointIndex& joint_idx,
                              const ActuatorIndex& actuator_idx,
-                             const std::string& urdf_path,
-                             const std::string& srdf_path, 
-                             const std::string& packages_path)
-        : RobotData(dt, mobile_param, joint_idx, actuator_idx, urdf_path, srdf_path, packages_path, false)
-        {
-        }
-
-        RobotData::RobotData(const double dt,
-                             const Mobile::KinematicParam& mobile_param,
-                             const JointIndex& joint_idx,
-                             const ActuatorIndex& actuator_idx,
                              const std::string& urdf_source,
                              const std::string& srdf_source,
                              const std::string& packages_path,

@@ -44,17 +44,6 @@ namespace drc
                 /**
                  * @brief Constructor.
                  * @param dt            (double) Control loop time step in seconds.
-                 * @param urdf_path     (std::string) Path to the URDF file.
-                 * @param srdf_path     (std::string) Path to the SRDF file.
-                 * @param packages_path (std::string) Path to the packages directory.
-                 */
-                RobotData(const double dt,
-                          const std::string& urdf_path, 
-                          const std::string& srdf_path="", 
-                          const std::string& packages_path="");
-                /**
-                 * @brief Constructor.
-                 * @param dt            (double) Control loop time step in seconds.
                  * @param urdf_source   (std::string) URDF file path or URDF XML string (when use_xml is true).
                  * @param srdf_source   (std::string) SRDF file path or SRDF XML string (when use_xml is true).
                  * @param packages_path (std::string) Path to the packages directory.
@@ -64,7 +53,7 @@ namespace drc
                           const std::string& urdf_source,
                           const std::string& srdf_source,
                           const std::string& packages_path,
-                          const bool use_xml);
+                          const bool use_xml=false);
                 /**
                  * @brief Update the state of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.
@@ -360,6 +349,7 @@ namespace drc
                 // Cached frame name lists
                 std::vector<std::string> link_frame_names_;   // URDF <link> names
                 std::vector<std::string> joint_frame_names_;  // URDF <joint> names
+                std::vector<std::string> joint_names_;         // pinocchio model joint names (excludes universe)
 
                 std::unordered_set<std::string> link_frame_set_;
                 std::unordered_set<std::string> joint_frame_set_;

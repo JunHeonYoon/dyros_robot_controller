@@ -6,14 +6,6 @@ namespace drc
     namespace Manipulator
     {
         RobotData::RobotData(const double dt,
-                             const std::string& urdf_path,
-                             const std::string& srdf_path,
-                             const std::string& packages_path)
-        : RobotData(dt, urdf_path, srdf_path, packages_path, false)
-        {
-        }
-
-        RobotData::RobotData(const double dt,
                              const std::string& urdf_source,
                              const std::string& srdf_source,
                              const std::string& packages_path,
