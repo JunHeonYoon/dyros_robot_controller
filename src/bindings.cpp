@@ -211,6 +211,56 @@ namespace
         return bp::make_tuple(qp_success, qdot);
     }
 
+    bp::tuple MM_RC_CLIK_no_null_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data)
+    {
+        VectorXd qdot_mobi, qdot_mani;
+        const bool success = self.CLIK(link_task_data, qdot_mobi, qdot_mani);
+        return bp::make_tuple(success, qdot_mobi, qdot_mani);
+    }
+
+    bp::tuple MM_RC_CLIKStep_no_null_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data)
+    {
+        VectorXd qdot_mobi, qdot_mani;
+        const bool success = self.CLIKStep(link_task_data, qdot_mobi, qdot_mani);
+        return bp::make_tuple(success, qdot_mobi, qdot_mani);
+    }
+
+    bp::tuple MM_RC_CLIKCubic_no_null_tuple(MM_RC& self,
+                                            const std::map<std::string, TaskSpaceData>& link_task_data,
+                                            const double& current_time,
+                                            const double& init_time,
+                                            const double& duration)
+    {
+        VectorXd qdot_mobi, qdot_mani;
+        const bool success = self.CLIKCubic(link_task_data, current_time, init_time, duration, qdot_mobi, qdot_mani);
+        return bp::make_tuple(success, qdot_mobi, qdot_mani);
+    }
+
+    bp::tuple MM_RC_OSF_no_null_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data)
+    {
+        VectorXd qddot_mobi, torque_mani;
+        const bool success = self.OSF(link_task_data, qddot_mobi, torque_mani);
+        return bp::make_tuple(success, qddot_mobi, torque_mani);
+    }
+
+    bp::tuple MM_RC_OSFStep_no_null_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data)
+    {
+        VectorXd qddot_mobi, torque_mani;
+        const bool success = self.OSFStep(link_task_data, qddot_mobi, torque_mani);
+        return bp::make_tuple(success, qddot_mobi, torque_mani);
+    }
+
+    bp::tuple MM_RC_OSFCubic_no_null_tuple(MM_RC& self,
+                                           const std::map<std::string, TaskSpaceData>& link_task_data,
+                                           const double& current_time,
+                                           const double& init_time,
+                                           const double& duration)
+    {
+        VectorXd qddot_mobi, torque_mani;
+        const bool success = self.OSFCubic(link_task_data, current_time, init_time, duration, qddot_mobi, torque_mani);
+        return bp::make_tuple(success, qddot_mobi, torque_mani);
+    }
+
     bp::tuple MN_RC_QPID_tuple(MN_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
         VectorXd torque;
@@ -663,7 +713,10 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("getJacobianTimeVariation",     &MN_RD::getJacobianTimeVariation)
         .def("getVelocity",                  &MN_RD::getVelocity)
         .def("getMinDistance",               &MN_RD::getMinDistance)
-        .def("getManipulability",            &MN_RD::getManipulability);
+        .def("getManipulability",            &MN_RD::getManipulability)
+        .def("getJointNames",               +[](const MN_RD& self){ return self.getJointNames(); })
+        .def("getJointQIndex",               &MN_RD::getJointQIndex)
+        .def("getJointVIndex",               &MN_RD::getJointVIndex);
 
     typedef bool (MM_RD::*Upd6)(const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&);
     typedef MatrixXd (MM_RD::*Mat3)(const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&);
@@ -769,11 +822,17 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("moveJointTorqueStep",                                                    static_cast<VectorXd (MN_RC::*)(const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const bool)>(&MN_RC::moveJointTorqueStep))
         .def("moveJointTorqueCubic",                                                                                                                                  &MN_RC::moveJointTorqueCubic)
         .def("CLIK",                                                   static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const Eigen::Ref<const VectorXd>&)>(&MN_RC::CLIK))
+        .def("CLIK",                                                   static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&)>(&MN_RC::CLIK))
         .def("CLIKStep",                                               static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const Eigen::Ref<const VectorXd>&)>(&MN_RC::CLIKStep))
+        .def("CLIKStep",                                               static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&)>(&MN_RC::CLIKStep))
         .def("CLIKCubic", static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const double&, const double&, const double&, const Eigen::Ref<const VectorXd>&)>(&MN_RC::CLIKCubic))
+        .def("CLIKCubic", static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const double&, const double&, const double&)>(&MN_RC::CLIKCubic))
         .def("OSF",                                                    static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const Eigen::Ref<const VectorXd>&)>(&MN_RC::OSF))
+        .def("OSF",                                                    static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&)>(&MN_RC::OSF))
         .def("OSFStep",                                                static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const Eigen::Ref<const VectorXd>&)>(&MN_RC::OSFStep))
+        .def("OSFStep",                                                static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&)>(&MN_RC::OSFStep))
         .def("OSFCubic",  static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const double&, const double&, const double&, const Eigen::Ref<const VectorXd>&)>(&MN_RC::OSFCubic))
+        .def("OSFCubic",  static_cast<VectorXd (MN_RC::*)(const std::map<std::string, TaskSpaceData>&, const double&, const double&, const double&)>(&MN_RC::OSFCubic))
         .def("QPIK",                                                                                 &MN_RC_QPIK_tuple)
         .def("QPIKStep",                                                                             &MN_RC_QPIKStep_tuple)
         .def("QPIKCubic",                                                                            &MN_RC_QPIKCubic_tuple)
@@ -821,11 +880,17 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("moveManipulatorJointTorqueStep", static_cast<VectorXd(MM_RC::*)(const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const bool)>(&MM_RC::moveManipulatorJointTorqueStep))
         .def("moveManipulatorJointTorqueCubic",                                                                              &MM_RC::moveManipulatorJointTorqueCubic)
         .def("CLIK",                                                                                                         &MM_RC_CLIK_tuple)
+        .def("CLIK",                                                                                                         &MM_RC_CLIK_no_null_tuple)
         .def("CLIKStep",                                                                                                     &MM_RC_CLIKStep_tuple)
+        .def("CLIKStep",                                                                                                     &MM_RC_CLIKStep_no_null_tuple)
         .def("CLIKCubic",                                                                                                    &MM_RC_CLIKCubic_tuple)
+        .def("CLIKCubic",                                                                                                    &MM_RC_CLIKCubic_no_null_tuple)
         .def("OSF",                                                                                                          &MM_RC_OSF_tuple)
+        .def("OSF",                                                                                                          &MM_RC_OSF_no_null_tuple)
         .def("OSFStep",                                                                                                      &MM_RC_OSFStep_tuple)
+        .def("OSFStep",                                                                                                      &MM_RC_OSFStep_no_null_tuple)
         .def("OSFCubic",                                                                                                     &MM_RC_OSFCubic_tuple)
+        .def("OSFCubic",                                                                                                     &MM_RC_OSFCubic_no_null_tuple)
         .def("QPIK",                                                                                                         &MM_RC_QPIK_tuple)
         .def("QPIKStep",                                                                                                     &MM_RC_QPIKStep_tuple)
         .def("QPIKCubic",                                                                                                    &MM_RC_QPIKCubic_tuple)
