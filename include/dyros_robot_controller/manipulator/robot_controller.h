@@ -98,7 +98,7 @@ namespace drc
 
                 /**
                  * @brief Set QPIK task tracking weights only.
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking for every link.
+                 * @param w_tracking (Vector6d) Weight for task velocity tracking for every link.
                  */
                 void setQPIKTrackingGain(const Vector6d& w_tracking);
 
@@ -121,8 +121,8 @@ namespace drc
                 void setQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
                 
                 /**
-                 * @brief Set the wight vector for the cost terms of the QPIK
-                 * @param link_w_tracking (Vector6d) Weight for task velocity tracking for every link.
+                 * @brief Set the weight vector for the cost terms of the QPIK.
+                 * @param w_tracking (Vector6d) Weight for task velocity tracking for every link.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
@@ -131,7 +131,7 @@ namespace drc
                                  const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
-                 * @brief Set the wight vector for the cost terms of the QPIK
+                 * @brief Set the weight vector for the cost terms of the QPIK.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
@@ -142,7 +142,7 @@ namespace drc
 
                 /**
                  * @brief Set QPID task tracking weights only.
-                 * @param link_w_tracking (Vector6d) Weight for task acceleration tracking for every link.
+                 * @param w_tracking (Vector6d) Weight for task acceleration tracking for every link.
                  */
                 void setQPIDTrackingGain(const Vector6d& w_tracking);
                 
@@ -166,15 +166,15 @@ namespace drc
                 void setQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
-                 * @brief Set the wight vector for  the cost terms of the QPID
-                 * @param link_w_tracking (Vector6d) Weight for task acceleration tracking for every link.
+                 * @brief Set the weight vector for the cost terms of the QPID.
+                 * @param w_tracking (Vector6d) Weight for task acceleration tracking for every link.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
                 void setQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
-                 * @brief Set the wight vector for  the cost terms of the QPID
+                 * @brief Set the weight vector for the cost terms of the QPID.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.

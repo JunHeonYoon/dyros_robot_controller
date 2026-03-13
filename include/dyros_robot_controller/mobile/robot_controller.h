@@ -73,9 +73,9 @@ namespace drc
                 */
                 MatrixXd CasterIKJacobian();
 
-                Eigen::Vector3d base_cmd_prev_  = Eigen::Vector3d::Zero();  // v0 (k-1)
-                Eigen::Vector3d base_cmd_prev2_ = Eigen::Vector3d::Zero();  // v1 (k-2)
-                bool base_cmd_hist_init_ = false;
+                Eigen::Vector3d base_cmd_prev_  = Eigen::Vector3d::Zero();  // Base velocity command from one step ago [vx, vy, wz].
+                Eigen::Vector3d base_cmd_prev2_ = Eigen::Vector3d::Zero();  // Base velocity command from two steps ago [vx, vy, wz].
+                bool base_cmd_hist_init_ = false;                           // True once the command history has been populated with at least one step.
         };
     } // namespace Mobile
 } // namespace drc

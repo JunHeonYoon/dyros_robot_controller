@@ -358,8 +358,8 @@ namespace drc
                 VectorXd q_ub_;     // Upper joint position limits of the manipulator.
                 VectorXd qdot_lb_;  // Lower joint velocity limits of the manipulator.
                 VectorXd qdot_ub_;  // Upper joint velocity limits of the manipulator.
-                VectorXd torque_lb_;
-                VectorXd torque_ub_;
+                VectorXd torque_lb_;  // Lower joint effort limits of the manipulator.
+                VectorXd torque_ub_;  // Upper joint effort limits of the manipulator.
 
                 // Joint space Dynamics
                 MatrixXd M_;        // Mass matrix of the manipulator.
@@ -368,5 +368,5 @@ namespace drc
                 VectorXd c_;        // Coriolis vector of the manipulator.
                 VectorXd NLE_;      // Nonlinear effects vector of the manipulator.
         };
-    } //namespce Manipulator
+    } // namespace Manipulator
 } // namespace drc

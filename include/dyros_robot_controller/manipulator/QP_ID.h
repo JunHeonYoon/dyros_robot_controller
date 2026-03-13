@@ -44,7 +44,7 @@ namespace drc
                  */
                 void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
                 /**
-                 * @brief Set the wight vector for the cost terms
+                 * @brief Set the weight vector for the cost terms.
                  * @param w_tracking (Eigen::Vector6d) Weight for task space acceleration tracking for all the links in the URDF.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
@@ -53,7 +53,7 @@ namespace drc
                                const Eigen::Ref<const VectorXd>& w_vel_damping,
                                const Eigen::Ref<const VectorXd>& w_acc_damping);
                 /**
-                 * @brief Set the wight vector for the cost terms
+                 * @brief Set the weight vector for the cost terms.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space acceleration tracking per links.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
@@ -77,7 +77,7 @@ namespace drc
 
             private:
                 /**
-                 * @brief Struct to hold the indicies of the QP variables and constraints.
+                 * @brief Struct to hold the indices of the QP variables and constraints.
                  */
                 struct QPIndex
                 {
@@ -198,5 +198,5 @@ namespace drc
                  */
                 void setEqConstraint() override;
         };
-    } // namespace QP
-} // namespacce drc
+    } // namespace Manipulator
+} // namespace drc

@@ -155,5 +155,5 @@ namespace drc
                 MatrixXd CasterFKJacobian(const Eigen::Ref<const VectorXd>& wheel_pos);
 
         };
-    } // namespace RobotData
+    } // namespace Mobile
 } // namespace drc

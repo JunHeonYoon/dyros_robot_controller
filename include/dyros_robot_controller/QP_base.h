@@ -52,7 +52,7 @@ namespace drc
         {
             public:
                 /**
-                 * @brief Cosntructor.
+                 * @brief Constructor.
                  */
                 QPBase() : solver_initialized_(false), warm_start_ready_(false) {}
                 /**
@@ -285,11 +285,11 @@ namespace drc
                 TimeDuration time_status_;      // Time durations structure for the QP solving process
 
                 OsqpEigen::Solver solver_;      // Persistent solver instance to avoid re-init
-                bool solver_initialized_;
+                bool solver_initialized_;       // True if solver has been initialized at least once
 
-                VectorXd last_primal_;
-                VectorXd last_dual_;
-                bool warm_start_ready_;
+                VectorXd last_primal_;          // Primal solution from the previous solve (used for warm start)
+                VectorXd last_dual_;            // Dual solution from the previous solve (used for warm start)
+                bool warm_start_ready_;         // True if warm start data is available from a prior solve
         };
     } // namespace QP
 } // namespace drc
