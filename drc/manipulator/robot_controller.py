@@ -445,7 +445,6 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def CLIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    current_time: float,
-                   init_time: float,
                    duration: float,
                    null_qdot: np.ndarray | None = None,
                    ) -> np.ndarray:
@@ -453,9 +452,8 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration, then compute joint velocities with null_qdot to follow the resulting trajectory if provided.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
             current_time : (float) Current time.
-            init_time    : (float) Start time of the segment.
             duration     : (float) Time duration.
             null_qdot    : (np.ndarray) [Optional] Desired joint velocity to be projected on null space.
 
@@ -467,11 +465,11 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_qdot is None:
-            return super().CLIKCubic(link_task_data_cpp, current_time, init_time, duration)
+            return super().CLIKCubic(link_task_data_cpp, current_time, 0.0, duration)
         else:
             null_qdot = null_qdot.reshape(-1)
             assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
-            return super().CLIKCubic(link_task_data_cpp, current_time, init_time, duration, null_qdot)
+            return super().CLIKCubic(link_task_data_cpp, current_time, 0.0, duration, null_qdot)
 
 
     def OSF(self,
@@ -527,7 +525,6 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def OSF_cubic(self,
                   link_task_data: dict[str, TaskSpaceData],
                   current_time: float,
-                  init_time: float,
                   duration: float,
                   null_torque: np.ndarray | None = None,
                   ) -> np.ndarray:
@@ -535,9 +532,8 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration, then compute joint torques with null_torque to follow the resulting trajectory if provided.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
             current_time : (float) Current time.
-            init_time    : (float) Start time of the segment.
             duration     : (float) Time duration.
             null_torque  : (np.ndarray) [Optional] Desired joint torque to be projected on null space.
 
@@ -549,11 +545,11 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is None:
-            return super().OSFCubic(link_task_data_cpp, current_time, init_time, duration)
+            return super().OSFCubic(link_task_data_cpp, current_time, 0.0, duration)
         else:
             null_torque = null_torque.reshape(-1)
             assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
-            return super().OSFCubic(link_task_data_cpp, current_time, init_time, duration, null_torque)
+            return super().OSFCubic(link_task_data_cpp, current_time, 0.0, duration, null_torque)
         
     def QPIK(self, 
              link_task_data: dict[str, TaskSpaceData],
@@ -598,7 +594,6 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def QPIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    current_time: float,
-                   init_time: float,
                    duration: float,
                    time_verbose: bool = False,
                    ) -> tuple[bool, np.ndarray]:
@@ -606,11 +601,10 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint velocities using QP to follow the resulting trajectory.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
             current_time : (float) Current time.
-            init_time    : (float) Start time of the segment.
             duration     : (float) Time duration.
-            time_verbose : (bool) If true, print the computation time for QP. 
+            time_verbose : (bool) If true, print the computation time for QP.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
@@ -621,7 +615,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
                 link_task_data_cpp[k] = v.cpp()
         return super().QPIKCubic(link_task_data_cpp,
                                  current_time,
-                                 init_time,
+                                 0.0,
                                  duration,
                                  time_verbose
                                  )
@@ -669,7 +663,6 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def QPID_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    current_time: float,
-                   init_time: float,
                    duration: float,
                    time_verbose: bool = False,
                    ) -> tuple[bool, np.ndarray]:
@@ -677,11 +670,10 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint torques using QP to follow the resulting trajectory.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
             current_time : (float) Current time.
-            init_time    : (float) Start time of the segment.
             duration     : (float) Time duration.
-            time_verbose : (bool) If true, print the computation time for QP. 
+            time_verbose : (bool) If true, print the computation time for QP.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
@@ -692,6 +684,6 @@ class RobotController(drc_cpp.ManipulatorRobotController):
                 link_task_data_cpp[k] = v.cpp()
         return super().QPIDCubic(link_task_data_cpp,
                                  current_time,
-                                 init_time,
+                                 0.0,
                                  duration,
                                  time_verbose)

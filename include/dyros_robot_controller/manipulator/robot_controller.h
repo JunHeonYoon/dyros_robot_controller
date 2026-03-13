@@ -291,27 +291,23 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration, then compute joint velocities with null_qdot to follow the resulting trajectory.
                  * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time   (double) Current time.
-                 * @param init_time      (double) Start time of the segment.
                  * @param duration       (double) Time duration
                  * @param null_qdot      (Eigen::VectorXd) Desired joint velocity to be projected on null space.
                  * @return (Eigen::VectorXd) Desired joint velocities.
                  */
                 virtual VectorXd CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                            const double& current_time,
-                                           const double& init_time,
                                            const double& duration,
                                            const Eigen::Ref<const VectorXd>& null_qdot);
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration.
                  * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time   (double) Current time.
-                 * @param init_time      (double) Start time of the segment.
                  * @param duration       (double) Time duration
                  * @return (Eigen::VectorXd) Desired joint velocities.
                  */
                 virtual VectorXd CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                            const double& current_time,
-                                           const double& init_time,
                                            const double& duration);
                 /**
                  * @brief Computes joint torque to achieve desired acceleration (xddot_desired) of a link using operational space control, projecting null_torque into null space to exploit redundancy.
@@ -345,27 +341,23 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration, then compute joint torques with null_torque to follow the resulting trajectory.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time          (double) Current time.
-                 * @param init_time             (double) Start time of the segment.
                  * @param duration              (double) Time duration
                  * @param null_torque           (Eigen::VectorXd) Desired joint torque to be projected on null space.
                  * @return (Eigen::VectorXd) Desired joint torques.
                  */                         
                 virtual VectorXd OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                           const double& current_time,
-                                          const double& init_time,
                                           const double& duration,
                                           const Eigen::Ref<const VectorXd>& null_torque);
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time          (double) Current time.
-                 * @param init_time             (double) Start time of the segment.
                  * @param duration              (double) Time duration
                  * @return (Eigen::VectorXd) Desired joint torques.
                  */       
                 virtual VectorXd OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                           const double& current_time,
-                                          const double& init_time,
                                           const double& duration);
                 /**
                  * @brief Computes joint velocities to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
@@ -411,7 +403,6 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint velocities using QP to follow the resulting trajectory.
                  * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time         (double) Current time.
-                 * @param init_time            (double) Start time of the segment.
                  * @param duration             (double) Time duration
                  * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (std::string&) Output formatted computation time information for QP.
@@ -419,7 +410,6 @@ namespace drc
                 */                           
                 virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                        std::string& time_verbose);
@@ -427,7 +417,6 @@ namespace drc
                  * @brief Compatibility overload of QPIKCubic.
                  * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time         (double) Current time.
-                 * @param init_time            (double) Start time of the segment.
                  * @param duration             (double) Time duration
                  * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
@@ -435,7 +424,6 @@ namespace drc
                 */
                 virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                        const bool time_verbose=false);
@@ -483,7 +471,6 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint torques using QP to follow the resulting trajectory.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time           (double) Current time.
-                 * @param init_time              (double) Start time of the segment.
                  * @param duration               (double) Time duration
                  * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
                  * @param time_verbose  (std::string&) Output formatted computation time information for QP.
@@ -491,7 +478,6 @@ namespace drc
                 */                             
                 virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
                                        std::string& time_verbose);
@@ -499,7 +485,6 @@ namespace drc
                  * @brief Compatibility overload of QPIDCubic.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time           (double) Current time.
-                 * @param init_time              (double) Start time of the segment.
                  * @param duration               (double) Time duration
                  * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
                  * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
@@ -507,7 +492,6 @@ namespace drc
                 */
                 virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
                                        const bool time_verbose=false);

@@ -479,7 +479,6 @@ namespace drc
 
         bool RobotController::CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
-                                        const double& init_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
@@ -489,7 +488,7 @@ namespace drc
             for (const auto& [link_name, task_data] : link_task_data)
             {
                 TaskSpaceData task_data_result = task_data;
-                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
 
@@ -498,13 +497,12 @@ namespace drc
 
         bool RobotController::CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
-                                        const double& init_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator)
         {
             const VectorXd null_qdot = VectorXd::Zero(actuator_dof_);
-            return CLIKCubic(link_task_data, current_time, init_time, duration, opt_qdot_mobile, opt_qdot_manipulator, null_qdot);
+            return CLIKCubic(link_task_data, current_time, duration, opt_qdot_mobile, opt_qdot_manipulator, null_qdot);
         }
 
         bool RobotController::OSF(const std::map<std::string, Vector6d>& link_xddot_target,
@@ -615,7 +613,6 @@ namespace drc
 
         bool RobotController::OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
@@ -625,7 +622,7 @@ namespace drc
             for (const auto& [link_name, task_data] : link_task_data)
             {
                 TaskSpaceData task_data_result = task_data;
-                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
 
@@ -634,13 +631,12 @@ namespace drc
 
         bool RobotController::OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator)
         {
             const VectorXd null_torque = VectorXd::Zero(actuator_dof_);
-            return OSFCubic(link_task_data, current_time, init_time, duration, opt_qddot_mobile, opt_torque_manipulator, null_torque);
+            return OSFCubic(link_task_data, current_time, duration, opt_qddot_mobile, opt_torque_manipulator, null_torque);
         }
 
 
@@ -743,7 +739,6 @@ namespace drc
 
         bool RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
-                                        const double& init_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
@@ -753,7 +748,7 @@ namespace drc
             for (auto &[link_name, task_data] : link_task_data)
             {
                 TaskSpaceData task_data_result = task_data;
-                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
 
@@ -762,14 +757,13 @@ namespace drc
 
         bool RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
-                                        const double& init_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                         const bool time_verbose)
         {
             std::string time_verbose_str;
-            const bool qp_success = QPIKCubic(link_task_data, current_time, init_time, duration, opt_qdot_mobile, opt_qdot_manipulator, time_verbose_str);
+            const bool qp_success = QPIKCubic(link_task_data, current_time, duration, opt_qdot_mobile, opt_qdot_manipulator, time_verbose_str);
             printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
@@ -877,7 +871,6 @@ namespace drc
 
         bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
-                                        const double& init_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                         Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
@@ -887,7 +880,7 @@ namespace drc
             for (auto &[link_name, task_data] : link_task_data)
             {
                 TaskSpaceData task_data_result = task_data;
-                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, init_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
 
@@ -896,14 +889,13 @@ namespace drc
 
         bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& current_time,
-                                        const double& init_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                         Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                         const bool time_verbose)
         {
             std::string time_verbose_str;
-            const bool qp_success = QPIDCubic(link_task_data, current_time, init_time, duration, opt_qddot_mobile, opt_torque_manipulator, time_verbose_str);
+            const bool qp_success = QPIDCubic(link_task_data, current_time, duration, opt_qddot_mobile, opt_torque_manipulator, time_verbose_str);
             printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }

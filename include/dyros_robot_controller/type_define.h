@@ -208,6 +208,8 @@ namespace drc
         Vector6d xdot_desired;
         Vector6d xddot_desired;
 
+        double control_start_time{0.0};
+
         /**
          * @brief Reset all pose and derivative data to zero/identity.
          *
@@ -227,6 +229,8 @@ namespace drc
             x_desired.setIdentity();
             xdot_desired.setZero();
             xddot_desired.setZero();
+
+            control_start_time = 0.0;
         }
 
         /**
@@ -244,13 +248,22 @@ namespace drc
         /**
          * @brief Store the current task-space state into the *_init fields.
          *
+         * @param current_time Simulation time at the start of the motion.
          * @note Typical usage: call at the start of a motion or trajectory.
          */
+        void setInit(double current_time)
+        {
+            x_init = x;
+            xdot_init = xdot;
+            xddot_init = xddot;
+            control_start_time = current_time;
+        }
+
         void setInit()
         {
-            x_init = x; 
-            xdot_init = xdot; 
-            xddot_init = xddot; 
+            x_init = x;
+            xdot_init = xdot;
+            xddot_init = xddot;
         }
 
         /**

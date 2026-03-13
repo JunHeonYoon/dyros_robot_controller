@@ -380,7 +380,6 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK with null_qdot.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time          (double) Current time.
-                 * @param init_time             (double) Start time of the segment.
                  * @param duration              (double) Time duration.
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
@@ -389,7 +388,6 @@ namespace drc
                  */
                 virtual bool CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
@@ -398,7 +396,6 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time          (double) Current time.
-                 * @param init_time             (double) Start time of the segment.
                  * @param duration              (double) Time duration.
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
@@ -406,7 +403,6 @@ namespace drc
                  */
                 virtual bool CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator);
@@ -461,7 +457,6 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using OSF with null_torque.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time           (double) Current time.
-                 * @param init_time              (double) Start time of the segment.
                  * @param duration               (double) Time duration.
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
@@ -470,7 +465,6 @@ namespace drc
                  */
                 virtual bool OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       const double& current_time,
-                                      const double& init_time,
                                       const double& duration,
                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
@@ -479,7 +473,6 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using OSF.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time           (double) Current time.
-                 * @param init_time              (double) Start time of the segment.
                  * @param duration               (double) Time duration.
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
@@ -487,7 +480,6 @@ namespace drc
                  */
                 virtual bool OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       const double& current_time,
-                                      const double& init_time,
                                       const double& duration,
                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator);
@@ -546,7 +538,6 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute velocities for mobile base and manipulator joints using QP to follow the resulting trajectory.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time          (double) Current time.
-                 * @param init_time             (double) Start time of the segment.
                  * @param duration              (double) Time duration.
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
@@ -555,7 +546,6 @@ namespace drc
                 */                      
                 virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
@@ -564,7 +554,6 @@ namespace drc
                  * @brief Compatibility overload of QPIKCubic.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time          (double) Current time.
-                 * @param init_time             (double) Start time of the segment.
                  * @param duration              (double) Time duration.
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
@@ -573,7 +562,6 @@ namespace drc
                 */
                 virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
@@ -633,7 +621,6 @@ namespace drc
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using QP to follow the resulting trajectory.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time           (double) Current time.
-                 * @param init_time              (double) Start time of the segment.
                  * @param duration               (double) Time duration.
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
@@ -642,7 +629,6 @@ namespace drc
                 */
                 virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
@@ -651,7 +637,6 @@ namespace drc
                  * @brief Compatibility overload of QPIDCubic.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
                  * @param current_time           (double) Current time.
-                 * @param init_time              (double) Start time of the segment.
                  * @param duration               (double) Time duration.
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
@@ -660,7 +645,6 @@ namespace drc
                 */
                 virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& current_time,
-                                       const double& init_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
