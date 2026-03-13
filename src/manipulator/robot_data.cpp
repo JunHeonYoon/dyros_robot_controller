@@ -132,9 +132,15 @@ namespace drc
 
             link_frame_names_.clear();
             joint_frame_names_.clear();
+            joint_names_.clear();
             link_frame_set_.clear();
             joint_frame_set_.clear();
             root_link_name_.clear();
+
+            // Populate pinocchio joint names (skip universe at index 0)
+            joint_names_.reserve(model_.njoints > 0 ? model_.njoints - 1 : 0);
+            for (pinocchio::JointIndex jid = 1; jid < (pinocchio::JointIndex)model_.njoints; ++jid)
+                joint_names_.push_back(model_.names[jid]);
 
             // Collect frames
             for (pinocchio::FrameIndex i = 0; i < model_.frames.size(); ++i)
@@ -481,6 +487,25 @@ namespace drc
         bool RobotData::hasJointFrame(const std::string& name) const
         {
             return joint_frame_set_.count(name) > 0;
+        }
+
+        const std::vector<std::string>& RobotData::getJointNames() const
+        {
+            return joint_names_;
+        }
+
+        int RobotData::getJointQIndex(const std::string& name)
+        {
+            pinocchio::JointIndex joint_id = model_.getJointId(name);
+            if (joint_id == 0) return -1;
+            return static_cast<int>(model_.joints[joint_id].idx_q());
+        }
+
+        int RobotData::getJointVIndex(const std::string& name)
+        {
+            pinocchio::JointIndex joint_id = model_.getJointId(name);
+            if (joint_id == 0) return -1;
+            return static_cast<int>(model_.joints[joint_id].idx_v());
         }
 
         // Task space  

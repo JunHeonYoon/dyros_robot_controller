@@ -205,6 +205,24 @@ namespace drc
                  * @return (bool) True if the joint frame exists.
                  */
                 bool hasJointFrame(const std::string& name) const;
+                /**
+                 * @brief Get all joint names, excluding the universe joint.
+                 * @return (std::vector<std::string>) List of joint names.
+                 */
+                const std::vector<std::string>& getJointNames() const;
+                /**
+                 * @brief Get the start index of the given joint in the generalized position vector q.
+                 * @param name (std::string) Joint name.
+                 * @return (int) Start index in q. Returns -1 if no joint with the given name exists.
+                 */
+                int getJointQIndex(const std::string& name);
+
+                /**
+                 * @brief Get the start index of the given joint in the generalized velocity vector v.
+                 * @param name (std::string) Joint name.
+                 * @return (int) Start index in v. Returns -1 if no joint with the given name exists.
+                 */
+                int getJointVIndex(const std::string& name);
 
                 // Root link (base link default)
                 /**
