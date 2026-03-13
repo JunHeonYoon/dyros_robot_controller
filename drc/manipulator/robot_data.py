@@ -37,7 +37,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
 
     def get_dt(self) -> float:
         """
-        Get the control time step.
+        Get control time step.
 
         Return:
             (float) Control loop time step in seconds.
@@ -219,8 +219,8 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         Parameters:
             q            : (np.ndarray) Joint positions.
             qdot         : (np.ndarray) Joint velocities.
-            with_grad    : (bool) If true, computes the gradient of the minimum distance.
-            with_graddot : (bool) If true, computes the gradient time variation of the minimum distance.
+            with_grad    : (bool) If true, computes the gradient of the manipulability.
+            with_graddot : (bool) If true, computes the gradient time variation of the manipulability.
             link_name    : (str) Name of the link.
 
         Return:
@@ -444,7 +444,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
 
     def get_velocity(self, link_name: str) -> np.ndarray:
         """
-        Get the Velocity of the link in the task space.
+        Get the velocity of the link in the task space.
 
         Parameters:
             link_name : (str) Name of the link.
@@ -482,3 +482,36 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         min_result = super().getManipulability(with_grad, with_graddot, link_name)
         return min_result.manipulability, min_result.grad, min_result.grad_dot
+
+    def get_joint_names(self) -> list:
+        """
+        Get all joint names, excluding the universe joint.
+
+        Return:
+            (list) List of joint names.
+        """
+        return list(super().getJointNames())
+
+    def get_joint_q_index(self, name: str) -> int:
+        """
+        Get the start index of the given joint in the generalized position vector q.
+
+        Parameters:
+            name : (str) Joint name.
+
+        Return:
+            (int) Start index in q. Returns -1 if no joint with the given name exists.
+        """
+        return super().getJointQIndex(name)
+
+    def get_joint_v_index(self, name: str) -> int:
+        """
+        Get the start index of the given joint in the generalized velocity vector v.
+
+        Parameters:
+            name : (str) Joint name.
+
+        Return:
+            (int) Start index in v. Returns -1 if no joint with the given name exists.
+        """
+        return super().getJointVIndex(name)

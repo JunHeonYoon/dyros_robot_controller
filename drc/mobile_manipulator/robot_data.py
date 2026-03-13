@@ -66,16 +66,16 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         
     def get_verbose(self) -> str:
         """
-        Prints debug information.
+        Print current mobile manipulator state and parameters in formatted text.
 
         Return:
-            (str) Debug information.
+            (str) Human-readable debug information string.
         """
         return super().getVerbose()
 
     def get_dt(self) -> float:
         """
-        Get the control time step.
+        Get control time step.
 
         Return:
             (float) Control loop time step in seconds.
@@ -91,7 +91,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
                      qdot_mani: np.ndarray,
                      ) -> bool:
         """
-        Update the state of the manipulator.
+        Update internal mobile manipulator robot data.
 
         Parameters:
             q_virtual    : (np.ndarray) Joint positions of the floating base.
@@ -291,7 +291,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_virtual    : (np.ndarray) Joint positions of the floating base.
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
 
         Return:
@@ -323,7 +323,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_virtual    : (np.ndarray) Joint positions of the floating base.
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
 
         Return:
@@ -401,7 +401,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
             qdot_virtual : (np.ndarray) Joint velocities of the floating base.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             link_name    : (str) Name of the link.
 
@@ -439,7 +439,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
             qdot_virtual : (np.ndarray) Joint velocities of the floating base.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             link_name    : (str) Name of the link.
 
@@ -479,7 +479,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
             qdot_virtual : (np.ndarray) Joint velocities of the floating base.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             with_grad    : (bool) If true, computes the gradient of the minimum distance.
             with_graddot : (bool) If true, computes the gradient time variation of the minimum distance.
@@ -558,7 +558,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
             qdot_virtual : (np.ndarray) Joint velocities of the floating base.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             link_name    : (str) Name of the link.
 
@@ -595,6 +595,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             with_grad    : (bool) If true, computes the gradient of the manipulability.
             with_graddot : (bool) If true, computes the gradient time variation of the manipulability.
+            link_name    : (str) Name of the link.
 
         Return:
             (Tuple[float, np.ndarray, np.ndarray]) Manipulability, its gradient, and its gradient time variation.
@@ -627,7 +628,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
 
         Parameters:
             q_mobile    : (np.ndarray) Wheel positions.
-            qdot_mobile : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile : (np.ndarray) Wheel velocities.
 
         Return:
             (np.ndarray) Base velocity vector [vx, vy, wz].
@@ -759,7 +760,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Get the actuator joint index.
 
         Return:
-            (JointIndex) Joint index structure containing starting indices for manipulator and mobile joints.
+            (ActuatorIndex) Joint index structure containing starting indices for manipulator and mobile joints.
         """
         return self._actuator_idx
     
@@ -931,7 +932,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Get the inversed mass matrix of the actuated joints.
         
         return:
-            (np.ndarray) Inversed Mass matrix of the actuated joints.
+            (np.ndarray) Inversed mass matrix of the actuated joints.
         """
         return super().getMassMatrixActuatedInv()
 
@@ -1064,7 +1065,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
 
         Parameters:
             with_grad    : (bool) If true, get the gradient of the manipulability.
-            with_graddot : (bool) If true, get the gradient time variation of the manipulability.
+            with_graddot : (bool) If true, get the time variation of the gradient.
             link_name    : (str) Name of the link.
 
         Return:

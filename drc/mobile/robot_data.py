@@ -28,10 +28,10 @@ class RobotData(drc_cpp.MobileRobotData):
     
     def get_verbose(self) -> str:
         """
-        Prints debug information.
+        Print current mobile robot state and parameters in formatted text.
 
         Return:
-            (str) Debug information.
+            (str) Human-readable debug information string.
         """
         return super().getVerbose()
 
@@ -182,6 +182,6 @@ class RobotData(drc_cpp.MobileRobotData):
         Get current base pose.
 
         Returns:
-            (np.ndarray) Base SE(2) pose matrix (3x3).
+            (np.ndarray) SE2 transform (world -> base).
         """
         return np.asarray(super().getBasePose())
