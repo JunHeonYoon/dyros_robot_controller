@@ -11,27 +11,38 @@ class RobotData(drc_cpp.MobileRobotData):
     (e.g., Differential, Mecanum, Caster). It supports state update, forward velocity computation,
     and Jacobian calculation based on the specified kinematic parameters.
     """
-    def __init__(self, param: KinematicParam):
+    def __init__(self, dt: float, param: KinematicParam):
         """
         Constructor.
 
         Parameters:
+            dt : (float) Control loop time step in seconds.
             param : (KinematicParam) Kinematic parameter instance containing drive type and geometry.
         """
+        self._dt = float(dt)
         if not isinstance(param, KinematicParam):
             raise TypeError("param must be a KinematicParam instance")
         self._param = param
-        super().__init__(self._param.cpp())
+        super().__init__(self._dt, self._param.cpp())
         self.wheel_num = super().getWheelNum()
     
     def get_verbose(self) -> str:
         """
-        Prints debug information.
+        Print current mobile robot state and parameters in formatted text.
 
         Return:
-            (str) Debug information.
+            (str) Human-readable debug information string.
         """
         return super().getVerbose()
+
+    def get_dt(self) -> float:
+        """
+        Get the control time step.
+
+        Return:
+            (float) Control loop time step in seconds.
+        """
+        return float(super().getDt())
         
     def update_state(self, wheel_pos: np.ndarray, wheel_vel: np.ndarray) -> bool:
         """
@@ -49,6 +60,17 @@ class RobotData(drc_cpp.MobileRobotData):
         assert wheel_pos.size == self.wheel_num, f"Size of wheel_pos {wheel_pos.size} is not equal to # of Wheels {self.wheel_num}."
         assert wheel_vel.size == self.wheel_num, f"Size of wheel_vel {wheel_vel.size} is not equal to # of Wheels {self.wheel_num}."
         return bool(super().updateState(np.asarray(wheel_pos), np.asarray(wheel_vel)))
+
+    def init_base_pose(self, x: float = 0.0, y: float = 0.0, yaw: float = 0.0):
+        """
+        Initialize base pose.
+
+        Parameters:
+            x   : (float) Initial x [m]
+            y   : (float) Initial y [m]
+            yaw : (float) Initial yaw [rad]
+        """
+        super().initBasePose(float(x), float(y), float(yaw))
     
     # ================================ Compute Functions ================================
     def compute_base_vel(self, wheel_pos: np.ndarray, wheel_vel: np.ndarray) -> np.ndarray:
@@ -82,6 +104,23 @@ class RobotData(drc_cpp.MobileRobotData):
         wheel_pos = wheel_pos.reshape(-1)
         assert wheel_pos.size == self.wheel_num, f"Size of wheel_pos {wheel_pos.size} is not equal to # of Wheels {self.wheel_num}."
         return np.asarray(super().computeFKJacobian(np.asarray(wheel_pos)))
+
+    def compute_base_pose(self, wheel_pos: np.ndarray, wheel_vel: np.ndarray) -> np.ndarray:
+        """
+        Update base pose using wheel state and dt.
+
+        Parameters:
+            wheel_pos : (np.ndarray) Wheel positions [rad].
+            wheel_vel : (np.ndarray) Wheel velocities [rad/s].
+
+        Returns:
+            (np.ndarray) Base SE(2) pose matrix (3x3).
+        """
+        wheel_pos = wheel_pos.reshape(-1)
+        wheel_vel = wheel_vel.reshape(-1)
+        assert wheel_pos.size == self.wheel_num, f"Size of wheel_pos {wheel_pos.size} is not equal to # of Wheels {self.wheel_num}."
+        assert wheel_vel.size == self.wheel_num, f"Size of wheel_vel {wheel_vel.size} is not equal to # of Wheels {self.wheel_num}."
+        return np.asarray(super().computeBasePose(np.asarray(wheel_pos), np.asarray(wheel_vel)))
     
     # ================================ Get Functions ================================
     def get_kine_param(self) -> KinematicParam:
@@ -137,3 +176,12 @@ class RobotData(drc_cpp.MobileRobotData):
             (np.ndarray) Jacobian matrix from wheel velocity to base velocity.
         """
         return np.asarray(super().getFKJacobian())
+
+    def get_base_pose(self) -> np.ndarray:
+        """
+        Get current base pose.
+
+        Returns:
+            (np.ndarray) SE2 transform (world -> base).
+        """
+        return np.asarray(super().getBasePose())

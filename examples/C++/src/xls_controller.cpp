@@ -31,8 +31,8 @@ XLSController::XLSController(const double dt)
     param.max_ang_acc = 6.0;
 
     // Instantiate Dyros model/controller
-    robot_data_ = std::make_shared<drc::Mobile::RobotData>(param);
-    robot_controller_ = std::make_shared<drc::Mobile::RobotController>(dt_, robot_data_);
+    robot_data_ = std::make_shared<drc::Mobile::RobotData>(dt_, param);
+    robot_controller_ = std::make_shared<drc::Mobile::RobotController>(robot_data_);
 
     // Dimensions
     wheel_num_ = robot_data_->getWheelNum();

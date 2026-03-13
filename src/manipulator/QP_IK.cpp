@@ -43,20 +43,56 @@ namespace drc
             si_index_.con_sing_start      = si_index_.con_q_max_start + si_index_.con_q_max_size;
             si_index_.con_sel_col_start   = si_index_.con_sing_start  + si_index_.con_sing_size;
 
-            w_damping_.setOnes(joint_dof_);
+            w_vel_damping_.setOnes(joint_dof_);
+            w_acc_damping_.setOnes(joint_dof_);
 
         }
-    
+
+        void QPIK::setTrackingWeight(const Vector6d w_tracking)
+        {
+            std::map<std::string, Vector6d> link_w_tracking;
+            for(const auto& link_name : robot_data_->getLinkFrameVector())
+            {
+                link_w_tracking[link_name] = w_tracking;
+            }
+            link_w_tracking_ = link_w_tracking;
+        }
+
+        void QPIK::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            link_w_tracking_ = link_w_tracking;
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
+        }
+
+        void QPIK::setWeight(const Vector6d w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            setTrackingWeight(w_tracking);
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
+        }
+
         void QPIK::setDesiredTaskVel(const std::map<std::string, Vector6d> &link_xdot_desired)
         {
             link_xdot_desired_ = link_xdot_desired;
         }
     
-        bool QPIK::getOptJointVel(VectorXd &opt_qdot, QP::TimeDuration &time_status)
+        bool QPIK::getOptJointVel(Eigen::Ref<Eigen::VectorXd> opt_qdot, QP::TimeDuration &time_status)
         {
+            if(opt_qdot.size() != joint_dof_)
+            {
+                std::cerr << "Size of opt_qdot(" << opt_qdot.size() << ") is not same as joint_dof_(" << joint_dof_ << ")" << std::endl;
+                time_status.setZero();
+                return false;
+            }
             MatrixXd sol;
             if(!solveQP(sol, time_status))
             {
+                std::cerr << "QP IK failed to compute optimal joint velocity." << std::endl;
                 opt_qdot.setZero();
                 time_status.setZero();
                 return false;
@@ -67,17 +103,12 @@ namespace drc
                 return true;
             }
         }
-
-        void QPIK::setWeight(const std::map<std::string, Vector6d> link_w_tracking, const VectorXd w_damping)
-        {
-            link_w_tracking_ = link_w_tracking;
-            w_damping_ = w_damping;
-        }
     
         void QPIK::setCost()
         {
             P_ds_.setZero(nx_, nx_);
             q_ds_.setZero(nx_);
+            const VectorXd qdot_now = robot_data_->getJointVelocity();
 
             // for task space velocity tracking
             for(const auto& [link_name, xdot_desired] : link_xdot_desired_)
@@ -93,7 +124,12 @@ namespace drc
             }
             
             // for joint velocity damping
-            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * w_damping_.asDiagonal();
+            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * w_vel_damping_.asDiagonal();
+
+            // for joint acceleration damping: qddot = (qdot - qdot_now) / dt
+            const double dt_sq_inv = 1.0 / (dt_ * dt_);
+            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * dt_sq_inv * w_acc_damping_.asDiagonal();
+            q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * dt_sq_inv * w_acc_damping_.asDiagonal() * qdot_now;
             
             // for slack
             q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 1000.0);
@@ -108,8 +144,23 @@ namespace drc
             u_bound_ds_.setConstant(nbc_,OSQP_INFTY);
 
             // Manipulator Joint Velocity Limit
-            l_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = robot_data_->getJointVelocityLimit().first;
-            u_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = robot_data_->getJointVelocityLimit().second;
+            const auto qdot_lim = robot_data_->getJointVelocityLimit();
+            const VectorXd qdot_min_raw = qdot_lim.first;
+            const VectorXd qdot_max_raw = qdot_lim.second;
+            const VectorXd qdot_min =
+                (qdot_min_raw.array() < 0.0)
+                    .select(qdot_min_raw.array() * 0.9, qdot_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd qdot_max =
+                (qdot_max_raw.array() > 0.0)
+                    .select(qdot_max_raw.array() * 0.9, qdot_max_raw.array() * 1.9)
+                    .matrix();
+
+            l_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = qdot_min;
+            u_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = qdot_max;
+            
+            // l_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = robot_data_->getJointVelocityLimit().first;
+            // u_bound_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) = robot_data_->getJointVelocityLimit().second;
 
             // for slack
             l_bound_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size).setZero();
@@ -127,8 +178,20 @@ namespace drc
             const double alpha = 50.;
     
             // Manipulator Joint Angle Limit (CBF)
-            const VectorXd q_min = robot_data_->getJointPositionLimit().first;
-            const VectorXd q_max = robot_data_->getJointPositionLimit().second;
+            const auto q_lim = robot_data_->getJointPositionLimit();
+            const VectorXd q_min_raw = q_lim.first;
+            const VectorXd q_max_raw = q_lim.second;
+            const VectorXd q_min =
+                (q_min_raw.array() < 0.0)
+                    .select(q_min_raw.array() * 0.9, q_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd q_max =
+                (q_max_raw.array() > 0.0)
+                    .select(q_max_raw.array() * 0.9, q_max_raw.array() * 1.9)
+                    .matrix();
+
+            // const VectorXd q_min = robot_data_->getJointPositionLimit().first;
+            // const VectorXd q_max = robot_data_->getJointPositionLimit().second;
            
             const VectorXd q = robot_data_->getJointPosition();
                 
@@ -152,7 +215,7 @@ namespace drc
     
             A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qdot_start, si_index_.con_sel_col_size, si_index_.qdot_size) = min_dist_res.grad.transpose();
             A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.slack_sel_col_start, si_index_.con_sel_col_size, si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = - alpha*(min_dist_res.distance -0.05);
+            l_ineq_ds_(si_index_.con_sel_col_start) = - alpha*(min_dist_res.distance -0.01);
         }
     
         void QPIK::setEqConstraint()    

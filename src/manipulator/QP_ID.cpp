@@ -63,17 +63,52 @@ namespace drc
             w_vel_damping_.setOnes(joint_dof_);
             w_acc_damping_.setOnes(joint_dof_);
         }
-    
+
+        void QPID::setTrackingWeight(const Vector6d w_tracking)
+        {
+            std::map<std::string, Vector6d> link_w_tracking;
+            for(const auto& link_name : robot_data_->getLinkFrameVector())
+            {
+                link_w_tracking[link_name] = w_tracking;
+            }
+            link_w_tracking_ = link_w_tracking;
+        }
+
+        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            link_w_tracking_ = link_w_tracking;
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
+        }
+
+        void QPID::setWeight(const Vector6d w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            setTrackingWeight(w_tracking);
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
+        }
+
         void QPID::setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired)
         {
             link_xddot_desired_ = link_xddot_desired;
         }
     
-        bool QPID::getOptJoint(VectorXd &opt_qddot, VectorXd &opt_torque, QP::TimeDuration &time_status)
+        bool QPID::getOptJoint(Eigen::Ref<Eigen::VectorXd> opt_qddot, Eigen::Ref<Eigen::VectorXd> opt_torque, QP::TimeDuration &time_status)
         {
+            if(opt_qddot.size() != joint_dof_ || opt_torque.size() != joint_dof_)
+            {
+                std::cerr << "Size of opt_qddot(" << opt_qddot.size() << ") or opt_torque(" << opt_torque.size() << ") are not same as joint_dof_(" << joint_dof_ << ")" << std::endl;
+                time_status.setZero();
+                return false;
+            }
             MatrixXd sol;
             if(!solveQP(sol, time_status))
             {
+                std::cerr << "QP ID failed to compute optimal joint torque." << std::endl;
                 opt_qddot.setZero();
                 opt_torque.setZero();
                 time_status.setZero();
@@ -85,13 +120,6 @@ namespace drc
                 opt_torque = sol.block(si_index_.torque_start,0,si_index_.torque_size,1);
                 return true;
             }
-        }
-
-        void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking, const VectorXd w_vel_damping, const VectorXd w_acc_damping)
-        {
-            link_w_tracking_ = link_w_tracking;
-            w_vel_damping_ = w_vel_damping;
-            w_acc_damping_ = w_acc_damping;
         }
     
         void QPID::setCost()
@@ -115,8 +143,8 @@ namespace drc
             }
 
             // for joint velocity/acceleration damping
-            P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) += 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix();// + 
-                                                                                                                //   2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
+            P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) += 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix() + 
+                                                                                                                  2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
             q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * qdot;
 
             // for slack
@@ -153,8 +181,19 @@ namespace drc
     
             // Manipulator Joint Angle Limit (CBF)
             const auto q_lim = robot_data_->getJointPositionLimit();
-            const VectorXd q_min = q_lim.first;
-            const VectorXd q_max = q_lim.second;
+            const VectorXd q_min_raw = q_lim.first;
+            const VectorXd q_max_raw = q_lim.second;
+            const VectorXd q_min =
+                (q_min_raw.array() < 0.0)
+                    .select(q_min_raw.array() * 0.9, q_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd q_max =
+                (q_max_raw.array() > 0.0)
+                    .select(q_max_raw.array() * 0.9, q_max_raw.array() * 1.9)
+                    .matrix();
+            // const auto q_lim = robot_data_->getJointPositionLimit();
+            // const VectorXd q_min = q_lim.first;
+            // const VectorXd q_max = q_lim.second;
     
             const VectorXd q = robot_data_->getJointPosition();
             const VectorXd qdot = robot_data_->getJointVelocity();
@@ -169,8 +208,20 @@ namespace drc
     
             // Manipulator Joint Velocity Limit (CBF)
             const auto qdot_lim = robot_data_->getJointVelocityLimit();
-            const VectorXd qdot_min = qdot_lim.first;
-            const VectorXd qdot_max = qdot_lim.second;
+            const VectorXd qdot_min_raw = qdot_lim.first;
+            const VectorXd qdot_max_raw = qdot_lim.second;
+            const VectorXd qdot_min =
+                (qdot_min_raw.array() < 0.0)
+                    .select(qdot_min_raw.array() * 0.9, qdot_min_raw.array() * 1.9)
+                    .matrix();
+            const VectorXd qdot_max =
+                (qdot_max_raw.array() > 0.0)
+                    .select(qdot_max_raw.array() * 0.9, qdot_max_raw.array() * 1.9)
+                    .matrix();
+
+            // const auto qdot_lim = robot_data_->getJointVelocityLimit();
+            // const VectorXd qdot_min = qdot_lim.first;
+            // const VectorXd qdot_max = qdot_lim.second;
     
             A_ineq_ds_.block(si_index_.con_qdot_min_start, si_index_.qddot_start, si_index_.con_qdot_min_size, si_index_.qddot_size) = MatrixXd::Identity(si_index_.con_qdot_min_size, si_index_.qddot_size);
             A_ineq_ds_.block(si_index_.con_qdot_min_start, si_index_.slack_qdot_min_start, si_index_.con_qdot_min_size, si_index_.slack_qdot_min_size) = MatrixXd::Identity(si_index_.con_qdot_min_size, si_index_.slack_qdot_min_size);
@@ -192,7 +243,7 @@ namespace drc
             
             A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qddot_start, si_index_.con_sel_col_size, si_index_.qddot_size) = min_dist_data.grad.transpose();
             A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.slack_sel_col_start, si_index_.con_sel_col_size, si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = -min_dist_data.grad_dot.dot(qdot) - (alpha + alpha)*min_dist_data.grad.dot(qdot) - alpha*alpha*(min_dist_data.distance -0.05);
+            l_ineq_ds_(si_index_.con_sel_col_start) = -min_dist_data.grad_dot.dot(qdot) - (alpha + alpha)*min_dist_data.grad.dot(qdot) - alpha*alpha*(min_dist_data.distance -0.01);
         }
     
         void QPID::setEqConstraint()    

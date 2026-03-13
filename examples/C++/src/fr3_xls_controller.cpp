@@ -43,8 +43,8 @@ FR3XLSController::FR3XLSController(const double dt)
     actuator_idx.mobi_start = 7;
 
     // Instantiate dyros robot model/controller
-    robot_data_ = std::make_shared<drc::MobileManipulator::RobotData>(mobile_param, joint_idx, actuator_idx, urdf, srdf);
-    robot_controller_ = std::make_shared<drc::MobileManipulator::RobotController>(dt_, robot_data_);
+    robot_data_ = std::make_shared<drc::MobileManipulator::RobotData>(dt_, mobile_param, joint_idx, actuator_idx, urdf, srdf);
+    robot_controller_ = std::make_shared<drc::MobileManipulator::RobotController>(robot_data_);
 
     // Degree of freedom
     virtual_dof_ = 3;
@@ -89,26 +89,35 @@ FR3XLSController::FR3XLSController(const double dt)
     // --- Gain
     mani_joint_kp_.setZero(mani_dof_);
     mani_joint_kv_.setZero(mani_dof_);
-    qpik_damping_.setZero(actuator_dof_);
-    qpid_vel_damping_.setZero(actuator_dof_);
-    qpid_acc_damping_.setZero(actuator_dof_);
-    mani_joint_kp_ << 600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 50.0;
-    mani_joint_kv_ << 30.0,  30.0,  30.0,  30.0,  10.0,  10.0,  5.0;
-    qpik_damping_ << 10, 10, 10, 10, 10, 10, 10, // manipulator
-                     0.2, 0.2, 0.2, 0.2;         // mobile
-    qpid_vel_damping_ << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, // manipulator
-                         10, 10, 10, 10;                    // mobile
-    qpid_acc_damping_ << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, // manipulator
-                         0.0001, 0.0001, 0.0001, 0.0001;           // mobile
-    link_task_kp_[ee_link_name_] << 100.0, 100.0, 100.0, 100.0, 100.0, 100.0;
-    link_task_kv_[ee_link_name_] << 20.0,  20.0,  20.0,  20.0,  20.0,  20.0;
-    link_qpik_tracking_[ee_link_name_] << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
-    link_qpid_tracking_[ee_link_name_] << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+    qpik_mani_vel_damping_.setZero(mani_dof_);
+    qpik_mani_acc_damping_.setZero(mani_dof_);
+    qpik_base_vel_damping_.setZero();
+    qpik_base_acc_damping_.setZero();
+    qpid_mani_vel_damping_.setZero(mani_dof_);
+    qpid_mani_acc_damping_.setZero(mani_dof_);
+    qpid_base_vel_damping_.setZero();
+    qpid_base_acc_damping_.setZero();
+    mani_joint_kp_         << 600.0, 600.0, 600.0, 600.0, 250.0, 150.0,  50.0;
+    mani_joint_kv_         <<  30.0,  30.0,  30.0,  30.0,  10.0,  10.0,   5.0;
+    task_ik_kp_            <<  10.0,  10.0,  10.0,  30.0,  30.0,  30.0;
+    task_id_kp_            << 600.0, 600.0, 600.0,1000.0,1000.0,1000.0;
+    task_id_kv_            <<  20.0,  20.0,  20.0,  30.0,  30.0,  30.0;
+    qpik_tracking_         <<  10.0,  10.0,  10.0,  40.0,  40.0,  40.0;
+    qpik_mani_vel_damping_ <<  0.01,  0.01,  0.01,  0.01,  0.01,  0.01,  0.01;
+    qpik_mani_acc_damping_ << 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001;
+    qpik_base_vel_damping_ <<   0.1,   0.1,   0.1; // [vx, vy, wz]
+    qpik_base_acc_damping_ <<   0.1,   0.1,   0.1; // [vx, vy, wz]
+    qpid_tracking_         <<  10.0,  10.0,  10.0,   1.0,   1.0,   1.0;
+    qpid_mani_vel_damping_ <<   0.1,   0.1,   0.1,   0.1,   0.1,   0.1,   0.1;
+    qpid_mani_acc_damping_ <<   5.0,   5.0,   5.0,   5.0,   5.0,   5.0,   5.0;
+    qpid_base_vel_damping_ <<   0.1,   0.1,   0.1; // [vx, vy, wz]
+    qpid_base_acc_damping_ <<   0.1,   0.1,   0.1;
 
     robot_controller_->setManipulatorJointGain(mani_joint_kp_, mani_joint_kv_);
-    robot_controller_->setTaskGain(link_task_kp_, link_task_kv_);
-    robot_controller_->setQPIKGain(link_qpik_tracking_, qpik_damping_);
-    robot_controller_->setQPIDGain(link_qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_);
+    robot_controller_->setIKGain(task_ik_kp_);
+    robot_controller_->setIDGain(task_id_kp_, task_id_kv_);
+    robot_controller_->setQPIKGain(qpik_tracking_, qpik_mani_vel_damping_, qpik_mani_acc_damping_, qpik_base_vel_damping_, qpik_base_acc_damping_);
+    robot_controller_->setQPIDGain(qpid_tracking_, qpid_mani_vel_damping_, qpid_mani_acc_damping_, qpid_base_vel_damping_, qpid_base_acc_damping_);
 
 
     // Print FR3 URDF info
@@ -190,9 +199,9 @@ std::unordered_map<std::string, double> FR3XLSController::compute()
         q_virtual_desired_ = q_virtual_;
         q_mobile_desired_  = q_mobile_;
         q_mani_desired_    = q_mani_;
-        qdot_virtual_desired_ = qdot_virtual_;
-        qdot_mobile_desired_  = qdot_mobile_;
-        qdot_mani_desired_    = qdot_mani_;
+        qdot_virtual_desired_.setZero();
+        qdot_mobile_desired_.setZero();
+        qdot_mani_desired_.setZero();
         link_ee_task_[ee_link_name_].setDesired();
         link_ee_task_[ee_link_name_].xdot_desired.setZero();
     }
@@ -219,10 +228,11 @@ std::unordered_map<std::string, double> FR3XLSController::compute()
         link_ee_task_[ee_link_name_].x_desired = link_ee_task_[ee_link_name_].x_init;
         link_ee_task_[ee_link_name_].x_desired.translation() += Eigen::Vector3d(0.0, 0.1, 0.1); // +10 cm in Y and Z
 
-        Eigen::VectorXd qdot_mobile_desired, qdot_mani_desired;
+        Eigen::VectorXd qdot_mobile_desired(mobile_dof_), qdot_mani_desired(mani_dof_);
+        qdot_mobile_desired.setZero(); qdot_mani_desired.setZero();
         robot_controller_->QPIKCubic(link_ee_task_,
-                                     sim_time_, 
-                                     control_start_time_, 
+                                     sim_time_,
+                                     control_start_time_,
                                      3.0,
                                      qdot_mobile_desired,
                                      qdot_mani_desired);
@@ -240,7 +250,8 @@ std::unordered_map<std::string, double> FR3XLSController::compute()
     else if (control_mode_ == "Gravity Compensation W QPID") 
     {
         link_ee_task_[ee_link_name_].xddot_desired.setZero();
-        Eigen::VectorXd qddot_mobile_desired, tau_mani_desired;
+        Eigen::VectorXd qddot_mobile_desired(mobile_dof_), tau_mani_desired(mani_dof_);
+        qddot_mobile_desired.setZero(); tau_mani_desired.setZero();
         robot_controller_->QPID(link_ee_task_, qddot_mobile_desired, tau_mani_desired);
         // Integrate mobile acceleration output to wheel velocity command
         qdot_mobile_desired_ = qdot_mobile_ + qddot_mobile_desired * dt_;

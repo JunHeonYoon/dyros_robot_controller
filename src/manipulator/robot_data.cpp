@@ -1,66 +1,119 @@
 #include "dyros_robot_controller/manipulator/robot_data.h"
+#include <sstream>
 
 namespace drc
 {
     namespace Manipulator
     {
-        RobotData::RobotData(const std::string& urdf_path, 
-                             const std::string& srdf_path, 
-                             const std::string& packages_path)
-        : urdf_path_(urdf_path), srdf_path_(srdf_path), packages_path_(packages_path)
+        RobotData::RobotData(const double dt,
+                             const std::string& urdf_source,
+                             const std::string& srdf_source,
+                             const std::string& packages_path,
+                             const bool use_xml)
+        : dt_(dt), urdf_path_(urdf_source), srdf_path_(srdf_source), packages_path_(packages_path)
         {
-            if (std::filesystem::exists(urdf_path))
+            if (use_xml)
             {
-                std::cout << "[dyros_robot_controller] URDF file loaded successfully!: " << urdf_path << std::endl;
+                if (urdf_source.empty())
+                {
+                    std::cerr << "\033[31m" << "[dyros_robot_controller] URDF XML is empty!" << "\033[0m" << std::endl;
+                    std::exit(EXIT_FAILURE);
+                }
+
+                std::cout << "[dyros_robot_controller] URDF XML loaded successfully!" << std::endl;
+                pinocchio::urdf::buildModelFromXML(urdf_source, model_, /*verbose=*/false);
             }
             else
             {
-                std::cerr << "\033[31m" << "[dyros_robot_controller] URDF file does not exist! : " << "\033[0m" << urdf_path << "\033[0m" << std::endl;
-                std::exit(EXIT_FAILURE);
+                if (std::filesystem::exists(urdf_source))
+                {
+                    std::cout << "[dyros_robot_controller] URDF file loaded successfully!: " << urdf_source << std::endl;
+                }
+                else
+                {
+                    std::cerr << "\033[31m" << "[dyros_robot_controller] URDF file does not exist! : " << "\033[0m" << urdf_source << "\033[0m" << std::endl;
+                    std::exit(EXIT_FAILURE);
+                }
+
+                pinocchio::urdf::buildModel(urdf_source, model_, /*verbose=*/false);
             }
 
-            pinocchio::urdf::buildModel(urdf_path, model_, /*verbose=*/false);
             data_ = pinocchio::Data(model_);
 
-            if (std::filesystem::exists(packages_path) && std::filesystem::is_directory(packages_path))
+            if (use_xml)
             {
-                std::cout << "[dyros_robot_controller] Package folder loaded successfully!: " << packages_path << std::endl;
-                pinocchio::urdf::buildGeom(model_, urdf_path, pinocchio::COLLISION, geom_model_, packages_path);
+                std::istringstream urdf_stream(urdf_source);
+                if (std::filesystem::exists(packages_path) && std::filesystem::is_directory(packages_path))
+                {
+                    std::cout << "[dyros_robot_controller] Package folder loaded successfully!: " << packages_path << std::endl;
+                    pinocchio::urdf::buildGeom(model_, urdf_stream, pinocchio::COLLISION, geom_model_, packages_path);
+                }
+                else
+                {
+                    std::clog << "\033[33m" << "[dyros_robot_controller] Packages folder does not exist! : " << "\033[0m" << packages_path << "\033[0m" << std::endl;
+                    std::clog << "\033[33m" << "[dyros_robot_controller] Collision model for the robot may not be perfect!" << "\033[0m" << std::endl;
+                    pinocchio::urdf::buildGeom(model_, urdf_stream, pinocchio::COLLISION, geom_model_);
+                }
             }
             else
             {
-                std::clog << "\033[33m" << "[dyros_robot_controller] Packages folder does not exist! : " << "\033[0m" << packages_path << "\033[0m" << std::endl;
-                std::clog << "\033[33m" << "[dyros_robot_controller] Collision model for the robot may not be perfect!" << "\033[0m" << std::endl;
-                pinocchio::urdf::buildGeom(model_, urdf_path, pinocchio::COLLISION, geom_model_);
+                if (std::filesystem::exists(packages_path) && std::filesystem::is_directory(packages_path))
+                {
+                    std::cout << "[dyros_robot_controller] Package folder loaded successfully!: " << packages_path << std::endl;
+                    pinocchio::urdf::buildGeom(model_, urdf_source, pinocchio::COLLISION, geom_model_, packages_path);
+                }
+                else
+                {
+                    std::clog << "\033[33m" << "[dyros_robot_controller] Packages folder does not exist! : " << "\033[0m" << packages_path << "\033[0m" << std::endl;
+                    std::clog << "\033[33m" << "[dyros_robot_controller] Collision model for the robot may not be perfect!" << "\033[0m" << std::endl;
+                    pinocchio::urdf::buildGeom(model_, urdf_source, pinocchio::COLLISION, geom_model_);
+                }
             }
 
             geom_model_.addAllCollisionPairs();
 
-            
-            if (std::filesystem::exists(srdf_path))
+            if (use_xml)
             {
-                std::cout << "[dyros_robot_controller] SRDF file loaded successfully!: " << srdf_path << std::endl;
-                pinocchio::srdf::removeCollisionPairs(model_, geom_model_, srdf_path);
+                if (!srdf_source.empty())
+                {
+                    std::cout << "[dyros_robot_controller] SRDF XML loaded successfully!" << std::endl;
+                    pinocchio::srdf::removeCollisionPairsFromXML(model_, geom_model_, srdf_source, false/*verbose*/);
+                }
+                else
+                {
+                    std::clog << "\033[33m" << "[dyros_robot_controller] SRDF XML is empty!" << "\033[0m" << std::endl;
+                    std::clog << "\033[33m" << "[dyros_robot_controller] All the collision pairs is activated!" << "\033[0m" << std::endl;
+                }
             }
             else
             {
-                std::clog << "\033[33m" << "[dyros_robot_controller] SRDF file does not exist! : " << "\033[0m" << srdf_path << "\033[0m" << std::endl;
-                std::clog << "\033[33m" << "[dyros_robot_controller] All the collision pairs is activated!" << "\033[0m" << std::endl;
+                if (std::filesystem::exists(srdf_source))
+                {
+                    std::cout << "[dyros_robot_controller] SRDF file loaded successfully!: " << srdf_source << std::endl;
+                    pinocchio::srdf::removeCollisionPairs(model_, geom_model_, srdf_source);
+                }
+                else
+                {
+                    std::clog << "\033[33m" << "[dyros_robot_controller] SRDF file does not exist! : " << "\033[0m" << srdf_source << "\033[0m" << std::endl;
+                    std::clog << "\033[33m" << "[dyros_robot_controller] All the collision pairs is activated!" << "\033[0m" << std::endl;
+                }
             }
 
             geom_data_ = pinocchio::GeometryData(geom_model_);
-            
+
             dof_ = model_.joints.size() - 1; // except world joint
 
             // Initialize joint space state
             q_.setZero(dof_);
             qdot_.setZero(dof_);
 
-            // Set joint state limit 
+            // Set joint state limit
             q_lb_ = model_.lowerPositionLimit;
             q_ub_ = model_.upperPositionLimit;
             qdot_lb_ = -model_.velocityLimit;
             qdot_ub_ = model_.velocityLimit;
+            torque_lb_ = -model_.effortLimit;
+            torque_ub_ = model_.effortLimit;
 
             // Initialize joint space dynamics
             M_.setZero(dof_,dof_);
@@ -71,9 +124,15 @@ namespace drc
 
             link_frame_names_.clear();
             joint_frame_names_.clear();
+            joint_names_.clear();
             link_frame_set_.clear();
             joint_frame_set_.clear();
             root_link_name_.clear();
+
+            // Populate pinocchio joint names (skip universe at index 0)
+            joint_names_.reserve(model_.njoints > 0 ? model_.njoints - 1 : 0);
+            for (pinocchio::JointIndex jid = 1; jid < (pinocchio::JointIndex)model_.njoints; ++jid)
+                joint_names_.push_back(model_.names[jid]);
 
             // Collect frames
             for (pinocchio::FrameIndex i = 0; i < model_.frames.size(); ++i)
@@ -124,7 +183,7 @@ namespace drc
             return oss.str();
         }
 
-        bool RobotData::updateState(const VectorXd& q, const VectorXd& qdot)
+        bool RobotData::updateState(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         {
             q_ = q;
             qdot_ = qdot;
@@ -134,15 +193,17 @@ namespace drc
             return true;
         }
 
-        bool RobotData::updateKinematics(const VectorXd& q, const VectorXd& qdot)
+        bool RobotData::updateKinematics(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         {
+            pinocchio::forwardKinematics(model_, data_, q, qdot);
+            pinocchio::updateFramePlacements(model_, data_);
             pinocchio::computeJointJacobians(model_, data_, q);
             pinocchio::computeJointJacobiansTimeVariation(model_, data_, q, qdot);
         
             return true;
         }
         
-        bool RobotData::updateDynamics(const VectorXd& q, const VectorXd& qdot)
+        bool RobotData::updateDynamics(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         {
             pinocchio::crba(model_, data_, q);
             pinocchio::computeGeneralizedGravity(model_, data_, q);
@@ -161,7 +222,7 @@ namespace drc
 
         // ================================ Compute Functions ================================
         // Joint space  
-        MatrixXd RobotData::computeMassMatrix(const VectorXd& q)
+        MatrixXd RobotData::computeMassMatrix(const Eigen::Ref<const VectorXd>& q)
         {      
             pinocchio::Data data = pinocchio::Data(model_);
             pinocchio::crba(model_, data, q);
@@ -170,7 +231,7 @@ namespace drc
             return data.M;
         }
         
-        VectorXd RobotData::computeGravity(const VectorXd& q)
+        VectorXd RobotData::computeGravity(const Eigen::Ref<const VectorXd>& q)
         {      
             pinocchio::Data data = pinocchio::Data(model_);
             pinocchio::computeGeneralizedGravity(model_, data, q);
@@ -178,7 +239,7 @@ namespace drc
             return data.g;
         }
         
-        VectorXd RobotData::computeCoriolis(const VectorXd& q, const VectorXd& qdot)
+        VectorXd RobotData::computeCoriolis(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         { 
             pinocchio::Data data = pinocchio::Data(model_);
             pinocchio::computeCoriolisMatrix(model_, data, q, qdot);
@@ -186,7 +247,7 @@ namespace drc
             return data.C * qdot;
         }
         
-        VectorXd RobotData::computeNonlinearEffects(const VectorXd& q, const VectorXd& qdot)
+        VectorXd RobotData::computeNonlinearEffects(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot)
         {
             pinocchio::Data data = pinocchio::Data(model_);
             pinocchio::nonLinearEffects(model_, data, q, qdot);
@@ -195,7 +256,7 @@ namespace drc
         }
         
         // Task space
-        Affine3d RobotData::computePose(const VectorXd& q, const std::string& link_name)
+        Affine3d RobotData::computePose(const Eigen::Ref<const VectorXd>& q, const std::string& link_name)
         {
             pinocchio::FrameIndex link_index = model_.getFrameId(link_name);
             if (link_index == static_cast<pinocchio::FrameIndex>(-1))  
@@ -211,7 +272,7 @@ namespace drc
             return link_pose;
         }
         
-        MatrixXd RobotData::computeJacobian(const VectorXd& q, const std::string& link_name)
+        MatrixXd RobotData::computeJacobian(const Eigen::Ref<const VectorXd>& q, const std::string& link_name)
         {
             pinocchio::FrameIndex link_index = model_.getFrameId(link_name);
             if (link_index == static_cast<pinocchio::FrameIndex>(-1))  
@@ -228,7 +289,7 @@ namespace drc
             return J;
         }
         
-        MatrixXd RobotData::computeJacobianTimeVariation(const VectorXd& q, const VectorXd& qdot, const std::string& link_name)
+        MatrixXd RobotData::computeJacobianTimeVariation(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const std::string& link_name)
         {
             pinocchio::FrameIndex link_index = model_.getFrameId(link_name);
             if (link_index == static_cast<pinocchio::FrameIndex>(-1))  
@@ -245,14 +306,14 @@ namespace drc
             return Jdot;
         }
         
-        VectorXd RobotData::computeVelocity(const VectorXd& q, const VectorXd& qdot, const std::string& link_name)
+        VectorXd RobotData::computeVelocity(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const std::string& link_name)
         {
             MatrixXd J = computeJacobian(q, link_name);
             
             return J * qdot;
         }
         
-        MinDistResult RobotData::computeMinDistance(const VectorXd& q, const VectorXd& qdot, const bool& with_grad, const bool& with_graddot, const bool verbose)
+        MinDistResult RobotData::computeMinDistance(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const bool& with_grad, const bool& with_graddot, const bool verbose)
         {
             MinDistResult result;
             result.setZero(q.size());
@@ -353,7 +414,7 @@ namespace drc
             return result;  
         }
         
-        ManipulabilityResult RobotData::computeManipulability(const VectorXd& q, const VectorXd& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name)
+        ManipulabilityResult RobotData::computeManipulability(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name)
         {
             ManipulabilityResult result;
             result.setZero(q.size());
@@ -418,6 +479,25 @@ namespace drc
         bool RobotData::hasJointFrame(const std::string& name) const
         {
             return joint_frame_set_.count(name) > 0;
+        }
+
+        const std::vector<std::string>& RobotData::getJointNames() const
+        {
+            return joint_names_;
+        }
+
+        int RobotData::getJointQIndex(const std::string& name)
+        {
+            pinocchio::JointIndex joint_id = model_.getJointId(name);
+            if (joint_id == 0) return -1;
+            return static_cast<int>(model_.joints[joint_id].idx_q());
+        }
+
+        int RobotData::getJointVIndex(const std::string& name)
+        {
+            pinocchio::JointIndex joint_id = model_.getJointId(name);
+            if (joint_id == 0) return -1;
+            return static_cast<int>(model_.joints[joint_id].idx_v());
         }
 
         // Task space  

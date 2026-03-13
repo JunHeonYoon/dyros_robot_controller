@@ -54,8 +54,8 @@ class XLSController:
         )
 
         # Instantiate dyros robot model/controller
-        self.robot_data = RobotData(param)
-        self.robot_controller = RobotController(dt=self.dt, robot_data=self.robot_data)
+        self.robot_data = RobotData(self.dt, param)
+        self.robot_controller = RobotController(robot_data=self.robot_data)
 
         # Dimensions
         self.wheel_num: int = self.robot_data.get_wheel_num()

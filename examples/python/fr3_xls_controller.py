@@ -62,12 +62,13 @@ class FR3XLSController:
         actuator_idx = ActuatorIndex(mani_start=0, mobi_start=7)
 
         # Instantiate dyros robot model/controller
-        self.robot_data = RobotData(mobile_param=mobile_param, 
+        self.robot_data = RobotData(dt=self.dt,
+                                    mobile_param=mobile_param, 
                                     joint_idx=joint_idx, 
                                     actuator_idx=actuator_idx, 
                                     urdf_path=urdf_file_path, 
                                     srdf_path=srdf_file_path)
-        self.robot_controller = RobotController(dt=self.dt, robot_data=self.robot_data)
+        self.robot_controller = RobotController(robot_data=self.robot_data)
 
         # Degree of freedom
         self.virual_dof: int = 3
@@ -116,23 +117,35 @@ class FR3XLSController:
         self.control_start_time: float = 0.0
         
         # --- Gain
-        self.kp_mani_joint = np.array([600.0,600.0,600.0,600.0,250.0,150.0,50.0])
-        self.kv_mani_joint = np.array([30.0,30.0,30.0,30.0,10.0,10.0,5.0])
-        self.link_kp_task = {self.ee_link_name: np.array([100, 100, 100, 100, 100, 100])}
-        self.link_kv_task = {self.ee_link_name: np.array([20, 20, 20, 20, 20, 20])}
-        self.qpik_link_tracking = {self.ee_link_name: np.array([10, 10, 10, 10, 10, 10])}
-        self.qpik_damping = np.array([10, 10, 10, 10, 10, 10, 10, # manipulator
-                                      0.2, 0.2, 0.2, 0.2])        # mobile
-        self.qpid_link_tracking = {self.ee_link_name: np.array([1, 1, 1, 1, 1, 1])}
-        self.qpid_vel_damping = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, # manipulator
-                                          10, 10, 10, 10])                   # mobile
-        self.qpid_acc_damping = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, # manipulator
-                                          0.0001, 0.0001, 0.0001, 0.0001])          # mobile
-        
-        self.robot_controller.set_manipulator_joint_gain(kp=self.kp_mani_joint, kv=self.kv_mani_joint)
-        self.robot_controller.set_task_gain(link_kp=self.link_kp_task, link_kv=self.link_kv_task)
-        self.robot_controller.set_QPIK_gain(link_w_tracking=self.qpik_link_tracking, w_damping=self.qpik_damping)
-        self.robot_controller.set_QPID_gain(link_w_tracking=self.qpid_link_tracking, w_vel_damping=self.qpid_vel_damping, w_acc_damping=self.qpid_acc_damping)
+        self.mani_joint_kp = np.array([600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 50.0])
+        self.mani_joint_kv = np.array([30.0, 30.0, 30.0, 30.0, 10.0, 10.0, 5.0])
+        self.task_ik_kp = np.array([10.0, 10.0, 10.0, 30.0, 30.0, 30.0])
+        self.task_id_kp = np.array([600.0, 600.0, 600.0, 1000.0, 1000.0, 1000.0])
+        self.task_id_kv = np.array([20.0, 20.0, 20.0, 30.0, 30.0, 30.0])
+        self.qpik_tracking = np.array([10.0, 10.0, 10.0, 40.0, 40.0, 40.0])
+        self.qpik_mani_vel_damping = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        self.qpik_mani_acc_damping = np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001])
+        self.qpik_base_vel_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpik_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpid_tracking = np.array([10.0, 10.0, 10.0, 1.0, 1.0, 1.0])
+        self.qpid_mani_vel_damping = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        self.qpid_mani_acc_damping = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
+        self.qpid_base_vel_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpid_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+
+        self.robot_controller.set_manipulator_joint_gain(kp=self.mani_joint_kp, kv=self.mani_joint_kv)
+        self.robot_controller.set_IK_gain(kp=self.task_ik_kp)
+        self.robot_controller.set_ID_gain(kp=self.task_id_kp, kv=self.task_id_kv)
+        self.robot_controller.set_QPIK_gain(w_tracking=self.qpik_tracking,
+                                            w_mani_vel_damping=self.qpik_mani_vel_damping,
+                                            w_mani_acc_damping=self.qpik_mani_acc_damping,
+                                            w_base_vel_damping=self.qpik_base_vel_damping,
+                                            w_base_acc_damping=self.qpik_base_acc_damping)
+        self.robot_controller.set_QPID_gain(w_tracking=self.qpid_tracking,
+                                            w_mani_vel_damping=self.qpid_mani_vel_damping,
+                                            w_mani_acc_damping=self.qpid_mani_acc_damping,
+                                            w_base_vel_damping=self.qpid_base_vel_damping,
+                                            w_base_acc_damping=self.qpid_base_acc_damping)
         
         # Print FR3XLS URDF info
         print("info:")
@@ -143,6 +156,9 @@ class FR3XLSController:
         
         print("joint frame info:")
         print(self.robot_data.get_joint_frame_vector())
+        
+        print("joint name info:")
+        print(self.robot_data.get_joint_names())
         
 
         # Global keyboard listener (non-blocking)
@@ -265,7 +281,7 @@ class FR3XLSController:
             self.link_ee_task[self.ee_link_name].x_desired = self.link_ee_task[self.ee_link_name].x_init.copy()
             self.link_ee_task[self.ee_link_name].x_desired[0:3, 3] += np.array([0, 0.1, 0.1])  # +10 cm in Y and Z
 
-            self.qdot_mobile_desired, self.qdot_mani_desired = self.robot_controller.QPIK_cubic(
+            _, self.qdot_mobile_desired, self.qdot_mani_desired = self.robot_controller.QPIK_cubic(
                 link_task_data=self.link_ee_task,
                 init_time=self.control_start_time,
                 current_time=self.sim_time,
@@ -282,7 +298,7 @@ class FR3XLSController:
         # --- Mode: Gravity Compensation W QPID (task-space QPID with zero desired acceleration) ---
         elif self.control_mode == "Gravity Compensation W QPID":
             self.link_ee_task[self.ee_link_name].xddot = np.zeros(6)
-            qddot_mobile_desired, self.tau_mani_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
+            _, qddot_mobile_desired, self.tau_mani_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
             # Integrate mobile acceleration output to wheel velocity command
             self.qdot_mobile_desired = self.qdot_mobile + qddot_mobile_desired * self.dt
 

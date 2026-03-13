@@ -23,10 +23,14 @@ namespace drc
                 EIGEN_MAKE_ALIGNED_OPERATOR_NEW
                 /**
                  * @brief Constructor with kinematic parameters.
+                 * @param dt    (double) Control loop time step in seconds.
                  * @param param (RobotData::Mobile::KinematicParam) Kinematic parameter object containing drive type and geometry.
                 */
-                RobotData(const KinematicParam& param);
-
+                RobotData(const double dt, const KinematicParam& param);
+                /**
+                 * @brief Print current mobile robot state and parameters in formatted text.
+                 * @return (std::string) Human-readable debug information string.
+                 */
                 virtual std::string getVerbose() const;
 
                 /**
@@ -35,7 +39,15 @@ namespace drc
                  * @param wheel_vel (Eigen::VectorXd) Wheel velocities [rad/s]; its size must be same as wheel_num_.
                  * @return True if state update is successful.
                 */
-                virtual bool updateState(const VectorXd& wheel_pos, const VectorXd& wheel_vel);
+                virtual bool updateState(const Eigen::Ref<const VectorXd>& wheel_pos, const Eigen::Ref<const VectorXd>& wheel_vel);
+
+                /**
+                 * @brief Initialize base pose.
+                 * @param x Initial x [m]
+                 * @param y Initial y [m]
+                 * @param yaw Initial yaw [rad]
+                */
+                virtual void initBasePose(double x = 0.0, double y = 0.0, double yaw = 0.0);
 
                 // ================================ Compute Functions ================================
                 /**
@@ -44,14 +56,22 @@ namespace drc
                  * @param wheel_vel (Eigen::VectorXd) Wheel velocities [rad/s]; its size must be same as wheel_num_.
                  * @return (Eigen::Vector3d) Base velocity vector [vx, vy, wz].
                 */
-                virtual Vector3d computeBaseVel(const VectorXd& wheel_pos, const VectorXd& wheel_vel);
+                virtual Vector3d computeBaseVel(const Eigen::Ref<const VectorXd>& wheel_pos, const Eigen::Ref<const VectorXd>& wheel_vel);
                 /**
                  * @brief Compute the forward kinematics Jacobian of the base.
                  *        Maps wheel velocities to base velocity.
                  * @param wheel_pos (Eigen::VectorXd) Wheel positions [rad]; its size must be same as wheel_num_.
                  * @return (Eigen::MatrixXd) Base velocity Jacobian matrix.
                 */
-                virtual MatrixXd computeFKJacobian(const VectorXd& wheel_pos);
+                virtual MatrixXd computeFKJacobian(const Eigen::Ref<const VectorXd>& wheel_pos);
+
+                /**
+                 * @brief Update base pose using wheel state and dt.
+                 * @param wheel_pos Wheel positions [rad]
+                 * @param wheel_vel Wheel velocities [rad/s]
+                 * @param dt Timestep [s]
+                */
+                virtual Affine2d computeBasePose(const Eigen::Ref<const VectorXd>& wheel_pos, const Eigen::Ref<const VectorXd>& wheel_vel);
 
                 // ================================ Get Functions ================================
                 /**
@@ -59,6 +79,12 @@ namespace drc
                  * @return (RobotData::Mobile::KinematicParam) Reference to KinematicParam.
                 */
                 virtual const KinematicParam& getKineParam() const {return param_;}
+
+                /**
+                 * @brief Get the control time step.
+                 * @return (double) Control loop time step in seconds.
+                */
+                virtual double getDt() const {return dt_;}
 
                 /**
                  * @brief Get the number of wheels.
@@ -89,8 +115,15 @@ namespace drc
                  * @return (Eigen::MatrixXd) Jacobian matrix from wheel velocity to base velocity.
                 */
                 virtual const MatrixXd& getFKJacobian() const {return J_mobile_;}
-                
+
+                /**
+                 * @brief Get current base pose.
+                 * @return SE2 transform (world -> base)
+                */
+                virtual const Affine2d& getBasePose() const { return base_pose_; }
+
             protected:
+                double dt_;
                 KinematicParam param_;    // Kinematic parameters for this mobile base.
                 int wheel_num_;           // Number of wheels used in the robot.
 
@@ -99,6 +132,8 @@ namespace drc
 
                 MatrixXd J_mobile_;       // Forward kinematics Jacobian matrix.
                 Vector3d base_vel_;       // Last computed base velocity.
+
+                Affine2d base_pose_;       // Pose of base in world frame
             private:
                 /**
                  * @brief Compute Jacobian for differential drive base.
@@ -117,8 +152,8 @@ namespace drc
                  * @param wheel_pos Wheel positions (to resolve caster angles).
                  * @return (Eigen::MatrixXd) Jacobian matrix [3 x N_wheels].
                 */
-                MatrixXd CasterFKJacobian(const VectorXd& wheel_pos);
+                MatrixXd CasterFKJacobian(const Eigen::Ref<const VectorXd>& wheel_pos);
 
         };
-    } // namespace RobotData
+    } // namespace Mobile
 } // namespace drc

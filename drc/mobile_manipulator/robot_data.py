@@ -14,33 +14,40 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
     It supports a mobile manipulator with a floating base, manipulator joints, and mobile wheel joints.
     """
     def __init__(self,
+                 dt: float,
                  mobile_param: KinematicParam,
                  joint_idx: JointIndex,
                  actuator_idx: ActuatorIndex,
                  urdf_path: str,
                  srdf_path: str="",
                  packages_path: str="",
+                 use_xml: bool=False,
                  ):
         """
         Constructor.
 
         Parameters:
+            dt            : (float) Control loop time step in seconds.
             mobile_param  : (KinematicParam) Kinematic parameter instance containing drive type and geometry.
             joint_idx     : (JointIndex) Joint index structure containing starting indices for virtual, manipulator, and mobile joints.
             actuator_idx  : (ActuatorIndex) Actuator index structure containing starting indices for manipulator and mobile actuators.
             urdf_path     : (str) Path to the URDF file.
             srdf_path     : (str) Path to the SRDF file.
             packages_path : (str) Path to the packages directory.
+            use_xml       : (bool) If True, treat urdf_path/srdf_path as XML strings.
         """
+        self._dt = float(dt)
         self._mobile_kine_param = mobile_param
         self._joint_idx = joint_idx
         self._actuator_idx = actuator_idx
-        super().__init__(self._mobile_kine_param.cpp(),
+        super().__init__(self._dt,
+                         self._mobile_kine_param.cpp(),
                          self._joint_idx.cpp(),
                          self._actuator_idx.cpp(),
                          urdf_path,
                          srdf_path,
                          packages_path,
+                         use_xml,
                          )
         self.mani_dof     = int(super().getManipulatorDof())
         self.mobi_dof     = int(super().getMobileDof())
@@ -49,12 +56,21 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         
     def get_verbose(self) -> str:
         """
-        Prints debug information.
+        Print current mobile manipulator state and parameters in formatted text.
 
         Return:
-            (str) Debug information.
+            (str) Human-readable debug information string.
         """
         return super().getVerbose()
+
+    def get_dt(self) -> float:
+        """
+        Get control time step.
+
+        Return:
+            (float) Control loop time step in seconds.
+        """
+        return float(super().getDt())
 
     def update_state(self,
                      q_virtual: np.ndarray,
@@ -65,7 +81,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
                      qdot_mani: np.ndarray,
                      ) -> bool:
         """
-        Update the state of the manipulator.
+        Update internal mobile manipulator robot data.
 
         Parameters:
             q_virtual    : (np.ndarray) Joint positions of the floating base.
@@ -265,7 +281,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_virtual    : (np.ndarray) Joint positions of the floating base.
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
 
         Return:
@@ -297,7 +313,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_virtual    : (np.ndarray) Joint positions of the floating base.
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
 
         Return:
@@ -375,7 +391,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
             qdot_virtual : (np.ndarray) Joint velocities of the floating base.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             link_name    : (str) Name of the link.
 
@@ -413,7 +429,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
             qdot_virtual : (np.ndarray) Joint velocities of the floating base.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             link_name    : (str) Name of the link.
 
@@ -453,7 +469,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
             qdot_virtual : (np.ndarray) Joint velocities of the floating base.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             with_grad    : (bool) If true, computes the gradient of the minimum distance.
             with_graddot : (bool) If true, computes the gradient time variation of the minimum distance.
@@ -532,7 +548,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             q_mobile     : (np.ndarray) Wheel positions.
             q_mani       : (np.ndarray) Joint positions of the manipulator.
             qdot_virtual : (np.ndarray) Joint velocities of the floating base.
-            qdot_mobile  : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile  : (np.ndarray) Wheel velocities.
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             link_name    : (str) Name of the link.
 
@@ -569,6 +585,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             qdot_mani    : (np.ndarray) Joint velocities of the manipulator.
             with_grad    : (bool) If true, computes the gradient of the manipulability.
             with_graddot : (bool) If true, computes the gradient time variation of the manipulability.
+            link_name    : (str) Name of the link.
 
         Return:
             (Tuple[float, np.ndarray, np.ndarray]) Manipulability, its gradient, and its gradient time variation.
@@ -601,7 +618,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
 
         Parameters:
             q_mobile    : (np.ndarray) Wheel positions.
-            qdot_mobile : (np.ndarray) Joint velocities of the wheels.
+            qdot_mobile : (np.ndarray) Wheel velocities.
 
         Return:
             (np.ndarray) Base velocity vector [vx, vy, wz].
@@ -614,27 +631,82 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
 
     # ================================ Get Functions ================================
     def get_urdf_path(self) -> str:
-        return super().getURDFPath()
-    def get_srdf_path(self) -> str:
-        return super().getSRDFPath()
-    def get_packages_path(self) -> str:
-        return super().getPackagePath()
-    def get_root_link_name(self) -> str:
-        return super().getRootLinkName()
-    def get_link_frame_vector(self) -> list:
-        return super().getLinkFrameVector()
-    def get_joint_frame_vector(self) -> list:
-        return super().getJointFrameVector()
-    def has_link_frame(self, name:str) -> bool:
-        return super.hasLinkFrame(name)
-    def has_joint_frame(self, name:str) -> bool:
-        return super.hasJointFrame(name)
-    def get_dof(self) -> int:
         """
-        Get the full degrees of freedom of the robot.
+        Get the configured URDF source path.
 
         Return:
-            (int) Full degrees of freedom.
+            (str) URDF path string.
+        """
+        return super().getURDFPath()
+    def get_srdf_path(self) -> str:
+        """
+        Get the configured SRDF source path.
+
+        Return:
+            (str) SRDF path string.
+        """
+        return super().getSRDFPath()
+    def get_packages_path(self) -> str:
+        """
+        Get the configured package search path.
+
+        Return:
+            (str) Package path string.
+        """
+        return super().getPackagePath()
+    def get_root_link_name(self) -> str:
+        """
+        Get the root link name of the current robot model.
+
+        Return:
+            (str) Root link name.
+        """
+        return super().getRootLinkName()
+    def get_link_frame_vector(self) -> list:
+        """
+        Get all link frame names discovered from the model.
+
+        Return:
+            (list) Link frame name list.
+        """
+        return super().getLinkFrameVector()
+    def get_joint_frame_vector(self) -> list:
+        """
+        Get all joint frame names discovered from the model.
+
+        Return:
+            (list) Joint frame name list.
+        """
+        return super().getJointFrameVector()
+    def has_link_frame(self, name:str) -> bool:
+        """
+        Check whether a link frame exists in the model.
+
+        Parameters:
+            name : (str) Link frame name.
+
+        Return:
+            (bool) True if the link frame exists.
+        """
+        return super().hasLinkFrame(name)
+    def has_joint_frame(self, name:str) -> bool:
+        """
+        Check whether a joint frame exists in the model.
+
+        Parameters:
+            name : (str) Joint frame name.
+
+        Return:
+            (bool) True if the joint frame exists.
+        """
+        return super().hasJointFrame(name)
+    
+    def get_dof(self) -> int:
+        """
+        Get the degrees of freedom of the manipulator.
+
+        Return:
+            (int) Degrees of freedom of the manipulator.
         """
         return super().getDof()
     
@@ -679,7 +751,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Get the actuator joint index.
 
         Return:
-            (JointIndex) Joint index structure containing starting indices for manipulator and mobile joints.
+            (ActuatorIndex) Joint index structure containing starting indices for manipulator and mobile joints.
         """
         return self._actuator_idx
     
@@ -851,7 +923,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Get the inversed mass matrix of the actuated joints.
         
         return:
-            (np.ndarray) Inversed Mass matrix of the actuated joints.
+            (np.ndarray) Inversed mass matrix of the actuated joints.
         """
         return super().getMassMatrixActuatedInv()
 
@@ -984,7 +1056,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
 
         Parameters:
             with_grad    : (bool) If true, get the gradient of the manipulability.
-            with_graddot : (bool) If true, get the gradient time variation of the manipulability.
+            with_graddot : (bool) If true, get the time variation of the gradient.
             link_name    : (str) Name of the link.
 
         Return:
@@ -1011,3 +1083,36 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             (np.ndarray) Base velocity vector [vx, vy, wz].
         """
         return super().getMobileBaseVel()
+    
+    def get_joint_names(self) -> list:
+        """
+        Get all joint names, excluding the universe joint.
+
+        Return:
+            (list) List of joint names.
+        """
+        return list(super().getJointNames())
+
+    def get_joint_q_index(self, name: str) -> int:
+        """
+        Get the start index of the given joint in the generalized position vector q.
+
+        Parameters:
+            name : (str) Joint name.
+
+        Return:
+            (int) Start index in q. Returns -1 if no joint with the given name exists.
+        """
+        return super().getJointQIndex(name)
+
+    def get_joint_v_index(self, name: str) -> int:
+        """
+        Get the start index of the given joint in the generalized velocity vector v.
+
+        Parameters:
+            name : (str) Joint name.
+
+        Return:
+            (int) Start index in v. Returns -1 if no joint with the given name exists.
+        """
+        return super().getJointVIndex(name)

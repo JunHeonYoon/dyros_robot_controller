@@ -11,16 +11,19 @@ class RobotData(drc_cpp.ManipulatorRobotData):
     It supports state update, forward kinematics, dynamics computation and
     Jacobian, minimum distance and manipulability calculation based on the specified kinematic parameters.
     """
-    def __init__(self, urdf_path: str, srdf_path: str="", packages_path: str=""):
+    def __init__(self, dt: float, urdf_path: str, srdf_path: str="", packages_path: str="", use_xml: bool=False):
         """
         Constructor.
 
         Parameters:
-            urdf_path     : (str) Path to the URDF file.
-            srdf_path     : (str) Path to the SRDF file.
+            dt            : (float) Control loop time step in seconds.
+            urdf_path     : (str) Path to the URDF file or URDF XML string when use_xml is True.
+            srdf_path     : (str) Path to the SRDF file or SRDF XML string when use_xml is True.
             packages_path : (str) Path to the packages directory.
+            use_xml       : (bool) If True, treat urdf_path/srdf_path as XML strings.
         """
-        super().__init__(urdf_path, srdf_path, packages_path)
+        self._dt = float(dt)
+        super().__init__(self._dt, urdf_path, srdf_path, packages_path, use_xml)
         self.dof = super().getDof()
         
     def get_verbose(self) -> str:
@@ -31,6 +34,15 @@ class RobotData(drc_cpp.ManipulatorRobotData):
             (str) Debug information.
         """
         return super().getVerbose()
+
+    def get_dt(self) -> float:
+        """
+        Get control time step.
+
+        Return:
+            (float) Control loop time step in seconds.
+        """
+        return float(super().getDt())
 
     def update_state(self, q: np.ndarray, qdot: np.ndarray) -> bool:
         """
@@ -207,8 +219,8 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         Parameters:
             q            : (np.ndarray) Joint positions.
             qdot         : (np.ndarray) Joint velocities.
-            with_grad    : (bool) If true, computes the gradient of the minimum distance.
-            with_graddot : (bool) If true, computes the gradient time variation of the minimum distance.
+            with_grad    : (bool) If true, computes the gradient of the manipulability.
+            with_graddot : (bool) If true, computes the gradient time variation of the manipulability.
             link_name    : (str) Name of the link.
 
         Return:
@@ -223,21 +235,75 @@ class RobotData(drc_cpp.ManipulatorRobotData):
 
     # ================================ Get Functions ================================
     def get_urdf_path(self) -> str:
+        """
+        Get the configured URDF source path.
+
+        Return:
+            (str) URDF path string.
+        """
         return super().getURDFPath()
     def get_srdf_path(self) -> str:
+        """
+        Get the configured SRDF source path.
+
+        Return:
+            (str) SRDF path string.
+        """
         return super().getSRDFPath()
     def get_packages_path(self) -> str:
+        """
+        Get the configured package search path.
+
+        Return:
+            (str) Package path string.
+        """
         return super().getPackagePath()
     def get_root_link_name(self) -> str:
+        """
+        Get the root link name of the current robot model.
+
+        Return:
+            (str) Root link name.
+        """
         return super().getRootLinkName()
     def get_link_frame_vector(self) -> list:
+        """
+        Get all link frame names discovered from the model.
+
+        Return:
+            (list) Link frame name list.
+        """
         return super().getLinkFrameVector()
     def get_joint_frame_vector(self) -> list:
+        """
+        Get all joint frame names discovered from the model.
+
+        Return:
+            (list) Joint frame name list.
+        """
         return super().getJointFrameVector()
     def has_link_frame(self, name:str) -> bool:
-        return super.hasLinkFrame(name)
+        """
+        Check whether a link frame exists in the model.
+
+        Parameters:
+            name : (str) Link frame name.
+
+        Return:
+            (bool) True if the link frame exists.
+        """
+        return super().hasLinkFrame(name)
     def has_joint_frame(self, name:str) -> bool:
-        return super.hasJointFrame(name)
+        """
+        Check whether a joint frame exists in the model.
+
+        Parameters:
+            name : (str) Joint frame name.
+
+        Return:
+            (bool) True if the joint frame exists.
+        """
+        return super().hasJointFrame(name)
     
     def get_dof(self) -> int:
         """
@@ -284,6 +350,15 @@ class RobotData(drc_cpp.ManipulatorRobotData):
             (Tuple[np.ndarray, np.ndarray]) Joint velocity limits (lower, upper) of the manipulator.
         """
         return super().getJointVelocityLimit()
+
+    def get_joint_effort_limit(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get lower and upper joint effort limits of the manipulator.
+
+        Return:
+            (Tuple[np.ndarray, np.ndarray]) Joint torque limits (lower, upper) of the manipulator.
+        """
+        return super().getJointEffortLimit()
 
     def get_mass_matrix(self) -> np.ndarray:
         """
@@ -369,7 +444,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
 
     def get_velocity(self, link_name: str) -> np.ndarray:
         """
-        Get the Velocity of the link in the task space.
+        Get the velocity of the link in the task space.
 
         Parameters:
             link_name : (str) Name of the link.
@@ -407,3 +482,36 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         min_result = super().getManipulability(with_grad, with_graddot, link_name)
         return min_result.manipulability, min_result.grad, min_result.grad_dot
+
+    def get_joint_names(self) -> list:
+        """
+        Get all joint names, excluding the universe joint.
+
+        Return:
+            (list) List of joint names.
+        """
+        return list(super().getJointNames())
+
+    def get_joint_q_index(self, name: str) -> int:
+        """
+        Get the start index of the given joint in the generalized position vector q.
+
+        Parameters:
+            name : (str) Joint name.
+
+        Return:
+            (int) Start index in q. Returns -1 if no joint with the given name exists.
+        """
+        return super().getJointQIndex(name)
+
+    def get_joint_v_index(self, name: str) -> int:
+        """
+        Get the start index of the given joint in the generalized velocity vector v.
+
+        Parameters:
+            name : (str) Joint name.
+
+        Return:
+            (int) Start index in v. Returns -1 if no joint with the given name exists.
+        """
+        return super().getJointVIndex(name)

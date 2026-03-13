@@ -22,6 +22,22 @@ class KinematicParam:
                  base2wheel_angles: List | None = None,
                  wheel_offset: float | None = None,
                  ) -> None:
+        """
+        Constructor for mobile base kinematic parameters.
+
+        Parameters:
+            type                 : (DriveType) Drive type of the mobile base.
+            wheel_radius         : (float) Radius of the wheel [m].
+            max_lin_speed        : (float) Maximum linear speed [m/s].
+            max_ang_speed        : (float) Maximum angular speed [rad/s].
+            max_lin_acc          : (float) Maximum linear acceleration [m/s^2].
+            max_ang_acc          : (float) Maximum angular acceleration [rad/s^2].
+            base_width           : (float | None) Distance between left and right wheels [m]. Required for Differential.
+            roller_angles        : (List | None) Roller angles [rad]. Required for Mecanum.
+            base2wheel_positions : (List[np.ndarray] | None) Wheel positions in base frame [m]. Required for Mecanum/Caster.
+            base2wheel_angles    : (List | None) Wheel orientation angles in base frame [rad]. Required for Mecanum.
+            wheel_offset         : (float | None) Offset from caster axis to wheel center [m]. Required for Caster.
+        """
 
         p = drc_cpp.KinematicParam()
         self.type                 = type
@@ -62,6 +78,12 @@ class KinematicParam:
         self._cpp = p
 
     def cpp(self) -> drc_cpp.KinematicParam:
+        """
+        Return the wrapped C++ KinematicParam.
+
+        Return:
+            (drc_cpp.KinematicParam) C++ kinematic parameter object.
+        """
         return self._cpp
     
 class JointIndex:
@@ -70,6 +92,14 @@ class JointIndex:
                  mani_start: int, 
                  mobi_start: int
                  ) -> None:
+        """
+        Constructor for unified joint index offsets.
+
+        Parameters:
+            virtual_start : (int) Start index of virtual joints in full joint state vector.
+            mani_start    : (int) Start index of manipulator joints in full joint state vector.
+            mobi_start    : (int) Start index of mobile joints in full joint state vector.
+        """
         j = drc_cpp.JointIndex()
         self.virtual_start = int(virtual_start)
         self.mani_start    = int(mani_start)
@@ -82,6 +112,12 @@ class JointIndex:
         self._cpp = j
         
     def cpp(self) -> drc_cpp.JointIndex:
+        """
+        Return the wrapped C++ JointIndex.
+
+        Return:
+            (drc_cpp.JointIndex) C++ joint index object.
+        """
         return self._cpp
 
 class ActuatorIndex:
@@ -89,6 +125,13 @@ class ActuatorIndex:
                  mani_start: int, 
                  mobi_start: int
                  ) -> None:
+        """
+        Constructor for unified actuator index offsets.
+
+        Parameters:
+            mani_start : (int) Start index of manipulator actuators in actuator vector.
+            mobi_start : (int) Start index of mobile actuators in actuator vector.
+        """
         a = drc_cpp.ActuatorIndex()
         self.mani_start = int(mani_start)
         self.mobi_start = int(mobi_start)
@@ -99,6 +142,12 @@ class ActuatorIndex:
         self._cpp = a
         
     def cpp(self) -> drc_cpp.ActuatorIndex:
+        """
+        Return the wrapped C++ ActuatorIndex.
+
+        Return:
+            (drc_cpp.ActuatorIndex) C++ actuator index object.
+        """
         return self._cpp
 
 class TaskSpaceData:
@@ -119,6 +168,20 @@ class TaskSpaceData:
                  x_desired: np.ndarray | None = None,
                  xdot_desired: np.ndarray | None = None,
                  xddot_desired: np.ndarray | None = None) -> None:
+        """
+        Constructor for task-space state and trajectory data.
+
+        Parameters:
+            x             : (np.ndarray | None) Current pose, shape (4, 4).
+            xdot          : (np.ndarray | None) Current task-space velocity, size 6.
+            xddot         : (np.ndarray | None) Current task-space acceleration, size 6.
+            x_init        : (np.ndarray | None) Initial pose, shape (4, 4).
+            xdot_init     : (np.ndarray | None) Initial task-space velocity, size 6.
+            xddot_init    : (np.ndarray | None) Initial task-space acceleration, size 6.
+            x_desired     : (np.ndarray | None) Desired pose, shape (4, 4).
+            xdot_desired  : (np.ndarray | None) Desired task-space velocity, size 6.
+            xddot_desired : (np.ndarray | None) Desired task-space acceleration, size 6.
+        """
 
         # --------- Allocate defaults (identity / zeros) ----------
         self.x             = np.eye(4) if x is None else np.array(x, dtype=float, copy=True)

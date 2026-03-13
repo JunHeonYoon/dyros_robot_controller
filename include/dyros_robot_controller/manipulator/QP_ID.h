@@ -22,22 +22,49 @@ namespace drc
                  * @param robot_data (std::shared_ptr<Manipulator::RobotData>) Shared pointer to the RobotData class.
                  * @param dt (double) Control loop time step in seconds.
                  */
-                // TODO: add document to notion that add dt
                 QPID(std::shared_ptr<Manipulator::RobotData> robot_data, const double dt);
                 /**
-                 * @brief Set the wight vector for the cost terms
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space acceleration tracking per links.
-                 * @param w_vel_damping  (Eigen::VectorXd) Weight for joint velocity damping; its size must same as actuator dof.
-                 * @param w_acc_damping  (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as actuator dof.
+                 * @brief Set task tracking weights only.
+                 * @param w_tracking (Vector6d) Weight for task space acceleration tracking for all the links in the URDF.
                  */
-                // TODO: add document to notion
-                void setWeight(const std::map<std::string, Vector6d> link_w_tracking, const VectorXd w_vel_damping, const VectorXd w_acc_damping);
+                void setTrackingWeight(const Vector6d w_tracking);
                 /**
-                 * @brief Set the desired task space acceleration for the link.
-                 * @param link_xddot_desired (std::map<std::string, Vector6d>) Desired task space acceleration (6D twist) per links.
-                 * @param link_name     (std::string) Name of the link.
+                 * @brief Set task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space acceleration tracking per links.
                  */
-                // TODO: add document to notion
+                void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
+                /**
+                 * @brief Set joint velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
+                void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_vel_damping) { w_vel_damping_ = w_vel_damping; }
+                /**
+                 * @brief Set joint acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
+                /**
+                 * @brief Set the weight vector for the cost terms.
+                 * @param w_tracking (Eigen::Vector6d) Weight for task space acceleration tracking for all the links in the URDF.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setWeight(const Vector6d w_tracking,
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
+                               const Eigen::Ref<const VectorXd>& w_acc_damping);
+                /**
+                 * @brief Set the weight vector for the cost terms.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space acceleration tracking per links.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
+                               const Eigen::Ref<const VectorXd>& w_acc_damping);
+                /**
+                 * @brief Set the desired task space acceleration for each link.
+                 * @param link_xddot_desired (std::map<std::string, Vector6d>) Desired task space acceleration (6D twist) per links.
+                 */
                 void setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired);
                 /**
                  * @brief Get the optimal joint acceleration and torque by solving QP.
@@ -46,11 +73,11 @@ namespace drc
                  * @param time_status (TimeDuration) Output time durations structure for the QP solving process.
                  * @return (bool) True if the problem was solved successfully.
                  */
-                bool getOptJoint(VectorXd &opt_qddot, VectorXd &opt_torque, QP::TimeDuration &time_status);
+                bool getOptJoint(Eigen::Ref<Eigen::VectorXd> opt_qddot, Eigen::Ref<Eigen::VectorXd> opt_torque, QP::TimeDuration &time_status);
 
             private:
                 /**
-                 * @brief Struct to hold the indicies of the QP variables and constraints.
+                 * @brief Struct to hold the indices of the QP variables and constraints.
                  */
                 struct QPIndex
                 {
@@ -171,5 +198,5 @@ namespace drc
                  */
                 void setEqConstraint() override;
         };
-    } // namespace QP
-} // namespacce drc
+    } // namespace Manipulator
+} // namespace drc

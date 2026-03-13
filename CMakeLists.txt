@@ -34,6 +34,14 @@ add_library(${PROJECT_NAME} SHARED
   src/mobile_manipulator/robot_data.cpp
 )
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "12")
+  # Workaround for sporadic GCC 11 ICE in manipulator/robot_controller.cpp at -O3.
+  set_source_files_properties(
+    src/manipulator/robot_controller.cpp
+    PROPERTIES COMPILE_OPTIONS "-O2;-fno-tree-vectorize"
+  )
+endif()
+
 target_sources(${PROJECT_NAME} PRIVATE
   src/manipulator/QP_ID.cpp
   src/manipulator/QP_IK.cpp

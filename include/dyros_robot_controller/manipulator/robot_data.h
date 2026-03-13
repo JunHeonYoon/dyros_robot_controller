@@ -43,21 +43,24 @@ namespace drc
                 EIGEN_MAKE_ALIGNED_OPERATOR_NEW
                 /**
                  * @brief Constructor.
-                 * @param urdf_path     (std::string) Path to the URDF file.
-                 * @param srdf_path     (std::string) Path to the SRDF file.
+                 * @param dt            (double) Control loop time step in seconds.
+                 * @param urdf_source   (std::string) URDF file path or URDF XML string (when use_xml is true).
+                 * @param srdf_source   (std::string) SRDF file path or SRDF XML string (when use_xml is true).
                  * @param packages_path (std::string) Path to the packages directory.
+                 * @param use_xml       (bool) If true, treat URDF/SRDF inputs as XML strings.
                  */
-                RobotData(const std::string& urdf_path, 
-                          const std::string& srdf_path="", 
-                          const std::string& packages_path="");
-
+                RobotData(const double dt,
+                          const std::string& urdf_source,
+                          const std::string& srdf_source="",
+                          const std::string& packages_path="",
+                          const bool use_xml=false);
                 /**
                  * @brief Update the state of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (bool) True if state update is successful.
                 */            
-                virtual bool updateState(const VectorXd& q, const VectorXd& qdot);
+                virtual bool updateState(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
                 /**
                  * @brief Prints debug information.
                  * @return (std::string) Debug information.
@@ -70,27 +73,27 @@ namespace drc
                  * @param q (Eigen::VectorXd) Joint positions.
                  * @return (Eigen::MatrixXd) Mass matrix of the manipulator.
                  */
-                virtual MatrixXd computeMassMatrix(const VectorXd& q);
+                virtual MatrixXd computeMassMatrix(const Eigen::Ref<const VectorXd>& q);
                 /**
                  * @brief Compute the gravity vector of the manipulator.
                  * @param q (Eigen::VectorXd) Joint positions.
                  * @return (Eigen::VectorXd) Gravity vector of the manipulator.
                  */
-                virtual VectorXd computeGravity(const VectorXd& q);
+                virtual VectorXd computeGravity(const Eigen::Ref<const VectorXd>& q);
                 /**
                  * @brief Compute the coriolis vector of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (Eigen::VectorXd) Coriolis vector of the manipulator.
                  */
-                virtual VectorXd computeCoriolis(const VectorXd& q, const VectorXd& qdot);
+                virtual VectorXd computeCoriolis(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
                 /**
                  * @brief Compute the nonlinear effects vector of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (Eigen::VectorXd) Nonlinear effects vector of the manipulator.
                  */
-                virtual VectorXd computeNonlinearEffects(const VectorXd& q, const VectorXd& qdot);
+                virtual VectorXd computeNonlinearEffects(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
                 
                 // Task space
                 /**
@@ -99,14 +102,14 @@ namespace drc
                  * @param link_name (std::string) Name of the link.
                  * @return (Eigen::Affine3d) Pose of the link in the task space.
                  */
-                virtual Affine3d computePose(const VectorXd& q, const std::string& link_name);
+                virtual Affine3d computePose(const Eigen::Ref<const VectorXd>& q, const std::string& link_name);
                 /**
                  * @brief Compute the Jacobian of the link.
                  * @param q         (Eigen::VectorXd) Joint positions.
                  * @param link_name (std::string) Name of the link.
                  * @return (Eigen::MatrixXd) Jacobian of the link.
                  */
-                virtual MatrixXd computeJacobian(const VectorXd& q, const std::string& link_name);
+                virtual MatrixXd computeJacobian(const Eigen::Ref<const VectorXd>& q, const std::string& link_name);
                 /**
                  * @brief Compute the Jacobian time variation of the link.
                  * @param q         (Eigen::VectorXd) Joint positions.
@@ -114,7 +117,7 @@ namespace drc
                  * @param link_name (std::string) Name of the link.
                  * @return (MatrixXd) Jacobian time variation of the link.
                  */
-                virtual MatrixXd computeJacobianTimeVariation(const VectorXd& q, const VectorXd& qdot, const std::string& link_name);
+                virtual MatrixXd computeJacobianTimeVariation(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const std::string& link_name);
                 /**
                  * @brief Compute the velocity of the link in the task space.
                  * @param q         (Eigen::VectorXd) Joint positions.
@@ -122,7 +125,7 @@ namespace drc
                  * @param link_name (std::string) Name of the link.
                  * @return (Eigen::VectorXd) Velocity of the link in the task space.
                  */
-                virtual VectorXd computeVelocity(const VectorXd& q, const VectorXd& qdot, const std::string& link_name);
+                virtual VectorXd computeVelocity(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const std::string& link_name);
                 /**
                  * @brief Compute the minimum pairwise distance between the robot's collision meshes and (optionally) its time variations.
                  * @param q             (Eigen::VectorXd) Joint positions.
@@ -132,7 +135,7 @@ namespace drc
                  * @param verbose       (bool) If true, prints the closest pair of links and their minimum distance.
                  * @return (MinDistResult) Minimum distance result containing distance, gradient, and gradient time variation.
                  */
-                virtual MinDistResult computeMinDistance(const VectorXd& q, const VectorXd& qdot, const bool& with_grad, const bool& with_graddot, const bool verbose);
+                virtual MinDistResult computeMinDistance(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const bool& with_grad, const bool& with_graddot, const bool verbose);
                 /**
                  * @brief Compute the manipulability of the link (which indicates how well the link can move at current joint configuration) and (optionally) its time variations.
                  * @param q             (Eigen::VectorXd) Joint positions.
@@ -142,22 +145,79 @@ namespace drc
                  * @param link_name     (std::string) Name of the link.
                  * @return (ManipulabilityResult) Manipulability result containing manipulability, gradient, and gradient time variation.
                  */
-                virtual ManipulabilityResult computeManipulability(const VectorXd& q, const VectorXd& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name);
+                virtual ManipulabilityResult computeManipulability(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot, const bool& with_grad, const bool& with_graddot, const std::string& link_name);
                 
                 // ================================ Get Functions ================================
+                /**
+                 * @brief Get the configured URDF source path.
+                 * @return (std::string) URDF path string.
+                 */
                 const std::string getURDFPath() const {return urdf_path_;}
+                /**
+                 * @brief Get the configured SRDF source path.
+                 * @return (std::string) SRDF path string.
+                 */
                 const std::string getSRDFPath() const {return srdf_path_;}
+                /**
+                 * @brief Get the configured package search path.
+                 * @return (std::string) Package path string.
+                 */
                 const std::string getPackagePath() const {return packages_path_;}
+                /**
+                 * @brief Get control time step.
+                 * @return (double) Control loop time step in seconds.
+                 */
+                double getDt() const {return dt_;}
 
                 // Link frames (BODY)
+                /**
+                 * @brief Get all link frame names discovered from the model.
+                 * @return (std::vector<std::string>) Link frame name list.
+                 */
                 const std::vector<std::string>& getLinkFrameVector() const { return link_frame_names_; }
+                /**
+                 * @brief Check whether a link frame exists in the model.
+                 * @param name (std::string) Link frame name.
+                 * @return (bool) True if the link frame exists.
+                 */
                 bool hasLinkFrame(const std::string& name) const;
 
                 // Joint frames (JOINT)
+                /**
+                 * @brief Get all joint frame names discovered from the model.
+                 * @return (std::vector<std::string>) Joint frame name list.
+                 */
                 const std::vector<std::string>& getJointFrameVector() const { return joint_frame_names_; }
+                /**
+                 * @brief Check whether a joint frame exists in the model.
+                 * @param name (std::string) Joint frame name.
+                 * @return (bool) True if the joint frame exists.
+                 */
                 bool hasJointFrame(const std::string& name) const;
+                /**
+                 * @brief Get all joint names, excluding the universe joint.
+                 * @return (std::vector<std::string>) List of joint names.
+                 */
+                const std::vector<std::string>& getJointNames() const;
+                /**
+                 * @brief Get the start index of the given joint in the generalized position vector q.
+                 * @param name (std::string) Joint name.
+                 * @return (int) Start index in q. Returns -1 if no joint with the given name exists.
+                 */
+                int getJointQIndex(const std::string& name);
+
+                /**
+                 * @brief Get the start index of the given joint in the generalized velocity vector v.
+                 * @param name (std::string) Joint name.
+                 * @return (int) Start index in v. Returns -1 if no joint with the given name exists.
+                 */
+                int getJointVIndex(const std::string& name);
 
                 // Root link (base link default)
+                /**
+                 * @brief Get the root link name of the current robot model.
+                 * @return (std::string) Root link name.
+                 */
                 const std::string& getRootLinkName() const { return root_link_name_; }
 
                 /**
@@ -187,6 +247,11 @@ namespace drc
                  * @return (std::pair<Eigen::VectorXd, Eigen::VectorXd>) Joint velocity limits (lower, upper) of the manipulator.
                  */
                 virtual std::pair<VectorXd,VectorXd> getJointVelocityLimit() const {return std::make_pair(qdot_lb_, qdot_ub_);}
+                /**
+                 * @brief Get lower and upper joint effort limits of the manipulator.
+                 * @return (std::pair<Eigen::VectorXd, Eigen::VectorXd>) Joint torque limits (lower, upper) of the manipulator.
+                 */
+                virtual std::pair<VectorXd,VectorXd> getJointEffortLimit() const {return std::make_pair(torque_lb_, torque_ub_);}
                 /**
                  * @brief Get the mass matrix of the manipulator.
                  * @return (Eigen::MatrixXd) Mass matrix of the manipulator.
@@ -262,14 +327,14 @@ namespace drc
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (bool) True if the update was successful.
                  */
-                virtual bool updateKinematics(const VectorXd& q, const VectorXd& qdot);
+                virtual bool updateKinematics(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
                 /**
                  * @brief Update the dynamic parameters of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.
                  * @param qdot  (Eigen::VectorXd) Joint velocities.
                  * @return (bool) True if the update was successful.
                  */
-                virtual bool updateDynamics(const VectorXd& q, const VectorXd& qdot);
+                virtual bool updateDynamics(const Eigen::Ref<const VectorXd>& q, const Eigen::Ref<const VectorXd>& qdot);
 
                 std::string urdf_path_;
                 std::string srdf_path_;
@@ -284,6 +349,7 @@ namespace drc
                 // Cached frame name lists
                 std::vector<std::string> link_frame_names_;   // URDF <link> names
                 std::vector<std::string> joint_frame_names_;  // URDF <joint> names
+                std::vector<std::string> joint_names_;         // pinocchio model joint names (excludes universe)
 
                 std::unordered_set<std::string> link_frame_set_;
                 std::unordered_set<std::string> joint_frame_set_;
@@ -291,6 +357,7 @@ namespace drc
                 std::string root_link_name_;
 
                 int dof_;           // Total degrees of freedom.
+                double dt_;         // Control time step in seconds.
                 
                 // Joint space state
                 VectorXd q_;        // Manipulator joint positions.
@@ -299,6 +366,8 @@ namespace drc
                 VectorXd q_ub_;     // Upper joint position limits of the manipulator.
                 VectorXd qdot_lb_;  // Lower joint velocity limits of the manipulator.
                 VectorXd qdot_ub_;  // Upper joint velocity limits of the manipulator.
+                VectorXd torque_lb_;  // Lower joint effort limits of the manipulator.
+                VectorXd torque_ub_;  // Upper joint effort limits of the manipulator.
 
                 // Joint space Dynamics
                 MatrixXd M_;        // Mass matrix of the manipulator.
@@ -307,5 +376,5 @@ namespace drc
                 VectorXd c_;        // Coriolis vector of the manipulator.
                 VectorXd NLE_;      // Nonlinear effects vector of the manipulator.
         };
-    } //namespce Manipulator
+    } // namespace Manipulator
 } // namespace drc

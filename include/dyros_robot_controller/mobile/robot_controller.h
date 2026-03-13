@@ -20,11 +20,10 @@ namespace drc
                 /**
                  * @brief Constructor.
                  *
-                 * @param dt         (double) Control loop time step in seconds.
                  * @param robot_data (std::shared_ptr<Mobile::RobotData>)
                  *                   Shared pointer to the RobotData class.
                 */
-                RobotController(const double& dt, std::shared_ptr<Mobile::RobotData> robot_data);
+                RobotController(std::shared_ptr<Mobile::RobotData> robot_data);
 
                 /**
                  * @brief Compute wheel velocities from desired base velocity using inverse kinematics.
@@ -32,7 +31,7 @@ namespace drc
                  * @param base_vel (Eigen::VectorXd) Desired base velocity [vx, vy, wz], size = 3.
                  * @return (Eigen::VectorXd) Computed wheel velocities [rad/s], size = number of wheels.
                 */
-                virtual VectorXd computeWheelVel(const VectorXd& base_vel);
+                virtual VectorXd computeWheelVel(const Eigen::Ref<const VectorXd>& base_vel);
 
                 /**
                  * @brief Compute inverse kinematics Jacobian (maps base velocity to wheel velocity).
@@ -47,7 +46,7 @@ namespace drc
                  * @param desired_base_vel (Eigen::VectorXd) Desired base velocity [vx, vy, wz], size = 3.
                  * @return (Eigen::VectorXd) Wheel velocity command (possibly saturated), size = number of wheels.
                 */
-                virtual VectorXd VelocityCommand(const VectorXd& desired_base_vel);
+                virtual VectorXd VelocityCommand(const Eigen::Ref<const VectorXd>& desired_base_vel);
 
             protected:
                 double dt_;                                                  // Control time step in seconds.
@@ -73,6 +72,10 @@ namespace drc
                  * @return (Eigen::MatrixXd) Jacobian [wheel_num x 3].
                 */
                 MatrixXd CasterIKJacobian();
+
+                Eigen::Vector3d base_cmd_prev_  = Eigen::Vector3d::Zero();  // Base velocity command from one step ago [vx, vy, wz].
+                Eigen::Vector3d base_cmd_prev2_ = Eigen::Vector3d::Zero();  // Base velocity command from two steps ago [vx, vy, wz].
+                bool base_cmd_hist_init_ = false;                           // True once the command history has been populated with at least one step.
         };
     } // namespace Mobile
 } // namespace drc

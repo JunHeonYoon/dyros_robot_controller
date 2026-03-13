@@ -12,8 +12,8 @@ FR3Controller::FR3Controller(const double dt)
     const std::string srdf = std::string(ROBOTS_DIRECTORY) + "/fr3/" + "fr3.srdf";
 
     // Instantiate dyros robot model/controller
-    robot_data_ = std::make_shared<drc::Manipulator::RobotData>(urdf, srdf);
-    robot_controller_ = std::make_shared<drc::Manipulator::RobotController>(dt_, robot_data_);
+    robot_data_ = std::make_shared<drc::Manipulator::RobotData>(dt_, urdf, srdf);
+    robot_controller_ = std::make_shared<drc::Manipulator::RobotController>(robot_data_);
 
     // Degree of freedom
     dof_ = robot_data_->getDof();
@@ -33,23 +33,27 @@ FR3Controller::FR3Controller(const double dt)
     // --- Gain
     joint_kp_.setZero(dof_);
     joint_kv_.setZero(dof_);
-    qpik_damping_.setZero(dof_);
+    qpik_vel_damping_.setZero(dof_);
+    qpik_acc_damping_.setZero(dof_);
     qpid_vel_damping_.setZero(dof_);
     qpid_acc_damping_.setZero(dof_);
-    joint_kp_ << 600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 50.0;
-    joint_kv_ << 30.0,  30.0,  30.0,  30.0,  10.0,  10.0,  5.0;
-    qpik_damping_ << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
-    qpid_vel_damping_ << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1;
-    qpid_acc_damping_ << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01;
-    link_task_kp_[ee_link_name_] << 100.0, 100.0, 100.0, 100.0, 100.0, 100.0;
-    link_task_kv_[ee_link_name_] << 20.0,  20.0,  20.0,  20.0,  20.0,  20.0;
-    link_qpik_tracking_[ee_link_name_] << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
-    link_qpid_tracking_[ee_link_name_] << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+    joint_kp_        << 600.0, 600.0, 600.0, 600.0, 250.0, 150.0,  50.0;
+    joint_kv_        <<  30.0,  30.0,  30.0,  30.0,  10.0,  10.0,   5.0;
+    task_ik_kp_      <<  10.0,  10.0,  10.0,  30.0,  30.0,  30.0;
+    task_id_kp_      << 600.0, 600.0, 600.0,1000.0,1000.0,1000.0;
+    task_id_kv_      <<  20.0,  20.0,  20.0,  30.0,  30.0,  30.0;
+    qpik_tracking_   <<  10.0,  10.0,  10.0,  40.0,  40.0,  40.0;
+    qpik_vel_damping_ << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01;
+    qpik_acc_damping_ << 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001;
+    qpid_tracking_   <<  10.0,  10.0,  10.0,   1.0,   1.0,   1.0;
+    qpid_vel_damping_ <<  0.1,   0.1,   0.1,   0.1,   0.1,   0.1,   0.1;
+    qpid_acc_damping_ <<  5.0,   5.0,   5.0,   5.0,   5.0,   5.0,   5.0;
 
     robot_controller_->setJointGain(joint_kp_, joint_kv_);
-    robot_controller_->setTaskGain(link_task_kp_, link_task_kv_);
-    robot_controller_->setQPIKGain(link_qpik_tracking_, qpik_damping_);
-    robot_controller_->setQPIDGain(link_qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_);
+    robot_controller_->setIKGain(task_ik_kp_);
+    robot_controller_->setIDGain(task_id_kp_, task_id_kv_);
+    robot_controller_->setQPIKGain(qpik_tracking_, qpik_vel_damping_, qpik_acc_damping_);
+    robot_controller_->setQPIDGain(qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_);
 
 
     // Print FR3 URDF info
@@ -139,10 +143,11 @@ std::unordered_map<std::string, double> FR3Controller::compute()
         link_ee_task_[ee_link_name_].x_desired = link_ee_task_[ee_link_name_].x_init;
         link_ee_task_[ee_link_name_].x_desired.translation() += Eigen::Vector3d(0.0, 0.1, 0.1); // +10 cm in Y and Z
 
-        qdot_desired_ = robot_controller_->QPIKCubic(link_ee_task_,
-                                                     sim_time_, 
-                                                     control_start_time_, 
-                                                     3.0);
+        robot_controller_->QPIKCubic(link_ee_task_,
+                                     sim_time_, 
+                                     control_start_time_, 
+                                     3.0,
+                                     qdot_desired_);
 
         // Simple Euler integrate desired joint positions from qdot_desired
         q_desired_   = q_ + qdot_desired_ * dt_;
@@ -159,7 +164,7 @@ std::unordered_map<std::string, double> FR3Controller::compute()
     else if (control_mode_ == "Gravity Compensation W QPID") 
     {
         link_ee_task_[ee_link_name_].xddot_desired.setZero();
-        tau_desired_ = robot_controller_->QPID(link_ee_task_);
+        robot_controller_->QPID(link_ee_task_, tau_desired_);
     }
 
     // Format output for simulator actuators
