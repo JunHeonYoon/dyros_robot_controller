@@ -668,6 +668,9 @@ namespace drc
 
    
                 
+                int getManipulatorDof() const { return mani_dof_; }
+                int getMobileDof() const { return mobi_dof_; }
+
             protected:
                 double dt_;                                                 // Control time step in seconds
                 int dof_;                                                   // Total degrees of freedom

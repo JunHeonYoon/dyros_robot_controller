@@ -512,6 +512,8 @@ namespace drc
                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
                                        const bool time_verbose=false);
 
+                int getDof() const { return dof_; }
+
             protected:
                 double dt_;                                          // Control time step in seconds.
                 int dof_;                                            // Total degrees of freedom.

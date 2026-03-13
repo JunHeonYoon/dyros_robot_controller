@@ -61,6 +61,17 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             link_kp[k] = v.reshape(-1)
             assert link_kp[k].size == 6, f"Size of kp {link_kp[k].size} at link {k} is not equal to 6"
         super().setIKGain(link_kp)
+        
+    def set_IK_gain(self, kp: np.ndarray):
+        """
+        Set the same IK task-space proportional gain for all link frames.
+
+        Parameters:
+            kp : (np.ndarray) 6D task-space proportional gain applied to every link.
+        """
+        kp = kp.reshape(-1)
+        assert kp.size == 6, f"Size of kp {kp.size} is not equal to 6"
+        super().setIKGain(kp)
 
     def set_ID_gain(self,
                     link_kp: dict[str, np.ndarray] | None = None,
@@ -83,12 +94,32 @@ class RobotController(drc_cpp.ManipulatorRobotController):
                 link_kv[k] = v.reshape(-1)
                 assert link_kv[k].size == 6, f"Size of kv {link_kv[k].size} at link {k} is not equal to 6"
             super().setIDKvGain(link_kv)
+            
+    def set_ID_gain(self, 
+                    kp: np.ndarray | None = None, 
+                    kv: np.ndarray | None = None):
+        """
+         Set the same ID task-space proportional/derivative gains for all link frames.
+
+        Parameters:
+            kp : (np.ndarray) 6D proportional gain applied to every link.
+            kv : (np.ndarray) 6D derivative gain applied to every link.
+        """
+        if kp is not None:
+            kp = kp.reshape(-1)
+            assert kp.size == 6, f"Size of kp {kp.size} is not equal to 6"
+            super().setIDKpGain(kp)
+            
+        if kv is not None:
+            kv = kv.reshape(-1)
+            assert kv.size == 6, f"Size of kv {kv.size} is not equal to 6"
+            super().setIDKvGain(kv)
         
         
     def set_QPIK_gain(self,
-                      link_w_tracking: dict[str, np.ndarray],
-                      w_vel_damping: np.ndarray,
-                      w_acc_damping: np.ndarray,
+                      link_w_tracking: dict[str, np.ndarray] | None = None,
+                      w_vel_damping: np.ndarray | None = None,
+                      w_acc_damping: np.ndarray | None = None,
                       ):
         """
         Set the weight vector for the cost terms of the QPIK.
@@ -98,103 +129,106 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             w_vel_damping   : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
             w_acc_damping   : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
         """
-        w_vel_damping = w_vel_damping.reshape(-1)
-        w_acc_damping = w_acc_damping.reshape(-1)
-        assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
-        assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
-        for k,v in link_w_tracking.items():
-            link_w_tracking[k] = v.reshape(-1)
-            assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-        super().setQPIKGain(link_w_tracking, w_vel_damping, w_acc_damping)
-
-    def set_QPIK_tracking_gain(self, link_w_tracking: dict[str, np.ndarray]):
+        if link_w_tracking is not None:
+            for k,v in link_w_tracking.items():
+                link_w_tracking[k] = v.reshape(-1)
+                assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
+                super.setQPIKTrackingGain(link_w_tracking)
+                
+        if w_vel_damping is not None:
+            w_vel_damping = w_vel_damping.reshape(-1)
+            assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
+            super().setQPIKJointVelGain(w_vel_damping)
+        
+        if w_acc_damping is not None:
+            w_acc_damping = w_acc_damping.reshape(-1)
+            assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
+            super().setQPIKJointAccGain(w_acc_damping)
+        
+    def set_QPIK_gain(self,
+                      w_tracking: np.ndarray,
+                      w_vel_damping: np.ndarray,
+                      w_acc_damping: np.ndarray,
+                      ):
         """
-        Set QPIK task tracking weights only.
-
-        Parameters:
-            link_w_tracking : (dict[str, np.ndarray]) Weight for task velocity tracking per links.
-        """
-        for k, v in link_w_tracking.items():
-            link_w_tracking[k] = v.reshape(-1)
-            assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-        super().setQPIKTrackingGain(link_w_tracking)
-
-    def set_QPIK_joint_vel_gain(self, w_damping: np.ndarray):
-        """
-        Set QPIK joint velocity damping weights only.
-
-        Parameters:
-            w_damping : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
-        """
-        w_damping = w_damping.reshape(-1)
-        assert w_damping.size == self._robot_data.dof, f"Size of w_damping {w_damping.size} is not equal to dof {self._robot_data.dof}"
-        super().setQPIKJointVelGain(w_damping)
-
-    def set_QPIK_joint_acc_gain(self, w_acc_damping: np.ndarray):
-        """
-        Set QPIK joint acceleration damping weights only.
+        Set the weight vector for the cost terms of the QPIK.
 
         Parameters:
-            w_acc_damping : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
+            w_tracking : (np.ndarray) Weight for task velocity tracking for every link.
+            w_vel_damping   : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
+            w_acc_damping   : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
         """
-        w_acc_damping = w_acc_damping.reshape(-1)
-        assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
-        super().setQPIKJointAccGain(w_acc_damping)
+        if w_tracking is not None:
+            w_tracking = w_tracking.reshape(-1)
+            assert w_tracking.size == 6, f"Size of w_vel_damping {w_tracking.size} is not equal to 6"
+            super().setQPIKTrackingGain(w_tracking)
+            
+        if w_vel_damping is not None:
+            w_vel_damping = w_vel_damping.reshape(-1)
+            assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
+            super().setQPIKJointVelGain(w_vel_damping)
+        
+        if w_acc_damping is not None:
+            w_acc_damping = w_acc_damping.reshape(-1)
+            assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
+            super().setQPIKJointAccGain(w_acc_damping)
         
     def set_QPID_gain(self,
-                      link_w_tracking: dict[str, np.ndarray],
-                      w_vel_damping: np.ndarray,
-                      w_acc_damping: np.ndarray):
+                      link_w_tracking: dict[str, np.ndarray] | None = None,
+                      w_vel_damping: np.ndarray | None = None,
+                      w_acc_damping: np.ndarray | None = None,
+                      ):
         """
         Set the weight vector for the cost terms of the QPID.
 
         Parameters:
             link_w_tracking : (dict[str, np.ndarray]) Weight for task acceleration tracking per links.
+            w_vel_damping   : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
+            w_acc_damping   : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
+        """
+        if link_w_tracking is not None:
+            for k,v in link_w_tracking.items():
+                link_w_tracking[k] = v.reshape(-1)
+                assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
+            super().setQPIDTrackingGain(link_w_tracking)
+
+        if w_vel_damping is not None:
+            w_vel_damping = w_vel_damping.reshape(-1)
+            assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
+            super().setQPIDJointVelGain(w_vel_damping)
+
+        if w_acc_damping is not None:
+            w_acc_damping = w_acc_damping.reshape(-1)
+            assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
+            super().setQPIDJointAccGain(w_acc_damping)
+
+    def set_QPID_gain(self,
+                      w_tracking: np.ndarray,
+                      w_vel_damping: np.ndarray,
+                      w_acc_damping: np.ndarray,
+                      ):
+        """
+        Set the weight vector for the cost terms of the QPID.
+
+        Parameters:
+            w_tracking    : (np.ndarray) Weight for task acceleration tracking for every link.
             w_vel_damping : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
             w_acc_damping : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
         """
-        w_vel_damping = w_vel_damping.reshape(-1)
-        w_acc_damping = w_acc_damping.reshape(-1)
-        assert w_vel_damping.size == self._robot_data.dof, f"Size of w_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
-        assert w_acc_damping.size == self._robot_data.dof, f"Size of w_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
-        for k,v in link_w_tracking.items():
-            link_w_tracking[k] = v.reshape(-1)
-            assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-        super().setQPIDGain(link_w_tracking, w_vel_damping, w_acc_damping)
+        if w_tracking is not None:
+            w_tracking = w_tracking.reshape(-1)
+            assert w_tracking.size == 6, f"Size of w_tracking {w_tracking.size} is not equal to 6"
+            super().setQPIDTrackingGain(w_tracking)
 
-    def set_QPID_tracking_gain(self, link_w_tracking: dict[str, np.ndarray]):
-        """
-        Set QPID task tracking weights only.
+        if w_vel_damping is not None:
+            w_vel_damping = w_vel_damping.reshape(-1)
+            assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
+            super().setQPIDJointVelGain(w_vel_damping)
 
-        Parameters:
-            link_w_tracking : (dict[str, np.ndarray]) Weight for task acceleration tracking per links.
-        """
-        for k, v in link_w_tracking.items():
-            link_w_tracking[k] = v.reshape(-1)
-            assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-        super().setQPIDTrackingGain(link_w_tracking)
-
-    def set_QPID_joint_vel_gain(self, w_vel_damping: np.ndarray):
-        """
-        Set QPID joint velocity damping weights only.
-
-        Parameters:
-            w_vel_damping : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
-        """
-        w_vel_damping = w_vel_damping.reshape(-1)
-        assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
-        super().setQPIDJointVelGain(w_vel_damping)
-
-    def set_QPID_joint_acc_gain(self, w_acc_damping: np.ndarray):
-        """
-        Set QPID joint acceleration damping weights only.
-
-        Parameters:
-            w_acc_damping : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
-        """
-        w_acc_damping = w_acc_damping.reshape(-1)
-        assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
-        super().setQPIDJointAccGain(w_acc_damping)
+        if w_acc_damping is not None:
+            w_acc_damping = w_acc_damping.reshape(-1)
+            assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
+            super().setQPIDJointAccGain(w_acc_damping)
 
     # ================================ Joint space Functions ================================
     def move_joint_position_cubic(self,

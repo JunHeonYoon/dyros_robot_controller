@@ -70,15 +70,17 @@ class FR3Controller
         double control_start_time_{0.0};
 
         //  --- Gain
-        Eigen::VectorXd                 joint_kp_;
-        Eigen::VectorXd                 joint_kv_;
-        Eigen::VectorXd                 qpik_damping_;
-        Eigen::VectorXd                 qpid_vel_damping_;
-        Eigen::VectorXd                 qpid_acc_damping_;
-        std::map<std::string, Vector6d> link_task_kp_;
-        std::map<std::string, Vector6d> link_task_kv_;
-        std::map<std::string, Vector6d> link_qpik_tracking_;
-        std::map<std::string, Vector6d> link_qpid_tracking_;
+        Eigen::VectorXd joint_kp_;
+        Eigen::VectorXd joint_kv_;
+        Vector6d        task_ik_kp_;
+        Vector6d        task_id_kp_;
+        Vector6d        task_id_kv_;
+        Vector6d        qpik_tracking_;
+        Eigen::VectorXd qpik_vel_damping_;
+        Eigen::VectorXd qpik_acc_damping_;
+        Vector6d        qpid_tracking_;
+        Eigen::VectorXd qpid_vel_damping_;
+        Eigen::VectorXd qpid_acc_damping_;
 
         // Dyros model/controller handles
         std::shared_ptr<drc::Manipulator::RobotData>       robot_data_;

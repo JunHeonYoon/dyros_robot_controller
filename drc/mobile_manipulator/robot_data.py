@@ -40,25 +40,15 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         self._mobile_kine_param = mobile_param
         self._joint_idx = joint_idx
         self._actuator_idx = actuator_idx
-        if use_xml:
-            super().__init__(self._dt,
-                             self._mobile_kine_param.cpp(),
-                             self._joint_idx.cpp(),
-                             self._actuator_idx.cpp(),
-                             urdf_path,
-                             srdf_path,
-                             packages_path,
-                             True,
-                             )
-        else:
-            super().__init__(self._dt,
-                             self._mobile_kine_param.cpp(),
-                             self._joint_idx.cpp(),
-                             self._actuator_idx.cpp(),
-                             urdf_path,
-                             srdf_path,
-                             packages_path,
-                             )
+        super().__init__(self._dt,
+                         self._mobile_kine_param.cpp(),
+                         self._joint_idx.cpp(),
+                         self._actuator_idx.cpp(),
+                         urdf_path,
+                         srdf_path,
+                         packages_path,
+                         use_xml,
+                         )
         self.mani_dof     = int(super().getManipulatorDof())
         self.mobi_dof     = int(super().getMobileDof())
         self.virtual_dof  = 3
@@ -710,12 +700,13 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             (bool) True if the joint frame exists.
         """
         return super().hasJointFrame(name)
+    
     def get_dof(self) -> int:
         """
-        Get the full degrees of freedom of the robot.
+        Get the degrees of freedom of the manipulator.
 
         Return:
-            (int) Full degrees of freedom.
+            (int) Degrees of freedom of the manipulator.
         """
         return super().getDof()
     
@@ -1092,3 +1083,36 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             (np.ndarray) Base velocity vector [vx, vy, wz].
         """
         return super().getMobileBaseVel()
+    
+    def get_joint_names(self) -> list:
+        """
+        Get all joint names, excluding the universe joint.
+
+        Return:
+            (list) List of joint names.
+        """
+        return list(super().getJointNames())
+
+    def get_joint_q_index(self, name: str) -> int:
+        """
+        Get the start index of the given joint in the generalized position vector q.
+
+        Parameters:
+            name : (str) Joint name.
+
+        Return:
+            (int) Start index in q. Returns -1 if no joint with the given name exists.
+        """
+        return super().getJointQIndex(name)
+
+    def get_joint_v_index(self, name: str) -> int:
+        """
+        Get the start index of the given joint in the generalized velocity vector v.
+
+        Parameters:
+            name : (str) Joint name.
+
+        Return:
+            (int) Start index in v. Returns -1 if no joint with the given name exists.
+        """
+        return super().getJointVIndex(name)

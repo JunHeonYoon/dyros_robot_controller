@@ -59,9 +59,9 @@ namespace drc
                           const JointIndex& joint_idx,
                           const ActuatorIndex& actuator_idx,
                           const std::string& urdf_source,
-                          const std::string& srdf_source,
-                          const std::string& packages_path,
-                          const bool use_xml);
+                          const std::string& srdf_source="",
+                          const std::string& packages_path="",
+                          const bool use_xml=false);
 
                 using Manipulator::RobotData::getVerbose;
                 using Mobile::RobotData::getVerbose;

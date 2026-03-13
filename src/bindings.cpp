@@ -75,26 +75,29 @@ namespace
 
     bp::tuple MM_RC_QPIK_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
-        VectorXd qdot_mobi, qdot_mani;
+        VectorXd qdot_mobi(self.getMobileDof()), qdot_mani(self.getManipulatorDof());
+        qdot_mobi.setZero(); qdot_mani.setZero();
         const bool qp_success = self.QPIK(link_task_data, qdot_mobi, qdot_mani, time_verbose);
         return bp::make_tuple(qp_success, qdot_mobi, qdot_mani);
     }
-    
+
     bp::tuple MM_RC_QPIKStep_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
-        VectorXd qdot_mobi, qdot_mani;
+        VectorXd qdot_mobi(self.getMobileDof()), qdot_mani(self.getManipulatorDof());
+        qdot_mobi.setZero(); qdot_mani.setZero();
         const bool qp_success = self.QPIKStep(link_task_data, qdot_mobi, qdot_mani, time_verbose);
         return bp::make_tuple(qp_success, qdot_mobi, qdot_mani);
     }
-    
-    bp::tuple MM_RC_QPIKCubic_tuple(MM_RC& self, 
+
+    bp::tuple MM_RC_QPIKCubic_tuple(MM_RC& self,
                                     const std::map<std::string, TaskSpaceData>& link_task_data,
                                     const double& current_time,
                                     const double& init_time,
                                     const double& duration,
                                     const bool time_verbose)
     {
-        VectorXd qdot_mobi, qdot_mani;
+        VectorXd qdot_mobi(self.getMobileDof()), qdot_mani(self.getManipulatorDof());
+        qdot_mobi.setZero(); qdot_mani.setZero();
         const bool qp_success = self.QPIKCubic(link_task_data, current_time, init_time, duration, qdot_mobi, qdot_mani, time_verbose);
         return bp::make_tuple(qp_success, qdot_mobi, qdot_mani);
     }
@@ -103,7 +106,8 @@ namespace
                                const std::map<std::string, TaskSpaceData>& link_task_data,
                                const Eigen::Ref<const VectorXd>& null_qdot)
     {
-        VectorXd qdot_mobi, qdot_mani;
+        VectorXd qdot_mobi(self.getMobileDof()), qdot_mani(self.getManipulatorDof());
+        qdot_mobi.setZero(); qdot_mani.setZero();
         const bool success = self.CLIK(link_task_data, qdot_mobi, qdot_mani, null_qdot);
         return bp::make_tuple(success, qdot_mobi, qdot_mani);
     }
@@ -112,7 +116,8 @@ namespace
                                    const std::map<std::string, TaskSpaceData>& link_task_data,
                                    const Eigen::Ref<const VectorXd>& null_qdot)
     {
-        VectorXd qdot_mobi, qdot_mani;
+        VectorXd qdot_mobi(self.getMobileDof()), qdot_mani(self.getManipulatorDof());
+        qdot_mobi.setZero(); qdot_mani.setZero();
         const bool success = self.CLIKStep(link_task_data, qdot_mobi, qdot_mani, null_qdot);
         return bp::make_tuple(success, qdot_mobi, qdot_mani);
     }
@@ -124,7 +129,8 @@ namespace
                                     const double& duration,
                                     const Eigen::Ref<const VectorXd>& null_qdot)
     {
-        VectorXd qdot_mobi, qdot_mani;
+        VectorXd qdot_mobi(self.getMobileDof()), qdot_mani(self.getManipulatorDof());
+        qdot_mobi.setZero(); qdot_mani.setZero();
         const bool success = self.CLIKCubic(link_task_data, current_time, init_time, duration, qdot_mobi, qdot_mani, null_qdot);
         return bp::make_tuple(success, qdot_mobi, qdot_mani);
     }
@@ -133,7 +139,8 @@ namespace
                               const std::map<std::string, TaskSpaceData>& link_task_data,
                               const Eigen::Ref<const VectorXd>& null_torque)
     {
-        VectorXd qddot_mobi, torque_mani;
+        VectorXd qddot_mobi(self.getMobileDof()), torque_mani(self.getManipulatorDof());
+        qddot_mobi.setZero(); torque_mani.setZero();
         const bool success = self.OSF(link_task_data, qddot_mobi, torque_mani, null_torque);
         return bp::make_tuple(success, qddot_mobi, torque_mani);
     }
@@ -142,7 +149,8 @@ namespace
                                   const std::map<std::string, TaskSpaceData>& link_task_data,
                                   const Eigen::Ref<const VectorXd>& null_torque)
     {
-        VectorXd qddot_mobi, torque_mani;
+        VectorXd qddot_mobi(self.getMobileDof()), torque_mani(self.getManipulatorDof());
+        qddot_mobi.setZero(); torque_mani.setZero();
         const bool success = self.OSFStep(link_task_data, qddot_mobi, torque_mani, null_torque);
         return bp::make_tuple(success, qddot_mobi, torque_mani);
     }
@@ -154,47 +162,53 @@ namespace
                                    const double& duration,
                                    const Eigen::Ref<const VectorXd>& null_torque)
     {
-        VectorXd qddot_mobi, torque_mani;
+        VectorXd qddot_mobi(self.getMobileDof()), torque_mani(self.getManipulatorDof());
+        qddot_mobi.setZero(); torque_mani.setZero();
         const bool success = self.OSFCubic(link_task_data, current_time, init_time, duration, qddot_mobi, torque_mani, null_torque);
         return bp::make_tuple(success, qddot_mobi, torque_mani);
     }
 
     bp::tuple MM_RC_QPID_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
-        VectorXd qddot_mobi, torque_mani;
+        VectorXd qddot_mobi(self.getMobileDof()), torque_mani(self.getManipulatorDof());
+        qddot_mobi.setZero(); torque_mani.setZero();
         const bool qp_success = self.QPID(link_task_data, qddot_mobi, torque_mani, time_verbose);
         return bp::make_tuple(qp_success, qddot_mobi, torque_mani);
     }
-    
+
     bp::tuple MM_RC_QPIDStep_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
-        VectorXd qddot_mobi, torque_mani;
+        VectorXd qddot_mobi(self.getMobileDof()), torque_mani(self.getManipulatorDof());
+        qddot_mobi.setZero(); torque_mani.setZero();
         const bool qp_success = self.QPIDStep(link_task_data, qddot_mobi, torque_mani, time_verbose);
         return bp::make_tuple(qp_success, qddot_mobi, torque_mani);
     }
-    
-    bp::tuple MM_RC_QPIDCubic_tuple(MM_RC& self, 
+
+    bp::tuple MM_RC_QPIDCubic_tuple(MM_RC& self,
                                     const std::map<std::string, TaskSpaceData>& link_task_data,
                                     const double& current_time,
                                     const double& init_time,
                                     const double& duration,
                                     const bool time_verbose)
     {
-        VectorXd qddot_mobi, torque_mani;
+        VectorXd qddot_mobi(self.getMobileDof()), torque_mani(self.getManipulatorDof());
+        qddot_mobi.setZero(); torque_mani.setZero();
         const bool qp_success = self.QPIDCubic(link_task_data, current_time, init_time, duration, qddot_mobi, torque_mani, time_verbose);
         return bp::make_tuple(qp_success, qddot_mobi, torque_mani);
     }
 
     bp::tuple MN_RC_QPIK_tuple(MN_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
-        VectorXd qdot;
+        VectorXd qdot(self.getDof());
+        qdot.setZero();
         const bool qp_success = self.QPIK(link_task_data, qdot, time_verbose);
         return bp::make_tuple(qp_success, qdot);
     }
 
     bp::tuple MN_RC_QPIKStep_tuple(MN_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
-        VectorXd qdot;
+        VectorXd qdot(self.getDof());
+        qdot.setZero();
         const bool qp_success = self.QPIKStep(link_task_data, qdot, time_verbose);
         return bp::make_tuple(qp_success, qdot);
     }
@@ -206,21 +220,24 @@ namespace
                                     const double& duration,
                                     const bool time_verbose)
     {
-        VectorXd qdot;
+        VectorXd qdot(self.getDof());
+        qdot.setZero();
         const bool qp_success = self.QPIKCubic(link_task_data, current_time, init_time, duration, qdot, time_verbose);
         return bp::make_tuple(qp_success, qdot);
     }
 
     bp::tuple MM_RC_CLIK_no_null_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data)
     {
-        VectorXd qdot_mobi, qdot_mani;
+        VectorXd qdot_mobi(self.getMobileDof()), qdot_mani(self.getManipulatorDof());
+        qdot_mobi.setZero(); qdot_mani.setZero();
         const bool success = self.CLIK(link_task_data, qdot_mobi, qdot_mani);
         return bp::make_tuple(success, qdot_mobi, qdot_mani);
     }
 
     bp::tuple MM_RC_CLIKStep_no_null_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data)
     {
-        VectorXd qdot_mobi, qdot_mani;
+        VectorXd qdot_mobi(self.getMobileDof()), qdot_mani(self.getManipulatorDof());
+        qdot_mobi.setZero(); qdot_mani.setZero();
         const bool success = self.CLIKStep(link_task_data, qdot_mobi, qdot_mani);
         return bp::make_tuple(success, qdot_mobi, qdot_mani);
     }
@@ -231,21 +248,24 @@ namespace
                                             const double& init_time,
                                             const double& duration)
     {
-        VectorXd qdot_mobi, qdot_mani;
+        VectorXd qdot_mobi(self.getMobileDof()), qdot_mani(self.getManipulatorDof());
+        qdot_mobi.setZero(); qdot_mani.setZero();
         const bool success = self.CLIKCubic(link_task_data, current_time, init_time, duration, qdot_mobi, qdot_mani);
         return bp::make_tuple(success, qdot_mobi, qdot_mani);
     }
 
     bp::tuple MM_RC_OSF_no_null_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data)
     {
-        VectorXd qddot_mobi, torque_mani;
+        VectorXd qddot_mobi(self.getMobileDof()), torque_mani(self.getManipulatorDof());
+        qddot_mobi.setZero(); torque_mani.setZero();
         const bool success = self.OSF(link_task_data, qddot_mobi, torque_mani);
         return bp::make_tuple(success, qddot_mobi, torque_mani);
     }
 
     bp::tuple MM_RC_OSFStep_no_null_tuple(MM_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data)
     {
-        VectorXd qddot_mobi, torque_mani;
+        VectorXd qddot_mobi(self.getMobileDof()), torque_mani(self.getManipulatorDof());
+        qddot_mobi.setZero(); torque_mani.setZero();
         const bool success = self.OSFStep(link_task_data, qddot_mobi, torque_mani);
         return bp::make_tuple(success, qddot_mobi, torque_mani);
     }
@@ -256,21 +276,24 @@ namespace
                                            const double& init_time,
                                            const double& duration)
     {
-        VectorXd qddot_mobi, torque_mani;
+        VectorXd qddot_mobi(self.getMobileDof()), torque_mani(self.getManipulatorDof());
+        qddot_mobi.setZero(); torque_mani.setZero();
         const bool success = self.OSFCubic(link_task_data, current_time, init_time, duration, qddot_mobi, torque_mani);
         return bp::make_tuple(success, qddot_mobi, torque_mani);
     }
 
     bp::tuple MN_RC_QPID_tuple(MN_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
-        VectorXd torque;
+        VectorXd torque(self.getDof());
+        torque.setZero();
         const bool qp_success = self.QPID(link_task_data, torque, time_verbose);
         return bp::make_tuple(qp_success, torque);
     }
 
     bp::tuple MN_RC_QPIDStep_tuple(MN_RC& self, const std::map<std::string, TaskSpaceData>& link_task_data, const bool time_verbose)
     {
-        VectorXd torque;
+        VectorXd torque(self.getDof());
+        torque.setZero();
         const bool qp_success = self.QPIDStep(link_task_data, torque, time_verbose);
         return bp::make_tuple(qp_success, torque);
     }
@@ -282,7 +305,8 @@ namespace
                                     const double& duration,
                                     const bool time_verbose)
     {
-        VectorXd torque;
+        VectorXd torque(self.getDof());
+        torque.setZero();
         const bool qp_success = self.QPIDCubic(link_task_data, current_time, init_time, duration, torque, time_verbose);
         return bp::make_tuple(qp_success, torque);
     }
@@ -674,8 +698,7 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("getBasePose",       +[](const MO_RD& self){ return self.getBasePose(); })
         ;
 
-    bp::class_<MN_RD, boost::noncopyable>("ManipulatorRobotData", bp::init<const double, const std::string&, const std::string&, const std::string&>())
-        .def(bp::init<const double, const std::string&, const std::string&, const std::string&, const bool>())
+    bp::class_<MN_RD, boost::noncopyable>("ManipulatorRobotData", bp::init<const double, const std::string&, const std::string&, const std::string&, const bool>())
         .def("getVerbose",                   &MN_RD::getVerbose)
         .def("updateState",                  &MN_RD::updateState)
         .def("computeMassMatrix",            &MN_RD::computeMassMatrix)
@@ -729,8 +752,7 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
     typedef Manipulator::MinDistResult (MM_RD::*Min9)(const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const bool&, const bool&, const bool);
     typedef Manipulator::ManipulabilityResult (MM_RD::*Man5)(const Eigen::Ref<const VectorXd>&, const Eigen::Ref<const VectorXd>&, const bool&, const bool&, const std::string&);
 
-    bp::class_<MM_RD, bp::bases<MN_RD, MO_RD>, boost::noncopyable>("MobileManipulatorRobotData", bp::init<const double, const Mobile::KinematicParam&, const MobileManipulator::JointIndex&, const MobileManipulator::ActuatorIndex&, const std::string&, const std::string&, const std::string&>())
-        .def(bp::init<const double, const Mobile::KinematicParam&, const MobileManipulator::JointIndex&, const MobileManipulator::ActuatorIndex&, const std::string&, const std::string&, const std::string&, const bool>())
+    bp::class_<MM_RD, bp::bases<MN_RD, MO_RD>, boost::noncopyable>("MobileManipulatorRobotData", bp::init<const double, const Mobile::KinematicParam&, const MobileManipulator::JointIndex&, const MobileManipulator::ActuatorIndex&, const std::string&, const std::string&, const std::string&, const bool>())
         .def("getVerbose",                                     &MM_RD::getVerbose)
         .def("updateState",                  static_cast<Upd6>(&MM_RD::updateState))
         .def("computeMassMatrix",            static_cast<Mat3>(&MM_RD::computeMassMatrix))

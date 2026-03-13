@@ -117,25 +117,31 @@ class FR3XLSController:
         self.control_start_time: float = 0.0
         
         # --- Gain
-        self.kp_mani_joint = np.array([600.0,600.0,600.0,600.0,250.0,150.0,50.0])
-        self.kv_mani_joint = np.array([30.0,30.0,30.0,30.0,10.0,10.0,5.0])
-        self.link_kp_task = {self.ee_link_name: np.array([100, 100, 100, 100, 100, 100])}
-        self.link_kv_task = {self.ee_link_name: np.array([20, 20, 20, 20, 20, 20])}
-        self.qpik_link_tracking = {self.ee_link_name: np.array([10, 10, 10, 10, 10, 10])}
-        self.qpik_mani_damping = np.array([10, 10, 10, 10, 10, 10, 10])
-        self.qpik_base_damping = np.array([0.2, 0.2, 0.2])  # [vx, vy, wz]
-        self.qpid_link_tracking = {self.ee_link_name: np.array([1, 1, 1, 1, 1, 1])}
+        self.mani_joint_kp = np.array([600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 50.0])
+        self.mani_joint_kv = np.array([30.0, 30.0, 30.0, 30.0, 10.0, 10.0, 5.0])
+        self.task_ik_kp = np.array([10.0, 10.0, 10.0, 30.0, 30.0, 30.0])
+        self.task_id_kp = np.array([600.0, 600.0, 600.0, 1000.0, 1000.0, 1000.0])
+        self.task_id_kv = np.array([20.0, 20.0, 20.0, 30.0, 30.0, 30.0])
+        self.qpik_tracking = np.array([10.0, 10.0, 10.0, 40.0, 40.0, 40.0])
+        self.qpik_mani_vel_damping = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        self.qpik_mani_acc_damping = np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001])
+        self.qpik_base_vel_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpik_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpid_tracking = np.array([10.0, 10.0, 10.0, 1.0, 1.0, 1.0])
         self.qpid_mani_vel_damping = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-        self.qpid_mani_acc_damping = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
-        self.qpid_base_vel_damping = np.array([10, 10, 10])      # [vx, vy, wz]
-        self.qpid_base_acc_damping = np.array([0.0001, 0.0001, 0.0001])
-        
-        self.robot_controller.set_manipulator_joint_gain(kp=self.kp_mani_joint, kv=self.kv_mani_joint)
-        self.robot_controller.set_task_gain(link_kp=self.link_kp_task, link_kv=self.link_kv_task)
-        self.robot_controller.set_QPIK_gain(link_w_tracking=self.qpik_link_tracking,
-                                            w_mani_damping=self.qpik_mani_damping,
-                                            w_base_damping=self.qpik_base_damping)
-        self.robot_controller.set_QPID_gain(link_w_tracking=self.qpid_link_tracking,
+        self.qpid_mani_acc_damping = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
+        self.qpid_base_vel_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpid_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+
+        self.robot_controller.set_manipulator_joint_gain(kp=self.mani_joint_kp, kv=self.mani_joint_kv)
+        self.robot_controller.set_IK_gain(kp=self.task_ik_kp)
+        self.robot_controller.set_ID_gain(kp=self.task_id_kp, kv=self.task_id_kv)
+        self.robot_controller.set_QPIK_gain(w_tracking=self.qpik_tracking,
+                                            w_mani_vel_damping=self.qpik_mani_vel_damping,
+                                            w_mani_acc_damping=self.qpik_mani_acc_damping,
+                                            w_base_vel_damping=self.qpik_base_vel_damping,
+                                            w_base_acc_damping=self.qpik_base_acc_damping)
+        self.robot_controller.set_QPID_gain(w_tracking=self.qpid_tracking,
                                             w_mani_vel_damping=self.qpid_mani_vel_damping,
                                             w_mani_acc_damping=self.qpid_mani_acc_damping,
                                             w_base_vel_damping=self.qpid_base_vel_damping,
@@ -150,6 +156,9 @@ class FR3XLSController:
         
         print("joint frame info:")
         print(self.robot_data.get_joint_frame_vector())
+        
+        print("joint name info:")
+        print(self.robot_data.get_joint_names())
         
 
         # Global keyboard listener (non-blocking)

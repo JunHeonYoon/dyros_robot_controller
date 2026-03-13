@@ -24,6 +24,7 @@
 #include <new>
 #include <string>
 #include <thread>
+#include <dlfcn.h>
 
 #include <mujoco/mujoco.h>
 #include "mujoco/glfw_adapter.h"
@@ -230,6 +231,18 @@ void scanPluginLibraries() {
           std::printf("    %s\n", mjp_getPluginAtSlot(i)->name);
         }
       });
+
+    // Load MuJoCo decoder plugins (e.g. obj_decoder for .obj mesh support in MuJoCo 3.5+).
+    // MuJoCo installs plugins to <prefix>/bin/mujoco_plugin; libmujoco.so lives in <prefix>/lib.
+    {
+        Dl_info dl_info;
+        if (dladdr(reinterpret_cast<void*>(mj_version), &dl_info) && dl_info.dli_fname) {
+            std::string mujoco_lib_dir(dl_info.dli_fname);
+            mujoco_lib_dir = mujoco_lib_dir.substr(0, mujoco_lib_dir.find_last_of('/'));
+            const std::string plugin_dir = mujoco_lib_dir + "/../bin/mujoco_plugin";
+            mj_loadAllPluginLibraries(plugin_dir.c_str(), nullptr);
+        }
+    }
 }
 
 

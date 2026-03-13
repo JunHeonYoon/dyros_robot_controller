@@ -51,8 +51,8 @@ namespace drc
                  */
                 RobotData(const double dt,
                           const std::string& urdf_source,
-                          const std::string& srdf_source,
-                          const std::string& packages_path,
+                          const std::string& srdf_source="",
+                          const std::string& packages_path="",
                           const bool use_xml=false);
                 /**
                  * @brief Update the state of the manipulator.

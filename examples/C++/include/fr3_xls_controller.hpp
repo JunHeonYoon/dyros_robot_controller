@@ -95,18 +95,21 @@ class FR3XLSController
         double control_start_time_{0.0};
 
         //  --- Gain
-        Eigen::VectorXd                 mani_joint_kp_;
-        Eigen::VectorXd                 mani_joint_kv_;
-        Eigen::VectorXd                 qpik_mani_damping_;
-        Eigen::Vector3d                 qpik_base_damping_;
-        Eigen::VectorXd                 qpid_mani_vel_damping_;
-        Eigen::VectorXd                 qpid_mani_acc_damping_;
-        Eigen::Vector3d                 qpid_base_vel_damping_;
-        Eigen::Vector3d                 qpid_base_acc_damping_;
-        std::map<std::string, Vector6d> link_task_kp_;
-        std::map<std::string, Vector6d> link_task_kv_;
-        std::map<std::string, Vector6d> link_qpik_tracking_;
-        std::map<std::string, Vector6d> link_qpid_tracking_;
+        Eigen::VectorXd mani_joint_kp_;
+        Eigen::VectorXd mani_joint_kv_;
+        Vector6d        task_ik_kp_;
+        Vector6d        task_id_kp_;
+        Vector6d        task_id_kv_;
+        Vector6d        qpik_tracking_;
+        Eigen::VectorXd qpik_mani_vel_damping_;
+        Eigen::VectorXd qpik_mani_acc_damping_;
+        Eigen::Vector3d qpik_base_vel_damping_;
+        Eigen::Vector3d qpik_base_acc_damping_;
+        Vector6d        qpid_tracking_;
+        Eigen::VectorXd qpid_mani_vel_damping_;
+        Eigen::VectorXd qpid_mani_acc_damping_;
+        Eigen::Vector3d qpid_base_vel_damping_;
+        Eigen::Vector3d qpid_base_acc_damping_;
 
         // Dyros model/controller handles
         std::shared_ptr<drc::MobileManipulator::RobotData>       robot_data_;
