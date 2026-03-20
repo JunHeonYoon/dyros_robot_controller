@@ -145,7 +145,7 @@ namespace drc
             // for joint velocity/acceleration damping
             P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) += 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix() + 
                                                                                                                   2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
-            q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * qdot;
+            q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * w_vel_damping_.asDiagonal() * qdot;
 
             // for slack
             q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 1000.0); 
@@ -253,12 +253,12 @@ namespace drc
 
             // for dynamics
             const MatrixXd M  = robot_data_->getMassMatrix();
-            const MatrixXd g = robot_data_->getGravity();
+            const MatrixXd nle = robot_data_->getNonlinearEffects();
     
             A_eq_ds_.block(si_index_.con_dyn_start,si_index_.qddot_start, si_index_.con_dyn_size, si_index_.qddot_size) = M;
             A_eq_ds_.block(si_index_.con_dyn_start,si_index_.torque_start, si_index_.con_dyn_size, si_index_.torque_size) = -MatrixXd::Identity(si_index_.con_dyn_size, si_index_.torque_size);
     
-            b_eq_ds_.segment(si_index_.con_dyn_start, si_index_.con_dyn_size) = -g;
+            b_eq_ds_.segment(si_index_.con_dyn_start, si_index_.con_dyn_size) = -nle;
         }
     } // namespace Manipulator
 } // namespace drc

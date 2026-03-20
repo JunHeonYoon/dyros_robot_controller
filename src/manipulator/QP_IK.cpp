@@ -201,7 +201,7 @@ namespace drc
             
             A_ineq_ds_.block(si_index_.con_q_max_start, si_index_.qdot_start, si_index_.con_q_max_size, si_index_.qdot_size) = -MatrixXd::Identity(si_index_.con_q_max_size, si_index_.qdot_size);
             A_ineq_ds_.block(si_index_.con_q_max_start, si_index_.slack_q_max_start, si_index_.con_q_max_size, si_index_.slack_q_max_size) = MatrixXd::Identity(si_index_.con_q_max_size, si_index_.slack_q_max_size);
-            l_ineq_ds_.segment(si_index_.con_q_max_start, si_index_.con_q_min_size) = - alpha*(q_max - q);
+            l_ineq_ds_.segment(si_index_.con_q_max_start, si_index_.con_q_max_size) = - alpha*(q_max - q);
     
             // singularity avoidance (CBF)
             // Manipulator::ManipulabilityResult mani_result = robot_data_->getManipulability(true, false, link_name_);

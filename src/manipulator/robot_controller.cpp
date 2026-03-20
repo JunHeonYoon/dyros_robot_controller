@@ -51,7 +51,7 @@ namespace drc
     
         void RobotController::setJointGain(const Eigen::Ref<const VectorXd>& Kp, const Eigen::Ref<const VectorXd>& Kv)
         {
-            assert(Kp.size() == dof_ && Kv.size() != dof_);
+            assert(Kp.size() == dof_ && Kv.size() == dof_);
             Kp_joint_ = Kp;
             Kv_joint_ = Kv;
         }
