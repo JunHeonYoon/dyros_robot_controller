@@ -115,6 +115,12 @@ namespace drc
                 std::map<std::string, Vector6d> link_w_tracking_;   // weight for task velocity tracking per links; ||x_i_dot_des - J_i*q_dot||
                 VectorXd w_vel_damping_;                            // weight for joint velocity damping;           || q_dot ||
                 VectorXd w_acc_damping_;                            // weight for joint acceleration damping;       || (q_dot - q_dot_now) / dt ||
+
+                // self-collision CBF gradient exponential filter
+                // smooths discontinuous jumps when the closest collision pair changes
+                VectorXd col_grad_filtered_;
+                bool     col_grad_initialized_  = false;
+                double   col_grad_filter_alpha_ = 0.2;  // filter coefficient (0~1): larger = faster tracking, less smoothing
                 
 
                 /**

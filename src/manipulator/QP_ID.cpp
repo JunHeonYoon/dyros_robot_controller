@@ -148,12 +148,12 @@ namespace drc
             q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * w_vel_damping_.asDiagonal() * qdot;
 
             // for slack
-            q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 1000.0); 
-            q_ds_.segment(si_index_.slack_q_max_start,si_index_.slack_q_max_size) = VectorXd::Constant(si_index_.slack_q_max_size, 1000.0); 
-            q_ds_.segment(si_index_.slack_qdot_min_start,si_index_.slack_qdot_min_size) = VectorXd::Constant(si_index_.slack_qdot_min_size, 1000.0); 
-            q_ds_.segment(si_index_.slack_qdot_max_start,si_index_.slack_qdot_max_size) = VectorXd::Constant(si_index_.slack_qdot_max_size, 1000.0); 
-            q_ds_(si_index_.slack_sing_start) = 1000.0;
-            q_ds_(si_index_.slack_sel_col_start) = 1000.0;
+            q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 100.0); 
+            q_ds_.segment(si_index_.slack_q_max_start,si_index_.slack_q_max_size) = VectorXd::Constant(si_index_.slack_q_max_size, 100.0); 
+            q_ds_.segment(si_index_.slack_qdot_min_start,si_index_.slack_qdot_min_size) = VectorXd::Constant(si_index_.slack_qdot_min_size, 100.0); 
+            q_ds_.segment(si_index_.slack_qdot_max_start,si_index_.slack_qdot_max_size) = VectorXd::Constant(si_index_.slack_qdot_max_size, 100.0); 
+            q_ds_(si_index_.slack_sing_start) = 100.0;
+            q_ds_(si_index_.slack_sel_col_start) = 100.0;
             
         }
     
@@ -161,6 +161,12 @@ namespace drc
         {
             l_bound_ds_.setConstant(nbc_,-OSQP_INFTY);
             u_bound_ds_.setConstant(nbc_,OSQP_INFTY);
+
+            const auto torque_limit = robot_data_->getJointEffortLimit();
+            
+            // for torque limit
+            l_bound_ds_.segment(si_index_.torque_start, si_index_.torque_size) = torque_limit.first;
+            u_bound_ds_.segment(si_index_.torque_start, si_index_.torque_size) = torque_limit.second;
 
             // for slack
             l_bound_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size).setZero();
@@ -177,7 +183,7 @@ namespace drc
             l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
             u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
     
-            const double alpha = 50.;
+            const double alpha = 10.;
     
             // Manipulator Joint Angle Limit (CBF)
             const auto q_lim = robot_data_->getJointPositionLimit();
@@ -240,10 +246,23 @@ namespace drc
             
             // self collision avoidance (CBF)
             const Manipulator::MinDistResult min_dist_data = robot_data_->getMinDistance(true, true, false);
-            
-            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qddot_start, si_index_.con_sel_col_size, si_index_.qddot_size) = min_dist_data.grad.transpose();
+
+            // exponential low-pass filter on grad and grad_dot to smooth discontinuous jumps
+            // when the closest collision pair switches (argmin is non-smooth)
+            if (!col_grad_initialized_) {
+                col_grad_filtered_     = min_dist_data.grad;
+                col_grad_dot_filtered_ = min_dist_data.grad_dot;
+                col_grad_initialized_  = true;
+            } else {
+                col_grad_filtered_     = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                       + col_grad_filter_alpha_ * min_dist_data.grad;
+                col_grad_dot_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_dot_filtered_
+                                       + col_grad_filter_alpha_ * min_dist_data.grad_dot;
+            }
+
+            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qddot_start, si_index_.con_sel_col_size, si_index_.qddot_size) = col_grad_filtered_.transpose();
             A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.slack_sel_col_start, si_index_.con_sel_col_size, si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = -min_dist_data.grad_dot.dot(qdot) - (alpha + alpha)*min_dist_data.grad.dot(qdot) - alpha*alpha*(min_dist_data.distance -0.01);
+            l_ineq_ds_(si_index_.con_sel_col_start) = -col_grad_dot_filtered_.dot(qdot) - (alpha + alpha)*col_grad_filtered_.dot(qdot) - alpha*alpha*(min_dist_data.distance - 0.01);
         }
     
         void QPID::setEqConstraint()    

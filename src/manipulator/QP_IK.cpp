@@ -132,10 +132,10 @@ namespace drc
             q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * dt_sq_inv * w_acc_damping_.asDiagonal() * qdot_now;
             
             // for slack
-            q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 1000.0);
-            q_ds_.segment(si_index_.slack_q_max_start,si_index_.slack_q_max_size) = VectorXd::Constant(si_index_.slack_q_max_size, 1000.0);
-            q_ds_(si_index_.slack_sing_start) = 1000.0;
-            q_ds_(si_index_.slack_sel_col_start) = 1000.0;
+            q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 100.0);
+            q_ds_.segment(si_index_.slack_q_max_start,si_index_.slack_q_max_size) = VectorXd::Constant(si_index_.slack_q_max_size, 100.0);
+            q_ds_(si_index_.slack_sing_start) = 100.0;
+            q_ds_(si_index_.slack_sel_col_start) = 100.0;
         }
     
         void QPIK::setBoundConstraint()    
@@ -175,7 +175,7 @@ namespace drc
             l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
             u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
 
-            const double alpha = 50.;
+            const double alpha = 10.;
     
             // Manipulator Joint Angle Limit (CBF)
             const auto q_lim = robot_data_->getJointPositionLimit();
@@ -212,10 +212,20 @@ namespace drc
     
             // self collision avoidance (CBF)
             const Manipulator::MinDistResult min_dist_res = robot_data_->getMinDistance(true, false, false);
-    
-            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qdot_start, si_index_.con_sel_col_size, si_index_.qdot_size) = min_dist_res.grad.transpose();
+
+            // exponential low-pass filter on grad to smooth discontinuous jumps
+            // when the closest collision pair switches (argmin is non-smooth)
+            if (!col_grad_initialized_) {
+                col_grad_filtered_    = min_dist_res.grad;
+                col_grad_initialized_ = true;
+            } else {
+                col_grad_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                   + col_grad_filter_alpha_ * min_dist_res.grad;
+            }
+
+            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qdot_start, si_index_.con_sel_col_size, si_index_.qdot_size) = col_grad_filtered_.transpose();
             A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.slack_sel_col_start, si_index_.con_sel_col_size, si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = - alpha*(min_dist_res.distance -0.01);
+            l_ineq_ds_(si_index_.con_sel_col_start) = -alpha * (min_dist_res.distance - 0.01);
         }
     
         void QPIK::setEqConstraint()    
