@@ -7,7 +7,7 @@ namespace drc
         QPIK::QPIK(std::shared_ptr<MobileManipulator::RobotData> robot_data, const double dt)
         : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
-            actuator_dof_ = robot_data_->getActuatordDof();
+            actuator_dof_ = robot_data_->getActuatorDof();
             mani_dof_ = robot_data_->getManipulatorDof();
             mobi_dof_ = robot_data_->getMobileDof();
     
