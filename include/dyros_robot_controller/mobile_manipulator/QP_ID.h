@@ -176,7 +176,14 @@ namespace drc
                 VectorXd w_mani_acc_damping_;                     // weight for manipulator acceleration damping;                 || eta_ddot ||
                 Vector3d w_base_vel_damping_;                     // weight for mobile base velocity damping;                     || eta_dot*dt + eta ||
                 Vector3d w_base_acc_damping_;                     // weight for mobile base acceleration damping;                 || eta_ddot ||
-                
+
+                // self-collision CBF gradient exponential filter
+                // smooths discontinuous jumps when the closest collision pair changes
+                VectorXd col_grad_filtered_;
+                VectorXd col_grad_dot_filtered_;
+                bool     col_grad_initialized_  = false;
+                double   col_grad_filter_alpha_ = 0.2;  // filter coefficient (0~1): larger = faster tracking, less smoothing
+
                 /**
                  * @brief Set the cost function which minimizes task space acceleration error.
                  *        Use slack variables (s) to increase feasibility of QP.

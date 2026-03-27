@@ -216,7 +216,7 @@ namespace drc
             l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
             u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
 
-            const double alpha = 50.;
+            const double alpha = 10.;
     
             // Manipulator Joint Angle Limit (CBF)
             const auto q_lim = robot_data_->getJointPositionLimit();
@@ -268,23 +268,32 @@ namespace drc
             // A_ineq_ds_.block(si_index_.con_sing_start, 
             //                  si_index_.slack_sing_start,
             //                  si_index_.con_sing_size, 
-            //                  si_index_.slack_sing_size) = -MatrixXd::Identity(si_index_.con_sing_size, si_index_.slack_sing_size);
+            //                  si_index_.slack_sing_size) = MatrixXd::Identity(si_index_.con_sing_size, si_index_.slack_sing_size);
             // l_ineq_ds_(si_index_.con_sing_start) = - alpha*(mani_result.manipulability -0.01);
     
             // self collision avoidance (CBF)
-            VectorXd min_dist_grad;
             Manipulator::MinDistResult min_dist_res = robot_data_->getMinDistance(true, false, false);
             min_dist_res.grad = min_dist_res.grad.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
-            
-            A_ineq_ds_.block(si_index_.con_sel_col_start, 
+
+            // exponential low-pass filter on grad to smooth discontinuous jumps
+            // when the closest collision pair switches (argmin is non-smooth)
+            if (!col_grad_initialized_) {
+                col_grad_filtered_    = min_dist_res.grad;
+                col_grad_initialized_ = true;
+            } else {
+                col_grad_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                   + col_grad_filter_alpha_ * min_dist_res.grad;
+            }
+
+            A_ineq_ds_.block(si_index_.con_sel_col_start,
                              si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-                             si_index_.con_sel_col_size, 
-                             mani_dof_) = min_dist_res.grad.transpose();
-            A_ineq_ds_.block(si_index_.con_sel_col_start, 
+                             si_index_.con_sel_col_size,
+                             mani_dof_) = col_grad_filtered_.transpose();
+            A_ineq_ds_.block(si_index_.con_sel_col_start,
                              si_index_.slack_sel_col_start,
-                             si_index_.con_sel_col_size, 
-                             si_index_.slack_sel_col_size) = -MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = - alpha*(min_dist_res.distance -0.01);
+                             si_index_.con_sel_col_size,
+                             si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
+            l_ineq_ds_(si_index_.con_sel_col_start) = -alpha * (min_dist_res.distance - 0.01);
 
             // Mobile base velocity limit
             const auto& param = robot_data_->getKineParam();
