@@ -603,16 +603,17 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
             return super().OSFCubic(link_task_data_cpp, current_time, 0.0, duration, null_torque)
 
-    def QPIK(self, 
+    def QPIK(self,
              link_task_data: dict[str, TaskSpaceData],
-             time_verbose: bool = False,
+             null_qdot: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Computes velocities for mobile base and manipulator joints to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xdot_desired.
-            time_verbose   : (bool) If true, print the computation time for QP. 
+            null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
+                             Size must be mani_dof. If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
@@ -621,18 +622,23 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIK(link_task_data_cpp,time_verbose)
+        if null_qdot is not None:
+            null_qdot = np.asarray(null_qdot).reshape(-1)
+            assert null_qdot.size == self._robot_data.mani_dof, f"Size of null_qdot {null_qdot.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+            return super().QPIK(link_task_data_cpp, null_qdot)
+        return super().QPIK(link_task_data_cpp)
 
     def QPIK_step(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  time_verbose: bool = False,
+                  null_qdot: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Computes velocities for mobile base and manipulator joints to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            time_verbose   : (bool) If true, print the computation time for QP. 
+            null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
+                             Size must be mani_dof. If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
@@ -641,22 +647,27 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIKStep(link_task_data_cpp,time_verbose)
+        if null_qdot is not None:
+            null_qdot = np.asarray(null_qdot).reshape(-1)
+            assert null_qdot.size == self._robot_data.mani_dof, f"Size of null_qdot {null_qdot.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+            return super().QPIKStep(link_task_data_cpp, null_qdot)
+        return super().QPIKStep(link_task_data_cpp)
 
     def QPIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    current_time: float,
                    duration: float,
-                   time_verbose: bool = False,
+                   null_qdot: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute velocities for mobile base and manipulator joints using QP to follow the resulting trajectory.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
-            current_time : (float) Current time.
-            duration     : (float) Time duration.
-            time_verbose : (bool) If true, print the computation time for QP.
+            current_time   : (float) Current time.
+            duration       : (float) Time duration.
+            null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
+                             Size must be mani_dof. If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
@@ -665,23 +676,22 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIKCubic(link_task_data_cpp,
-                                 current_time,
-                                 0.0,
-                                 duration,
-                                 time_verbose
-                                 )
+        if null_qdot is not None:
+            null_qdot = np.asarray(null_qdot).reshape(-1)
+            assert null_qdot.size == self._robot_data.mani_dof, f"Size of null_qdot {null_qdot.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+            return super().QPIKCubic(link_task_data_cpp, current_time, 0.0, duration, null_qdot)
+        return super().QPIKCubic(link_task_data_cpp, current_time, 0.0, duration)
 
-    def QPID(self, 
+    def QPID(self,
              link_task_data: dict[str, TaskSpaceData],
-             time_verbose: bool = False,
+             null_torque: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            time_verbose   : (bool) If true, print the computation time for QP. 
+            null_torque    : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
@@ -690,18 +700,22 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPID(link_task_data_cpp,time_verbose)
+        if null_torque is not None:
+            null_torque = np.asarray(null_torque).reshape(-1)
+            assert null_torque.size == self._robot_data.mani_dof, f"Size of null_torque {null_torque.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+            return super().QPID(link_task_data_cpp, null_torque)
+        return super().QPID(link_task_data_cpp)
 
-    def QPID_step(self, 
+    def QPID_step(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  time_verbose: bool = False,
+                  null_torque: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Computes mobile base accelerations and manipulator joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse dynamics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            time_verbose   : (bool) If true, print the computation time for QP. 
+            null_torque    : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
@@ -710,13 +724,17 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIDStep(link_task_data_cpp,time_verbose)
+        if null_torque is not None:
+            null_torque = np.asarray(null_torque).reshape(-1)
+            assert null_torque.size == self._robot_data.mani_dof, f"Size of null_torque {null_torque.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+            return super().QPIDStep(link_task_data_cpp, null_torque)
+        return super().QPIDStep(link_task_data_cpp)
 
     def QPID_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    current_time: float,
                    duration: float,
-                   time_verbose: bool = False,
+                   null_torque: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using QP to follow the resulting trajectory.
@@ -725,7 +743,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
             current_time : (float) Current time.
             duration     : (float) Time duration.
-            time_verbose : (bool) If true, print the computation time for QP.
+            null_torque  : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
@@ -734,8 +752,8 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIDCubic(link_task_data_cpp,
-                                 current_time,
-                                 0.0,
-                                 duration,
-                                 time_verbose)
+        if null_torque is not None:
+            null_torque = np.asarray(null_torque).reshape(-1)
+            assert null_torque.size == self._robot_data.mani_dof, f"Size of null_torque {null_torque.size} is not equal to mani_dof {self._robot_data.mani_dof}"
+            return super().QPIDCubic(link_task_data_cpp, current_time, 0.0, duration, null_torque)
+        return super().QPIDCubic(link_task_data_cpp, current_time, 0.0, duration)

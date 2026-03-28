@@ -43,7 +43,8 @@ namespace drc
             si_index_.con_sing_start      = si_index_.con_q_max_start + si_index_.con_q_max_size;
             si_index_.con_sel_col_start   = si_index_.con_sing_start  + si_index_.con_sing_size;
 
-            w_vel_damping_.setOnes(joint_dof_);
+            qdot_desired_.setZero(joint_dof_);
+            w_joint_vel_.setOnes(joint_dof_);
             w_acc_damping_.setOnes(joint_dof_);
 
         }
@@ -63,7 +64,7 @@ namespace drc
                              const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
-            w_vel_damping_ = w_vel_damping;
+            w_joint_vel_ = w_vel_damping;
             w_acc_damping_ = w_acc_damping;
         }
 
@@ -72,7 +73,7 @@ namespace drc
                              const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             setTrackingWeight(w_tracking);
-            w_vel_damping_ = w_vel_damping;
+            w_joint_vel_ = w_vel_damping;
             w_acc_damping_ = w_acc_damping;
         }
 
@@ -123,10 +124,11 @@ namespace drc
                 q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * J_i.transpose() * w_tracking.asDiagonal() * xdot_desired;
             }
             
-            // for joint velocity damping
-            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * w_vel_damping_.asDiagonal();
+            // for joint velocity tracking: || q_dot - qdot_desired ||_W2^2
+            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * w_joint_vel_.asDiagonal();
+            q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * w_joint_vel_.asDiagonal() * qdot_desired_;
 
-            // for joint acceleration damping: qddot = (qdot - qdot_now) / dt
+            // for joint acceleration damping: || (q_dot - q_dot_now) / dt ||_W3^2
             const double dt_sq_inv = 1.0 / (dt_ * dt_);
             P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * dt_sq_inv * w_acc_damping_.asDiagonal();
             q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * dt_sq_inv * w_acc_damping_.asDiagonal() * qdot_now;

@@ -51,7 +51,8 @@ namespace drc
             si_index_.con_base_vel_start      = si_index_.con_sel_col_start    + si_index_.con_sel_col_size;
             si_index_.con_base_acc_start      = si_index_.con_base_vel_start   + si_index_.con_base_vel_size;
 
-            w_mani_vel_damping_.setOnes(mani_dof_);
+            mani_qdot_desired_.setZero(mani_dof_);
+            w_mani_joint_vel_.setOnes(mani_dof_);
             w_mani_acc_damping_.setOnes(mani_dof_);
             w_base_vel_damping_.setOnes();
             w_base_acc_damping_.setOnes();
@@ -67,27 +68,27 @@ namespace drc
             link_w_tracking_ = link_w_tracking;
         }
 
-        void QPIK::setWeight(const std::map<std::string, Vector6d>& link_w_tracking, 
-                             const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
+        void QPIK::setWeight(const std::map<std::string, Vector6d>& link_w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_mani_joint_vel,
                              const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                              const Eigen::Vector3d& w_base_damping,
                              const Eigen::Vector3d& w_base_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
-            w_mani_vel_damping_ = w_mani_vel_damping;
+            w_mani_joint_vel_ = w_mani_joint_vel;
             w_mani_acc_damping_ = w_mani_acc_damping;
             w_base_vel_damping_ = w_base_damping;
             w_base_acc_damping_ = w_base_acc_damping;
         }
 
-        void QPIK::setWeight(const Vector6d& w_tracking, 
-                             const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
+        void QPIK::setWeight(const Vector6d& w_tracking,
+                             const Eigen::Ref<const VectorXd>& w_mani_joint_vel,
                              const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                              const Eigen::Vector3d& w_base_damping,
                              const Eigen::Vector3d& w_base_acc_damping)
         {
             setTrackingWeight(w_tracking);
-            w_mani_vel_damping_ = w_mani_vel_damping;
+            w_mani_joint_vel_ = w_mani_joint_vel;
             w_mani_acc_damping_ = w_mani_acc_damping;
             w_base_vel_damping_ = w_base_damping;
             w_base_acc_damping_ = w_base_acc_damping;
@@ -143,12 +144,19 @@ namespace drc
             const int mobi_start = robot_data_->getActuatorIndex().mobi_start;
             const double dt_sq_inv = 1.0 / (dt_ * dt_);
 
-            // for manipulator joint velocity/acceleration damping
+            // for manipulator joint velocity tracking: || eta_mani - qdot_desired ||_W2^2
             P_ds_.block(si_index_.eta_start+mani_start,
                         si_index_.eta_start+mani_start,
                         mani_dof_,
-                        mani_dof_) += 2.0 * w_mani_vel_damping_.asDiagonal()
-                                     + 2.0 * dt_sq_inv * w_mani_acc_damping_.asDiagonal();
+                        mani_dof_) += 2.0 * w_mani_joint_vel_.asDiagonal();
+            q_ds_.segment(si_index_.eta_start+mani_start, mani_dof_) +=
+                -2.0 * w_mani_joint_vel_.asDiagonal() * mani_qdot_desired_;
+
+            // for manipulator joint acceleration damping: || (eta_mani - eta_mani_now) / dt ||_W3^2
+            P_ds_.block(si_index_.eta_start+mani_start,
+                        si_index_.eta_start+mani_start,
+                        mani_dof_,
+                        mani_dof_) += 2.0 * dt_sq_inv * w_mani_acc_damping_.asDiagonal();
             q_ds_.segment(si_index_.eta_start+mani_start, mani_dof_) +=
                 -2.0 * dt_sq_inv * w_mani_acc_damping_.asDiagonal() * robot_data_->getManiJointVelocity();
 

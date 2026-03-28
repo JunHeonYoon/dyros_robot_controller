@@ -62,6 +62,8 @@ namespace drc
     
             w_vel_damping_.setOnes(joint_dof_);
             w_acc_damping_.setOnes(joint_dof_);
+            null_torque_.setZero(joint_dof_);
+            w_null_torque_ = 0.0;
         }
 
         void QPID::setTrackingWeight(const Vector6d w_tracking)
@@ -146,6 +148,16 @@ namespace drc
             P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) += 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix() + 
                                                                                                                   2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
             q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * w_vel_damping_.asDiagonal() * qdot;
+
+            // for null torque tracking (Method 3: M-weighted qddot cost, equivalent to OSF null projection)
+            // min w_null * || qddot - M^{-1}*null_torque ||_M^2
+            // => P qddot: += 2*w_null*M,  q qddot: += -2*w_null*null_torque
+            if(w_null_torque_ > 0.0)
+            {
+                const MatrixXd M = robot_data_->getMassMatrix();
+                P_ds_.block(si_index_.qddot_start, si_index_.qddot_start, si_index_.qddot_size, si_index_.qddot_size) += 2.0 * w_null_torque_ * M;
+                q_ds_.segment(si_index_.qddot_start, si_index_.qddot_size) += -2.0 * w_null_torque_ * null_torque_;
+            }
 
             // for slack
             q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 100.0); 

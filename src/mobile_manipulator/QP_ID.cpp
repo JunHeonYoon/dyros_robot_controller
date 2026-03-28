@@ -90,6 +90,8 @@ namespace drc
             w_mani_acc_damping_.setOnes(mani_dof_);
             w_base_vel_damping_.setOnes();
             w_base_acc_damping_.setOnes();
+            mani_null_torque_.setZero(mani_dof_);
+            w_mani_null_torque_ = 0.0;
         }
         
         void QPID::setTrackingWeight(const Vector6d w_tracking)
@@ -203,6 +205,20 @@ namespace drc
             q_ds_.segment(si_index_.eta_dot_start + mobi_start, mobi_dof_) += 2.0 * dt_ * J_mobile_T * w_base_vel * robot_data_->getBaseVel();
 
             
+            // for manipulator null torque tracking (Method 3: M-weighted qddot cost, equivalent to OSF null projection)
+            // min w_null * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2
+            // => P qddot_mani block: += 2*w_null*M_mani,  q qddot_mani segment: += -2*w_null*null_torque
+            if(w_mani_null_torque_ > 0.0)
+            {
+                const MatrixXd M_tilda = robot_data_->getMassMatrixActuated();
+                const int mani_start_idx = robot_data_->getActuatorIndex().mani_start;
+                const MatrixXd M_mani = M_tilda.block(mani_start_idx, mani_start_idx, mani_dof_, mani_dof_);
+                P_ds_.block(si_index_.eta_dot_start + mani_start_idx,
+                            si_index_.eta_dot_start + mani_start_idx,
+                            mani_dof_, mani_dof_) += 2.0 * w_mani_null_torque_ * M_mani;
+                q_ds_.segment(si_index_.eta_dot_start + mani_start_idx, mani_dof_) += -2.0 * w_mani_null_torque_ * mani_null_torque_;
+            }
+
             // for slack
             q_ds_.segment(si_index_.slack_q_mani_min_start,   si_index_.slack_q_mani_min_size)    = VectorXd::Constant(si_index_.slack_q_mani_min_size,    1000.0);
             q_ds_.segment(si_index_.slack_q_mani_max_start,   si_index_.slack_q_mani_max_size)    = VectorXd::Constant(si_index_.slack_q_mani_max_size,    1000.0);

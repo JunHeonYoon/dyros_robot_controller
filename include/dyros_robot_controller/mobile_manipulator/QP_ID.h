@@ -47,6 +47,19 @@ namespace drc
                  * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
                  */
                 void setManiJointAccWeight(const Eigen::Ref<const VectorXd>& w_mani_acc_damping) { w_mani_acc_damping_ = w_mani_acc_damping; }
+                /**
+                 * @brief Set the scalar scale for the manipulator null torque tracking cost (Method 3: M-weighted qddot cost).
+                 *        The cost term added is: w_mani_null_torque * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2
+                 *        which is equivalent to OSF's null space projection for the manipulator when w_mani_null_torque > 0.
+                 * @param w_mani_null_torque (double) Scale factor for null torque cost; set 0 to disable (default).
+                 */
+                void setNullTorqueWeight(const double w_mani_null_torque) { w_mani_null_torque_ = w_mani_null_torque; }
+                /**
+                 * @brief Set the desired manipulator null space torque.
+                 *        Equivalent to OSF's null_torque argument (without gravity; gravity is handled separately by the dynamics constraint).
+                 * @param null_torque (Eigen::VectorXd) Desired manipulator joint torque to track in the null space; its size must same as mani_dof.
+                 */
+                void setNullTorque(const Eigen::Ref<const VectorXd>& null_torque) { mani_null_torque_ = null_torque; }
 
                 /**
                  * @brief Set mobile base velocity damping weights only.
@@ -176,6 +189,8 @@ namespace drc
                 VectorXd w_mani_acc_damping_;                     // weight for manipulator acceleration damping;                 || eta_ddot ||
                 Vector3d w_base_vel_damping_;                     // weight for mobile base velocity damping;                     || eta_dot*dt + eta ||
                 Vector3d w_base_acc_damping_;                     // weight for mobile base acceleration damping;                 || eta_ddot ||
+                VectorXd mani_null_torque_;                       // desired manipulator null space torque (OSF convention: without gravity)
+                double   w_mani_null_torque_;                     // scale for manipulator null torque cost; w_null * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2
 
                 // self-collision CBF gradient exponential filter
                 // smooths discontinuous jumps when the closest collision pair changes
@@ -188,12 +203,12 @@ namespace drc
                  * @brief Set the cost function which minimizes task space acceleration error.
                  *        Use slack variables (s) to increase feasibility of QP.
                  *
-                 *         min       || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||_Wi^2 + || q_ddot ||_W2^2 + || q_ddot*dt + eta ||_W3^2 + 1000*s 
+                 *         min       || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||_Wi^2 + || q_ddot ||_W2^2 + || q_ddot*dt + eta ||_W3^2 + w_null * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2 + 1000*s
                  *  [eta_dot, torque, s]
                  *
-                 * =>      min         1/2 * [ eta_dot ].T * [ 2*J_i_tilda.T*Wi_i*J + 2*W2 + 2*dt*dt*W3  0  0 ] * [ eta_dot  ] + [ -2*J_i_tilda.T*Wi*(x_i_ddot_des - J_i_tilda_dot*eta) + 2*dt*eta ].T * [ eta_dot  ]
-                 *  [eta_dot, torque, s]     [  torque ]     [                     0                     0  0 ]   [ torque ]     [                               0                                 ]     [   torque ]
-                 *                           [    s    ]     [                     0                     0  0 ]   [   s    ]     [                              1000                               ]     [    s     ]
+                 * =>      min         1/2 * [ eta_dot ].T * [ 2*J_i_tilda.T*Wi_i*J + 2*W2 + 2*dt*dt*W3 + 2*w_null*M_mani (mani block)  0  0 ] * [ eta_dot  ] + [ -2*J_i_tilda.T*Wi*(x_i_ddot_des - J_i_tilda_dot*eta) + 2*dt*eta - 2*w_null*null_torque (mani block) ].T * [ eta_dot  ]
+                 *  [eta_dot, torque, s]     [  torque ]     [                                         0                                  0  0 ]   [ torque ]     [                                           0                                                         ]     [   torque ]
+                 *                           [    s    ]     [                                         0                                  0  0 ]   [   s    ]     [                                          1000                                                        ]     [    s     ]
                  */
                 void setCost() override;
                 /**
