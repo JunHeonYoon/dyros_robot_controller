@@ -101,6 +101,11 @@ namespace drc
 
             geom_data_ = pinocchio::GeometryData(geom_model_);
 
+            // Populate aabb_center / aabb_radius for each geometry object so that
+            // the broadphase bounding-sphere filter in getMinDistance() works correctly.
+            for (auto &go : geom_model_.geometryObjects)
+                go.geometry->computeLocalAABB();
+
             dof_ = model_.joints.size() - 1; // except world joint
 
             // Initialize joint space state
@@ -320,18 +325,53 @@ namespace drc
         
             pinocchio::Data data = pinocchio::Data(model_);
             pinocchio::GeometryData geom_data = pinocchio::GeometryData(geom_model_);
-        
-            pinocchio::computeDistances(model_, data, geom_model_, geom_data, q);
-        
+
+            pinocchio::updateGeometryPlacements(model_, data, geom_model_, geom_data, q);
+
+            constexpr double broadphase_margin = 0.3;  // [m]
+
             double minDistance = std::numeric_limits<double>::max();
             int    minPairIdx  = -1;
-        
-            for (std::size_t idx = 0; idx < geom_data.distanceResults.size(); ++idx)
+
+            for (std::size_t idx = 0; idx < geom_model_.collisionPairs.size(); ++idx)
             {
-                const auto &res = geom_data.distanceResults[idx];
-                if (res.min_distance < minDistance)
+                const auto &pair = geom_model_.collisionPairs[idx];
+                const auto &gA   = geom_model_.geometryObjects[pair.first];
+                const auto &gB   = geom_model_.geometryObjects[pair.second];
+
+                const double rA = static_cast<double>(gA.geometry->aabb_radius);
+                const double rB = static_cast<double>(gB.geometry->aabb_radius);
+                const bool aabb_valid = (rA > 0.0) && (rB > 0.0);
+
+                double pairDist;
+                if (aabb_valid)
                 {
-                    minDistance = res.min_distance;
+                    const Vector3d posA = geom_data.oMg[pair.first].act(
+                        gA.geometry->aabb_center.cast<double>());
+                    const Vector3d posB = geom_data.oMg[pair.second].act(
+                        gB.geometry->aabb_center.cast<double>());
+                    const double approx_dist = (posA - posB).norm() - rA - rB;
+
+                    if (approx_dist > broadphase_margin)
+                    {
+                        geom_data.distanceResults[idx].min_distance = approx_dist;
+                        pairDist = approx_dist;
+                    }
+                    else
+                    {
+                        pinocchio::computeDistance(geom_model_, geom_data, idx);
+                        pairDist = geom_data.distanceResults[idx].min_distance;
+                    }
+                }
+                else
+                {
+                    pinocchio::computeDistance(geom_model_, geom_data, idx);
+                    pairDist = geom_data.distanceResults[idx].min_distance;
+                }
+
+                if (pairDist < minDistance)
+                {
+                    minDistance = pairDist;
                     minPairIdx  = static_cast<int>(idx);
                 }
             }
@@ -353,8 +393,6 @@ namespace drc
             if(with_grad || with_graddot)
             {
                 pinocchio::computeJointJacobians(model_, data, q);
-                pinocchio::updateGeometryPlacements(model_, data, geom_model_, geom_data, q);
-        
                 const auto &pair  = geom_model_.collisionPairs[minPairIdx];
                 const int geomA = pair.first,  geomB = pair.second;
                 const int jointA = geom_model_.geometryObjects[geomA].parentJoint;
@@ -391,7 +429,7 @@ namespace drc
         
                 if(with_graddot)
                 {
-                    pinocchio::computeJointJacobiansTimeVariation(model_, data_, q, qdot);
+                    pinocchio::computeJointJacobiansTimeVariation(model_, data, q, qdot);
         
                     MatrixXd J_jointA_dot = MatrixXd::Zero(6, q.size());
                     MatrixXd J_jointB_dot = MatrixXd::Zero(6, q.size());
@@ -552,17 +590,58 @@ namespace drc
             MinDistResult result;
             result.setZero(q_.size());
         
-            pinocchio::computeDistances(model_, data_, geom_model_, geom_data_, q_);
-        
+            pinocchio::updateGeometryPlacements(model_, data_, geom_model_, geom_data_, q_);
+
+            // Broadphase filter: skip FCL distance query for pairs whose bounding spheres
+            // are more than broadphase_margin apart — set approximate distance instead.
+            constexpr double broadphase_margin = 0.3;  // [m]
+
             double minDistance = std::numeric_limits<double>::max();
             int    minPairIdx  = -1;
-        
-            for (std::size_t idx = 0; idx < geom_data_.distanceResults.size(); ++idx)
+
+            for (std::size_t idx = 0; idx < geom_model_.collisionPairs.size(); ++idx)
             {
-                const auto &res = geom_data_.distanceResults[idx];
-                if (res.min_distance < minDistance)
+                const auto &pair = geom_model_.collisionPairs[idx];
+                const auto &gA   = geom_model_.geometryObjects[pair.first];
+                const auto &gB   = geom_model_.geometryObjects[pair.second];
+
+                // Bounding-sphere broadphase check (world-frame centre = oMg * aabb_center)
+                // aabb_radius defaults to -1 when not computed — guard against that.
+                const double rA = static_cast<double>(gA.geometry->aabb_radius);
+                const double rB = static_cast<double>(gB.geometry->aabb_radius);
+                const bool aabb_valid = (rA > 0.0) && (rB > 0.0);
+
+                double pairDist;
+                if (aabb_valid)
                 {
-                    minDistance = res.min_distance;
+                    const Vector3d posA = geom_data_.oMg[pair.first].act(
+                        gA.geometry->aabb_center.cast<double>());
+                    const Vector3d posB = geom_data_.oMg[pair.second].act(
+                        gB.geometry->aabb_center.cast<double>());
+                    const double approx_dist = (posA - posB).norm() - rA - rB;
+
+                    if (approx_dist > broadphase_margin)
+                    {
+                        // Far pair: skip full FCL query, use conservative estimate
+                        geom_data_.distanceResults[idx].min_distance = approx_dist;
+                        pairDist = approx_dist;
+                    }
+                    else
+                    {
+                        pinocchio::computeDistance(geom_model_, geom_data_, idx);
+                        pairDist = geom_data_.distanceResults[idx].min_distance;
+                    }
+                }
+                else
+                {
+                    // aabb not initialised — always run full FCL query
+                    pinocchio::computeDistance(geom_model_, geom_data_, idx);
+                    pairDist = geom_data_.distanceResults[idx].min_distance;
+                }
+
+                if (pairDist < minDistance)
+                {
+                    minDistance = pairDist;
                     minPairIdx  = static_cast<int>(idx);
                 }
             }
@@ -583,8 +662,6 @@ namespace drc
         
             if(with_grad || with_graddot)
             {
-                pinocchio::updateGeometryPlacements(model_, data_, geom_model_, geom_data_, q_);
-        
                 const auto &pair  = geom_model_.collisionPairs[minPairIdx];
                 const int   geomA = pair.first,  geomB = pair.second;
                 const int   jointA = geom_model_.geometryObjects[geomA].parentJoint;

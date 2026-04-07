@@ -62,6 +62,8 @@ namespace drc
     
             w_vel_damping_.setOnes(joint_dof_);
             w_acc_damping_.setOnes(joint_dof_);
+            null_torque_.setZero(joint_dof_);
+            w_null_torque_ = 0.0;
         }
 
         void QPID::setTrackingWeight(const Vector6d w_tracking)
@@ -145,15 +147,25 @@ namespace drc
             // for joint velocity/acceleration damping
             P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) += 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix() + 
                                                                                                                   2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
-            q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * qdot;
+            q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * w_vel_damping_.asDiagonal() * qdot;
+
+            // for null torque tracking (Method 3: M-weighted qddot cost, equivalent to OSF null projection)
+            // min w_null * || qddot - M^{-1}*null_torque ||_M^2
+            // => P qddot: += 2*w_null*M,  q qddot: += -2*w_null*null_torque
+            if(w_null_torque_ > 0.0)
+            {
+                const MatrixXd M = robot_data_->getMassMatrix();
+                P_ds_.block(si_index_.qddot_start, si_index_.qddot_start, si_index_.qddot_size, si_index_.qddot_size) += 2.0 * w_null_torque_ * M;
+                q_ds_.segment(si_index_.qddot_start, si_index_.qddot_size) += -2.0 * w_null_torque_ * null_torque_;
+            }
 
             // for slack
-            q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 1000.0); 
-            q_ds_.segment(si_index_.slack_q_max_start,si_index_.slack_q_max_size) = VectorXd::Constant(si_index_.slack_q_max_size, 1000.0); 
-            q_ds_.segment(si_index_.slack_qdot_min_start,si_index_.slack_qdot_min_size) = VectorXd::Constant(si_index_.slack_qdot_min_size, 1000.0); 
-            q_ds_.segment(si_index_.slack_qdot_max_start,si_index_.slack_qdot_max_size) = VectorXd::Constant(si_index_.slack_qdot_max_size, 1000.0); 
-            q_ds_(si_index_.slack_sing_start) = 1000.0;
-            q_ds_(si_index_.slack_sel_col_start) = 1000.0;
+            q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 100.0); 
+            q_ds_.segment(si_index_.slack_q_max_start,si_index_.slack_q_max_size) = VectorXd::Constant(si_index_.slack_q_max_size, 100.0); 
+            q_ds_.segment(si_index_.slack_qdot_min_start,si_index_.slack_qdot_min_size) = VectorXd::Constant(si_index_.slack_qdot_min_size, 100.0); 
+            q_ds_.segment(si_index_.slack_qdot_max_start,si_index_.slack_qdot_max_size) = VectorXd::Constant(si_index_.slack_qdot_max_size, 100.0); 
+            q_ds_(si_index_.slack_sing_start) = 100.0;
+            q_ds_(si_index_.slack_sel_col_start) = 100.0;
             
         }
     
@@ -161,6 +173,12 @@ namespace drc
         {
             l_bound_ds_.setConstant(nbc_,-OSQP_INFTY);
             u_bound_ds_.setConstant(nbc_,OSQP_INFTY);
+
+            const auto torque_limit = robot_data_->getJointEffortLimit();
+            
+            // for torque limit
+            l_bound_ds_.segment(si_index_.torque_start, si_index_.torque_size) = torque_limit.first;
+            u_bound_ds_.segment(si_index_.torque_start, si_index_.torque_size) = torque_limit.second;
 
             // for slack
             l_bound_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size).setZero();
@@ -177,7 +195,7 @@ namespace drc
             l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
             u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
     
-            const double alpha = 50.;
+            const double alpha = 10.;
     
             // Manipulator Joint Angle Limit (CBF)
             const auto q_lim = robot_data_->getJointPositionLimit();
@@ -240,10 +258,23 @@ namespace drc
             
             // self collision avoidance (CBF)
             const Manipulator::MinDistResult min_dist_data = robot_data_->getMinDistance(true, true, false);
-            
-            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qddot_start, si_index_.con_sel_col_size, si_index_.qddot_size) = min_dist_data.grad.transpose();
+
+            // exponential low-pass filter on grad and grad_dot to smooth discontinuous jumps
+            // when the closest collision pair switches (argmin is non-smooth)
+            if (!col_grad_initialized_) {
+                col_grad_filtered_     = min_dist_data.grad;
+                col_grad_dot_filtered_ = min_dist_data.grad_dot;
+                col_grad_initialized_  = true;
+            } else {
+                col_grad_filtered_     = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                       + col_grad_filter_alpha_ * min_dist_data.grad;
+                col_grad_dot_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_dot_filtered_
+                                       + col_grad_filter_alpha_ * min_dist_data.grad_dot;
+            }
+
+            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qddot_start, si_index_.con_sel_col_size, si_index_.qddot_size) = col_grad_filtered_.transpose();
             A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.slack_sel_col_start, si_index_.con_sel_col_size, si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = -min_dist_data.grad_dot.dot(qdot) - (alpha + alpha)*min_dist_data.grad.dot(qdot) - alpha*alpha*(min_dist_data.distance -0.01);
+            l_ineq_ds_(si_index_.con_sel_col_start) = -col_grad_dot_filtered_.dot(qdot) - (alpha + alpha)*col_grad_filtered_.dot(qdot) - alpha*alpha*(min_dist_data.distance - 0.01);
         }
     
         void QPID::setEqConstraint()    
@@ -253,12 +284,12 @@ namespace drc
 
             // for dynamics
             const MatrixXd M  = robot_data_->getMassMatrix();
-            const MatrixXd g = robot_data_->getGravity();
+            const MatrixXd nle = robot_data_->getNonlinearEffects();
     
             A_eq_ds_.block(si_index_.con_dyn_start,si_index_.qddot_start, si_index_.con_dyn_size, si_index_.qddot_size) = M;
             A_eq_ds_.block(si_index_.con_dyn_start,si_index_.torque_start, si_index_.con_dyn_size, si_index_.torque_size) = -MatrixXd::Identity(si_index_.con_dyn_size, si_index_.torque_size);
     
-            b_eq_ds_.segment(si_index_.con_dyn_start, si_index_.con_dyn_size) = -g;
+            b_eq_ds_.segment(si_index_.con_dyn_start, si_index_.con_dyn_size) = -nle;
         }
     } // namespace Manipulator
 } // namespace drc

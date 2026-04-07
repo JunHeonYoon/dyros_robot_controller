@@ -395,7 +395,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def CLIK(self,
              link_task_data: dict[str, TaskSpaceData],
              null_qdot: np.ndarray | None = None,
-             ) -> np.ndarray:
+             ) -> tuple[bool, np.ndarray]:
         """
         Computes joint velocities to achieve desired velocity of a link by using closed-loop inverse kinematics, projecting null_qdot into null space to exploit redundancy if provided.
 
@@ -404,7 +404,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             null_qdot      : (np.ndarray) [Optional] Desired joint velocity to be projected on null space.
 
         Returns:
-            (np.ndarray) Desired joint velocities.
+            (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
@@ -420,16 +420,16 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def CLIK_step(self,
                   link_task_data: dict[str, TaskSpaceData],
                   null_qdot: np.ndarray | None = None,
-                  ) -> np.ndarray:
+                  ) -> tuple[bool, np.ndarray]:
         """
         Computes joint velocity to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics, projecting null_qdot into null space to exploit redundancy if provided.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_qdot   : (np.ndarray) [Optional] Desired joint velocity to be projected on null space.
+            null_qdot      : (np.ndarray) [Optional] Desired joint velocity to be projected on null space.
 
         Returns:
-            (np.ndarray) Desired joint velocities.
+            (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
@@ -445,48 +445,46 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def CLIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    current_time: float,
-                   init_time: float,
                    duration: float,
                    null_qdot: np.ndarray | None = None,
-                   ) -> np.ndarray:
+                   ) -> tuple[bool, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration, then compute joint velocities with null_qdot to follow the resulting trajectory if provided.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
             current_time : (float) Current time.
-            init_time    : (float) Start time of the segment.
             duration     : (float) Time duration.
             null_qdot    : (np.ndarray) [Optional] Desired joint velocity to be projected on null space.
 
         Returns:
-            (np.ndarray) Desired joint velocities.
+            (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_qdot is None:
-            return super().CLIKCubic(link_task_data_cpp, current_time, init_time, duration)
+            return super().CLIKCubic(link_task_data_cpp, current_time, duration)
         else:
             null_qdot = null_qdot.reshape(-1)
             assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
-            return super().CLIKCubic(link_task_data_cpp, current_time, init_time, duration, null_qdot)
+            return super().CLIKCubic(link_task_data_cpp, current_time, duration, null_qdot)
 
 
     def OSF(self,
             link_task_data: dict[str, TaskSpaceData],
             null_torque: np.ndarray | None = None,
-            ) -> np.ndarray:
+            ) -> tuple[bool, np.ndarray]:
         """
         Computes joint torque to achieve desired acceleration (xddot_desired) of a link using operational space control, projecting null_torque into null space to exploit redundancy if provided.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            null_torque  : (np.ndarray) [Optional] Desired joint torque to be projected on null space.
+            null_torque    : (np.ndarray) [Optional] Desired joint torque to be projected on null space.
 
         Returns:
-            (np.ndarray) Desired joint torques.
+            (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
@@ -502,16 +500,16 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def OSF_step(self,
                  link_task_data: dict[str, TaskSpaceData],
                  null_torque: np.ndarray | None = None,
-                 ) -> np.ndarray:
+                 ) -> tuple[bool, np.ndarray]:
         """
         Computes joint torque to achieve desired position (x_desired) & velocity (xdot_desired) of a link using operational space control, projecting null_torque into null space to exploit redundancy if provided.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Desired position of a link; it must include (x_desired, xdot_desired).
-            null_torque : (np.ndarray) [Optional] Desired joint torque to be projected on null space.
+            null_torque    : (np.ndarray) [Optional] Desired joint torque to be projected on null space.
 
         Returns:
-            (np.ndarray) Desired joint torques.
+            (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
@@ -527,44 +525,43 @@ class RobotController(drc_cpp.ManipulatorRobotController):
     def OSF_cubic(self,
                   link_task_data: dict[str, TaskSpaceData],
                   current_time: float,
-                  init_time: float,
                   duration: float,
                   null_torque: np.ndarray | None = None,
-                  ) -> np.ndarray:
+                  ) -> tuple[bool, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration, then compute joint torques with null_torque to follow the resulting trajectory if provided.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
             current_time : (float) Current time.
-            init_time    : (float) Start time of the segment.
             duration     : (float) Time duration.
             null_torque  : (np.ndarray) [Optional] Desired joint torque to be projected on null space.
 
         Returns:
-            (np.ndarray) Desired joint torques.
+            (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
         link_task_data_cpp = {}
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is None:
-            return super().OSFCubic(link_task_data_cpp, current_time, init_time, duration)
+            return super().OSFCubic(link_task_data_cpp, current_time, duration)
         else:
             null_torque = null_torque.reshape(-1)
             assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
-            return super().OSFCubic(link_task_data_cpp, current_time, init_time, duration, null_torque)
+            return super().OSFCubic(link_task_data_cpp, current_time, duration, null_torque)
         
-    def QPIK(self, 
+    def QPIK(self,
              link_task_data: dict[str, TaskSpaceData],
-             time_verbose: bool = False,
+             null_qdot: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray]:
         """
         Computes joint velocities to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xdot_desired.
-            time_verbose   : (bool) If true, print the computation time for QP. 
+            null_qdot      : (np.ndarray | None) Desired joint velocity for null space tracking (w_joint_vel weighted).
+                             If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
@@ -573,18 +570,23 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIK(link_task_data_cpp,time_verbose)
+        if null_qdot is not None:
+            null_qdot = np.asarray(null_qdot).reshape(-1)
+            assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
+            return super().QPIK(link_task_data_cpp, null_qdot)
+        return super().QPIK(link_task_data_cpp)
 
     def QPIK_step(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  time_verbose: bool = False,
+                  null_qdot: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray]:
         """
         Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            time_verbose   : (bool) If true, print the computation time for QP. 
+            null_qdot      : (np.ndarray | None) Desired joint velocity for null space tracking (w_joint_vel weighted).
+                             If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
@@ -593,24 +595,27 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIKStep(link_task_data_cpp,time_verbose)
+        if null_qdot is not None:
+            null_qdot = np.asarray(null_qdot).reshape(-1)
+            assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
+            return super().QPIKStep(link_task_data_cpp, null_qdot)
+        return super().QPIKStep(link_task_data_cpp)
 
     def QPIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    current_time: float,
-                   init_time: float,
                    duration: float,
-                   time_verbose: bool = False,
+                   null_qdot: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint velocities using QP to follow the resulting trajectory.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-            current_time : (float) Current time.
-            init_time    : (float) Start time of the segment.
-            duration     : (float) Time duration.
-            time_verbose : (bool) If true, print the computation time for QP. 
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
+            current_time   : (float) Current time.
+            duration       : (float) Time duration.
+            null_qdot      : (np.ndarray | None) Desired joint velocity for null space tracking (w_joint_vel weighted).
+                             If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
@@ -619,23 +624,22 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIKCubic(link_task_data_cpp,
-                                 current_time,
-                                 init_time,
-                                 duration,
-                                 time_verbose
-                                 )
+        if null_qdot is not None:
+            null_qdot = np.asarray(null_qdot).reshape(-1)
+            assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
+            return super().QPIKCubic(link_task_data_cpp, current_time, 0.0, duration, null_qdot)
+        return super().QPIKCubic(link_task_data_cpp, current_time, 0.0, duration)
 
-    def QPID(self, 
+    def QPID(self,
              link_task_data: dict[str, TaskSpaceData],
-             time_verbose: bool = False,
+             null_torque: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray]:
         """
         Computes joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            time_verbose   : (bool) If true, print the computation time for QP. 
+            null_torque    : (np.ndarray | None) Desired null space torque (OSF convention: without gravity); size must equal dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
@@ -644,18 +648,22 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPID(link_task_data_cpp,time_verbose)
+        if null_torque is not None:
+            null_torque = np.asarray(null_torque).reshape(-1)
+            assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
+            return super().QPID(link_task_data_cpp, null_torque)
+        return super().QPID(link_task_data_cpp)
 
-    def QPID_step(self, 
+    def QPID_step(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  time_verbose: bool = False,
+                  null_torque: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray]:
         """
         Computes joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse dynamics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            time_verbose   : (bool) If true, print the computation time for QP. 
+            null_torque    : (np.ndarray | None) Desired null space torque (OSF convention: without gravity); size must equal dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
@@ -664,24 +672,26 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIDStep(link_task_data_cpp,time_verbose)
+        if null_torque is not None:
+            null_torque = np.asarray(null_torque).reshape(-1)
+            assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
+            return super().QPIDStep(link_task_data_cpp, null_torque)
+        return super().QPIDStep(link_task_data_cpp)
 
     def QPID_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    current_time: float,
-                   init_time: float,
                    duration: float,
-                   time_verbose: bool = False,
+                   null_torque: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint torques using QP to follow the resulting trajectory.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
             current_time : (float) Current time.
-            init_time    : (float) Start time of the segment.
             duration     : (float) Time duration.
-            time_verbose : (bool) If true, print the computation time for QP. 
+            null_torque  : (np.ndarray | None) Desired null space torque (OSF convention: without gravity); size must equal dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
@@ -690,8 +700,8 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         for k, v in link_task_data.items():
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
-        return super().QPIDCubic(link_task_data_cpp,
-                                 current_time,
-                                 init_time,
-                                 duration,
-                                 time_verbose)
+        if null_torque is not None:
+            null_torque = np.asarray(null_torque).reshape(-1)
+            assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
+            return super().QPIDCubic(link_task_data_cpp, current_time, 0.0, duration, null_torque)
+        return super().QPIDCubic(link_task_data_cpp, current_time, 0.0, duration)

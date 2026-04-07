@@ -50,7 +50,7 @@ FR3XLSController::FR3XLSController(const double dt)
     virtual_dof_ = 3;
     mani_dof_    = robot_data_->getManipulatorDof();
     mobile_dof_  = robot_data_->getMobileDof();
-    actuator_dof_ = robot_data_->getActuatordDof();
+    actuator_dof_ = robot_data_->getActuatorDof();
 
     // --- Joint-space states (measured / desired / snapshots) ---
     // Mobile Base (computed base twist [vx, vy, wz] in base frame

@@ -368,7 +368,7 @@ namespace drc
                  * @brief Get the number of actuated joints.
                  * @return (int) Number of actuated joints.
                 */
-                virtual int getActuatordDof() const {return actuated_dof_;}
+                virtual int getActuatorDof() const {return actuated_dof_;}
                 /**
                  * @brief Get the degrees of freedom of the manipulator.
                  * @return (int) Degrees of freedom of the manipulator.

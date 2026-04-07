@@ -44,6 +44,19 @@ namespace drc
                  */
                 void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
                 /**
+                 * @brief Set the scalar scale for the null torque tracking cost (Method 3: M-weighted qddot cost).
+                 *        The cost term added is: w_null_torque * || qddot - M^{-1}*null_torque ||_M^2
+                 *        which is equivalent to OSF's null space projection when w_null_torque > 0.
+                 * @param w_null_torque (double) Scale factor for null torque cost; set 0 to disable (default).
+                 */
+                void setNullTorqueWeight(const double w_null_torque) { w_null_torque_ = w_null_torque; }
+                /**
+                 * @brief Set the desired null space torque.
+                 *        Equivalent to OSF's null_torque argument (without gravity; gravity is handled separately by the dynamics constraint).
+                 * @param null_torque (Eigen::VectorXd) Desired joint torque to track in the null space; its size must same as dof.
+                 */
+                void setNullTorque(const Eigen::Ref<const VectorXd>& null_torque) { null_torque_ = null_torque; }
+                /**
                  * @brief Set the weight vector for the cost terms.
                  * @param w_tracking (Eigen::Vector6d) Weight for task space acceleration tracking for all the links in the URDF.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
@@ -130,17 +143,26 @@ namespace drc
                 std::map<std::string, Vector6d> link_w_tracking_;    // weight for task acceleration tracking per links; || x_i_ddot_des - J_i*qddot - J_i_dot*qdot ||
                 VectorXd w_vel_damping_;                             // weight for joint velocity damping;               || q_ddot*dt + qdot ||
                 VectorXd w_acc_damping_;                             // weight for joint acceleration damping;           || q_ddot ||
+                VectorXd null_torque_;                               // desired null space torque (OSF convention: without gravity)
+                double   w_null_torque_;                             // scale for null torque cost; w_null * || qddot - M^{-1}*null_torque ||_M^2
+
+                // self-collision CBF gradient exponential filter
+                // smooths discontinuous jumps when the closest collision pair changes
+                VectorXd col_grad_filtered_;
+                VectorXd col_grad_dot_filtered_;
+                bool     col_grad_initialized_  = false;
+                double   col_grad_filter_alpha_ = 0.2;  // filter coefficient (0~1): larger = faster tracking, less smoothing
                 
                 /**
                  * @brief Set the cost function which minimizes task space acceleration error.
                  *        Use slack variables (s) to increase feasibility of QP.
                  *
-                 *         min       || x_i_ddot_des - J_i*qddot - J_i_dot*qdot ||_Wi^2 + || q_ddot ||_W2^2 + || q_ddot*dt + qdot ||_W3^2 + 1000*s 
+                 *         min       || x_i_ddot_des - J_i*qddot - J_i_dot*qdot ||_Wi^2 + || q_ddot ||_W2^2 + || q_ddot*dt + qdot ||_W3^2 + w_null * || qddot - M^{-1}*null_torque ||_M^2 + 1000*s
                  *  [qddot, torque, s]
                  *
-                 * =>      min         1/2 * [ qddot  ].T * [ 2*J_i.T*Wi_i*J + 2*W2 + 2*dt*dt*W3  0  0 ] * [ qddot  ] + [ -2*J_i.T*Wi*(x_i_ddot_des - J_i_dot*qdot) + 2*dt*qdot ].T * [ qddot  ]
-                 *  [qddot, torque, s]       [ torque ]     [                     0               0  0 ]   [ torque ]   [                           0                           ]     [ torque ]
-                 *                           [   s    ]     [                     0               0  0 ]   [   s    ]   [                          1000                         ]     [   s    ]
+                 * =>      min         1/2 * [ qddot  ].T * [ 2*J_i.T*Wi_i*J + 2*W2 + 2*dt*dt*W3 + 2*w_null*M  0  0 ] * [ qddot  ] + [ -2*J_i.T*Wi*(x_i_ddot_des - J_i_dot*qdot) + 2*dt*qdot - 2*w_null*null_torque ].T * [ qddot  ]
+                 *  [qddot, torque, s]       [ torque ]     [                          0                         0  0 ]   [ torque ]   [                                  0                                           ]     [ torque ]
+                 *                           [   s    ]     [                          0                         0  0 ]   [   s    ]   [                                1000                                          ]     [   s    ]
                  */
                 void setCost() override;
                 /**

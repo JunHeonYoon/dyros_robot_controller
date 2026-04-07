@@ -167,20 +167,22 @@ class TaskSpaceData:
                  xddot_init: np.ndarray | None = None,
                  x_desired: np.ndarray | None = None,
                  xdot_desired: np.ndarray | None = None,
-                 xddot_desired: np.ndarray | None = None) -> None:
+                 xddot_desired: np.ndarray | None = None,
+                 control_start_time: float = 0.0) -> None:
         """
         Constructor for task-space state and trajectory data.
 
         Parameters:
-            x             : (np.ndarray | None) Current pose, shape (4, 4).
-            xdot          : (np.ndarray | None) Current task-space velocity, size 6.
-            xddot         : (np.ndarray | None) Current task-space acceleration, size 6.
-            x_init        : (np.ndarray | None) Initial pose, shape (4, 4).
-            xdot_init     : (np.ndarray | None) Initial task-space velocity, size 6.
-            xddot_init    : (np.ndarray | None) Initial task-space acceleration, size 6.
-            x_desired     : (np.ndarray | None) Desired pose, shape (4, 4).
-            xdot_desired  : (np.ndarray | None) Desired task-space velocity, size 6.
-            xddot_desired : (np.ndarray | None) Desired task-space acceleration, size 6.
+            x                   : (np.ndarray | None) Current pose, shape (4, 4).
+            xdot                : (np.ndarray | None) Current task-space velocity, size 6.
+            xddot               : (np.ndarray | None) Current task-space acceleration, size 6.
+            x_init              : (np.ndarray | None) Initial pose, shape (4, 4).
+            xdot_init           : (np.ndarray | None) Initial task-space velocity, size 6.
+            xddot_init          : (np.ndarray | None) Initial task-space acceleration, size 6.
+            x_desired           : (np.ndarray | None) Desired pose, shape (4, 4).
+            xdot_desired        : (np.ndarray | None) Desired task-space velocity, size 6.
+            xddot_desired       : (np.ndarray | None) Desired task-space acceleration, size 6.
+            control_start_time  : (float) Simulation time at the start of the current motion segment.
         """
 
         # --------- Allocate defaults (identity / zeros) ----------
@@ -195,6 +197,8 @@ class TaskSpaceData:
         self.x_desired     = np.eye(4) if x_desired is None else np.array(x_desired, dtype=float, copy=True)
         self.xdot_desired  = np.zeros(6) if xdot_desired is None else np.array(xdot_desired, dtype=float, copy=True).reshape(-1)
         self.xddot_desired = np.zeros(6) if xddot_desired is None else np.array(xddot_desired, dtype=float, copy=True).reshape(-1)
+
+        self.control_start_time = float(control_start_time)
 
         # --------- Shape checks ----------
         self._assert_shapes()
@@ -231,6 +235,8 @@ class TaskSpaceData:
         self._cpp.xdot_desired = self.xdot_desired.reshape(6,1)
         self._cpp.xddot_desired = self.xddot_desired.reshape(6,1)
 
+        self._cpp.control_start_time = self.control_start_time
+
     def cpp(self) -> drc_cpp.TaskSpaceData:
         """Return the wrapped C++ TaskSpaceData."""
         # NOTE: ensure C++ always sees the latest numpy values
@@ -251,6 +257,8 @@ class TaskSpaceData:
         self.xdot_desired[:] = 0.0
         self.xddot_desired[:] = 0.0
 
+        self.control_start_time = 0.0
+
         self._sync_to_cpp()
 
     @staticmethod
@@ -260,11 +268,17 @@ class TaskSpaceData:
         t.setZero()
         return t
 
-    def setInit(self) -> None:
-        """Store current state into *_init (same as C++ setInit())."""
+    def setInit(self, current_time: float | None = None) -> None:
+        """Store current state into *_init (same as C++ setInit()).
+
+        Parameters:
+            current_time : (float | None) If provided, stores it as control_start_time.
+        """
         self.x_init[:] = self.x
         self.xdot_init[:] = self.xdot
         self.xddot_init[:] = self.xddot
+        if current_time is not None:
+            self.control_start_time = float(current_time)
         self._sync_to_cpp()
 
     def setDesired(self) -> None:

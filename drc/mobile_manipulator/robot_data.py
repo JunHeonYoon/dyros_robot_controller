@@ -52,7 +52,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         self.mani_dof     = int(super().getManipulatorDof())
         self.mobi_dof     = int(super().getMobileDof())
         self.virtual_dof  = 3
-        self.actuated_dof = int(super().getActuatordDof())
+        self.actuated_dof = int(super().getActuatorDof())
         
     def get_verbose(self) -> str:
         """
@@ -717,7 +717,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Return:
             (int) Number of actuated joints.
         """
-        return int(super().getActuatordDof())
+        return int(super().getActuatorDof())
 
     def get_manipulator_dof(self) -> int:
         """

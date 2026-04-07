@@ -7,7 +7,7 @@ namespace drc
         QPID::QPID(std::shared_ptr<MobileManipulator::RobotData> robot_data, const double dt)
         : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
-            actuator_dof_ = robot_data_->getActuatordDof();
+            actuator_dof_ = robot_data_->getActuatorDof();
             mani_dof_ = robot_data_->getManipulatorDof();
             mobi_dof_ = robot_data_->getMobileDof();
     
@@ -90,6 +90,8 @@ namespace drc
             w_mani_acc_damping_.setOnes(mani_dof_);
             w_base_vel_damping_.setOnes();
             w_base_acc_damping_.setOnes();
+            mani_null_torque_.setZero(mani_dof_);
+            w_mani_null_torque_ = 0.0;
         }
         
         void QPID::setTrackingWeight(const Vector6d w_tracking)
@@ -202,6 +204,20 @@ namespace drc
                         mobi_dof_) += 2.0 * J_mobile_T * w_base_acc * J_mobile + 2.0 * dt_ * dt_ * J_mobile_T * w_base_vel * J_mobile;
             q_ds_.segment(si_index_.eta_dot_start + mobi_start, mobi_dof_) += 2.0 * dt_ * J_mobile_T * w_base_vel * robot_data_->getBaseVel();
 
+            
+            // for manipulator null torque tracking (Method 3: M-weighted qddot cost, equivalent to OSF null projection)
+            // min w_null * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2
+            // => P qddot_mani block: += 2*w_null*M_mani,  q qddot_mani segment: += -2*w_null*null_torque
+            if(w_mani_null_torque_ > 0.0)
+            {
+                const MatrixXd M_tilda = robot_data_->getMassMatrixActuated();
+                const int mani_start_idx = robot_data_->getActuatorIndex().mani_start;
+                const MatrixXd M_mani = M_tilda.block(mani_start_idx, mani_start_idx, mani_dof_, mani_dof_);
+                P_ds_.block(si_index_.eta_dot_start + mani_start_idx,
+                            si_index_.eta_dot_start + mani_start_idx,
+                            mani_dof_, mani_dof_) += 2.0 * w_mani_null_torque_ * M_mani;
+                q_ds_.segment(si_index_.eta_dot_start + mani_start_idx, mani_dof_) += -2.0 * w_mani_null_torque_ * mani_null_torque_;
+            }
 
             // for slack
             q_ds_.segment(si_index_.slack_q_mani_min_start,   si_index_.slack_q_mani_min_size)    = VectorXd::Constant(si_index_.slack_q_mani_min_size,    1000.0);
@@ -241,7 +257,7 @@ namespace drc
             l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
             u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
 
-            const double alpha = 50.;
+            const double alpha = 10.;
     
             // Manipulator Joint Angle Limit
             const auto q_lim = robot_data_->getJointPositionLimit();
@@ -335,16 +351,29 @@ namespace drc
             Manipulator::MinDistResult min_dist_data = robot_data_->getMinDistance(true, true, false);
             min_dist_data.grad = min_dist_data.grad.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
             min_dist_data.grad_dot = min_dist_data.grad_dot.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
-    
-            A_ineq_ds_.block(si_index_.con_sel_col_start, 
-                             si_index_.eta_dot_start + robot_data_->getActuatorIndex().mani_start,  
-                             si_index_.con_sel_col_size, 
-                             mani_dof_) = min_dist_data.grad.transpose();
-            A_ineq_ds_.block(si_index_.con_sel_col_start, 
+
+            // exponential low-pass filter on grad and grad_dot to smooth discontinuous jumps
+            // when the closest collision pair switches (argmin is non-smooth)
+            if (!col_grad_initialized_) {
+                col_grad_filtered_     = min_dist_data.grad;
+                col_grad_dot_filtered_ = min_dist_data.grad_dot;
+                col_grad_initialized_  = true;
+            } else {
+                col_grad_filtered_     = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                       + col_grad_filter_alpha_ * min_dist_data.grad;
+                col_grad_dot_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_dot_filtered_
+                                       + col_grad_filter_alpha_ * min_dist_data.grad_dot;
+            }
+
+            A_ineq_ds_.block(si_index_.con_sel_col_start,
+                             si_index_.eta_dot_start + robot_data_->getActuatorIndex().mani_start,
+                             si_index_.con_sel_col_size,
+                             mani_dof_) = col_grad_filtered_.transpose();
+            A_ineq_ds_.block(si_index_.con_sel_col_start,
                              si_index_.slack_sel_col_start,
-                             si_index_.con_sel_col_size, 
+                             si_index_.con_sel_col_size,
                              si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = -min_dist_data.grad_dot.dot(qdot_mani) - (alpha + alpha)*min_dist_data.grad.dot(qdot_mani) - alpha*alpha*(min_dist_data.distance -0.01);
+            l_ineq_ds_(si_index_.con_sel_col_start) = -col_grad_dot_filtered_.dot(qdot_mani) - (alpha + alpha)*col_grad_filtered_.dot(qdot_mani) - alpha*alpha*(min_dist_data.distance - 0.01);
             
             // Mobile base velocity & acceleration limit
             const auto& param = robot_data_->getKineParam();
@@ -412,12 +441,12 @@ namespace drc
 
             // for dynamics
             const MatrixXd M_tilda  = robot_data_->getMassMatrixActuated();
-            const MatrixXd g_tilda = robot_data_->getGravityActuated();
+            const MatrixXd nle_tilda = robot_data_->getNonlinearEffectsActuated();
     
             A_eq_ds_.block(si_index_.con_dyn_start,si_index_.eta_dot_start,si_index_.con_dyn_size,si_index_.eta_dot_size) = M_tilda;
             A_eq_ds_.block(si_index_.con_dyn_start,si_index_.torque_start,si_index_.con_dyn_size,si_index_.torque_size) = -MatrixXd::Identity(si_index_.con_dyn_size,si_index_.torque_size);
     
-            b_eq_ds_.segment(si_index_.con_dyn_start, si_index_.con_dyn_size) = -g_tilda;
+            b_eq_ds_.segment(si_index_.con_dyn_start, si_index_.con_dyn_size) = -nle_tilda;
         }
     } // namespace MobileManipulator
 } // namespace drc
