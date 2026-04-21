@@ -54,6 +54,12 @@ namespace drc
                           const std::string& srdf_source="",
                           const std::string& packages_path="",
                           const bool use_xml=false);
+
+            protected:
+                /** @brief Default constructor for proxy subclasses only (no pinocchio model built). */
+                RobotData() = default;
+
+            public:
                 /**
                  * @brief Update the state of the manipulator.
                  * @param q     (Eigen::VectorXd) Joint positions.

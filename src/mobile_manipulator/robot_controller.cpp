@@ -36,6 +36,11 @@ namespace drc
     {
         RobotController::RobotController(std::shared_ptr<MobileManipulator::RobotData> robot_data)
         : Mobile::RobotController(std::static_pointer_cast<Mobile::RobotData>(robot_data))
+        , mani_ctrl_(std::make_shared<Manipulator::RobotController>(
+              std::shared_ptr<Manipulator::RobotData>(robot_data, &robot_data->mani)))
+        , moma(*this)
+        , mani(*mani_ctrl_)
+        , mobi(static_cast<Mobile::RobotController&>(*this))
         , dt_(robot_data->getDt())
         , robot_data_(std::move(robot_data))
         {
