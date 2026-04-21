@@ -1,3 +1,20 @@
+// Copyright 2026 Electronics and Telecommunications Research Institute (ETRI)
+//
+// Developed by Yoon Junheon at the Dynamic Robotic Systems Laboratory (DYROS),
+// Seoul National University, under a research agreement with ETRI.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "dyros_robot_controller/mobile_manipulator/robot_data.h"
 
 namespace drc
@@ -13,8 +30,12 @@ namespace drc
                              const std::string& srdf_source,
                              const std::string& packages_path,
                              const bool use_xml)
-        : Mobile::RobotData(dt, mobile_param), 
+        : Mobile::RobotData(dt, mobile_param),
           Manipulator::RobotData(dt, urdf_source, srdf_source, packages_path, use_xml),
+          mani_proxy_(*this),
+          moma(*this),
+          mani(mani_proxy_),
+          mobi(static_cast<Mobile::RobotData&>(*this)),
           joint_idx_(joint_idx),
           actuator_idx_(actuator_idx)
         {
@@ -41,9 +62,27 @@ namespace drc
             // Initialize actuated joint space dynamics
             M_actuated_.setZero(actuated_dof_,actuated_dof_);
             M_inv_actuated_.setZero(actuated_dof_,actuated_dof_);
-            g_actuated_.setZero(actuated_dof_);       
-            c_actuated_.setZero(actuated_dof_);       
-            NLE_actuated_.setZero(actuated_dof_);   
+            g_actuated_.setZero(actuated_dof_);
+            c_actuated_.setZero(actuated_dof_);
+            NLE_actuated_.setZero(actuated_dof_);
+
+            // Compute base_link_name_: child BODY link of the last virtual joint.
+            // Mirrors the root_link_name_ pattern in Manipulator::RobotData.
+            {
+                const int last_virt_idx = joint_idx_.virtual_start + virtual_dof_ - 1;
+                if (last_virt_idx >= 0 && last_virt_idx < static_cast<int>(joint_names_.size()))
+                {
+                    const pinocchio::JointIndex jid = model_.getJointId(joint_names_[last_virt_idx]);
+                    for (const auto& f : model_.frames)
+                    {
+                        if (f.type == pinocchio::FrameType::BODY && f.parentJoint == jid)
+                        {
+                            base_link_name_ = f.name;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         std::string RobotData::getVerbose() const

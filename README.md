@@ -77,3 +77,17 @@ In the [examples](https://github.com/JunHeonYoon/dyros_robot_controller/tree/mai
 It enables fast prototyping of novel controllers and facilitates seamless integration between simulation and real-world robotics platforms.  
 
 ---
+
+## Authors and Affiliation
+
+- Yoon Junheon, Dynamic Robotic Systems Laboratory (DYROS), Seoul National University
+
+## License
+
+Copyright 2026 Electronics and Telecommunications Research Institute (ETRI).
+
+This project was developed by Yoon Junheon at the Dynamic Robotic Systems
+Laboratory (DYROS), Seoul National University, under a research agreement with
+ETRI.
+
+This project is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).

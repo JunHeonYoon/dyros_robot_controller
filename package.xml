@@ -3,7 +3,8 @@
   <version>0.3.0</version>
   <description>Robot controller with C++ and Python interface.</description>
   <maintainer email="yoonjh98@snu.ac.kr">Yoon Junheon</maintainer>
-  <license>Apache License 2.0</license>
+  <author email="yoonjh98@snu.ac.kr">Yoon Junheon (DYROS Lab, Seoul National University)</author>
+  <license>Apache-2.0</license>
 
   <!-- Buildtool -->
   <buildtool_depend>ament_cmake</buildtool_depend>

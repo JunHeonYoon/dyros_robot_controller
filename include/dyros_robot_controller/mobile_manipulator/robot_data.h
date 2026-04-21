@@ -1,3 +1,20 @@
+// Copyright 2026 Electronics and Telecommunications Research Institute (ETRI)
+//
+// Developed by Yoon Junheon at the Dynamic Robotic Systems Laboratory (DYROS),
+// Seoul National University, under a research agreement with ETRI.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #pragma once
 #include <string>
 #include <mutex>
@@ -41,8 +58,112 @@ namespace drc
         */
         class RobotData : public Manipulator::RobotData, public Mobile::RobotData
         {
+            private:
+                // =====================================================================
+                // ManipulatorProxy – declared first for correct C++ init-order
+                // =====================================================================
+                /**
+                 * @brief Thin proxy that exposes arm-only robot data in the mobile-base frame.
+                 *
+                 * It delegates storage to its parent MobileManipulator::RobotData and
+                 * overrides every virtual getter to return manipulator-DOF quantities
+                 * expressed relative to the mobile base rather than the world frame.
+                 * State update is a no-op: the parent class keeps all data current.
+                 */
+                class ManipulatorProxy : public Manipulator::RobotData
+                {
+                    drc::MobileManipulator::RobotData& src_;
+                public:
+                    explicit ManipulatorProxy(drc::MobileManipulator::RobotData& src) : src_(src) {}
+
+                    int      getDof()           const override { return src_.mani_dof_; }
+                    VectorXd getJointPosition() const override { return src_.q_mani_; }
+                    VectorXd getJointVelocity() const override { return src_.qdot_mani_; }
+
+                    MatrixXd getMassMatrix() const override
+                    {
+                        return src_.Manipulator::RobotData::getMassMatrix()
+                                   .block(src_.joint_idx_.mani_start,
+                                          src_.joint_idx_.mani_start,
+                                          src_.mani_dof_, src_.mani_dof_);
+                    }
+                    MatrixXd getMassMatrixInv() const override { return getMassMatrix().inverse(); }
+
+                    VectorXd getGravity() const override
+                    {
+                        return src_.Manipulator::RobotData::getGravity()
+                                   .segment(src_.joint_idx_.mani_start, src_.mani_dof_);
+                    }
+                    VectorXd getCoriolis() const override
+                    {
+                        return src_.Manipulator::RobotData::getCoriolis()
+                                   .segment(src_.joint_idx_.mani_start, src_.mani_dof_);
+                    }
+                    VectorXd getNonlinearEffects() const override
+                    {
+                        return src_.Manipulator::RobotData::getNonlinearEffects()
+                                   .segment(src_.joint_idx_.mani_start, src_.mani_dof_);
+                    }
+
+                    /// Returns the link pose expressed in the mobile-base frame.
+                    Affine3d getPose(const std::string& link_name) const override
+                    {
+                        const Affine3d T_base_w = src_.Manipulator::RobotData::getPose(
+                            src_.getBaseLinkName());
+                        return T_base_w.inverse() * src_.Manipulator::RobotData::getPose(link_name);
+                    }
+
+                    /// Returns the Jacobian with columns sliced to arm joints and rows
+                    /// rotated into the mobile-base frame.
+                    MatrixXd getJacobian(const std::string& link_name) override
+                    {
+                        const MatrixXd J_full = src_.Manipulator::RobotData::getJacobian(link_name);
+                        const MatrixXd J_arm  = J_full.block(0, src_.joint_idx_.mani_start,
+                                                              6, src_.mani_dof_);
+                        const Matrix3d R = src_.Manipulator::RobotData::getPose(
+                            src_.getBaseLinkName()).linear().transpose();
+                        MatrixXd J(6, src_.mani_dof_);
+                        J.topRows(3)    = R * J_arm.topRows(3);
+                        J.bottomRows(3) = R * J_arm.bottomRows(3);
+                        return J;
+                    }
+
+                    MatrixXd getJacobianTimeVariation(const std::string& link_name) override
+                    {
+                        const MatrixXd Jdot_full = src_.Manipulator::RobotData::getJacobianTimeVariation(link_name);
+                        const MatrixXd Jdot_arm  = Jdot_full.block(0, src_.joint_idx_.mani_start,
+                                                                    6, src_.mani_dof_);
+                        const Matrix3d R = src_.Manipulator::RobotData::getPose(
+                            src_.getBaseLinkName()).linear().transpose();
+                        MatrixXd Jdot(6, src_.mani_dof_);
+                        Jdot.topRows(3)    = R * Jdot_arm.topRows(3);
+                        Jdot.bottomRows(3) = R * Jdot_arm.bottomRows(3);
+                        return Jdot;
+                    }
+
+                    VectorXd getVelocity(const std::string& link_name) override
+                    {
+                        return getJacobian(link_name) * src_.qdot_mani_;
+                    }
+
+                    /// State update is a no-op: the parent MobileManipulator::RobotData
+                    /// keeps all data current via its own updateState().
+                    bool updateState(const Eigen::Ref<const VectorXd>&,
+                                     const Eigen::Ref<const VectorXd>&) override { return true; }
+                };
+                ManipulatorProxy mani_proxy_;
+
             public:
                 EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+                // =====================================================================
+                // === Sub-object accessors (preferred API) =============================
+                // =====================================================================
+                /** @brief Whole-body accessor (world frame, full DOF). Equivalent to *this. */
+                RobotData&              moma;
+                /** @brief Arm-only accessor (mobile-base frame, manipulator DOF only). */
+                Manipulator::RobotData& mani;
+                /** @brief Mobile-base accessor. */
+                Mobile::RobotData&      mobi;
                 /**
                  * @brief Constructor.
                  * @param dt            (double) Control loop time step in seconds.
@@ -96,7 +217,8 @@ namespace drc
 
                 // ================================ Compute Functions ================================
                 // Wholebody joint space
-                using Manipulator::RobotData::computeMassMatrix; 
+                // @deprecated soon — use moma.computeXxx(q_total) or the cached moma.getXxx() / mani.getXxx()
+                using Manipulator::RobotData::computeMassMatrix;
                 using Manipulator::RobotData::computeGravity; 
                 using Manipulator::RobotData::computeCoriolis; 
                 using Manipulator::RobotData::computeNonlinearEffects; 
@@ -204,6 +326,7 @@ namespace drc
                                                                  const Eigen::Ref<const VectorXd>& qdot_mani);
 
                 // Wholebody task space
+                // @deprecated soon — use moma.computePose/Jacobian/Velocity(q_total) or moma.getPose/Jacobian/Velocity()
                 using Manipulator::RobotData::computePose;
                 using Manipulator::RobotData::computeJacobian;
                 using Manipulator::RobotData::computeJacobianTimeVariation;
@@ -332,6 +455,7 @@ namespace drc
                                                         
                                                               
                 // Manipulator taskspace
+                // @deprecated soon — use mani.computeManipulability()
                 using Manipulator::RobotData::computeManipulability;
                 /**
                  * @brief Compute the manipulability of the link.(which indicates how well the link can move at current joint configuration) and (optionally) its time variations.
@@ -349,6 +473,7 @@ namespace drc
                                                                                 const std::string& link_name);
                                                                         
                 // Mobile
+                // @deprecated soon — use mobi.computeFKJacobian() / mobi.computeBaseVel()
                 /**
                  * @brief Compute the Jacobian of the mobile base specific to the configured drive type.
                  * @param q_mobile      (Eigen::VectorXd) Wheel positions.
@@ -375,6 +500,12 @@ namespace drc
                 */
                 virtual int getManipulatorDof() const {return mani_dof_;}
                 /**
+                 * @brief Get the mobile base link name (child of the last virtual joint).
+                 *        Counterpart to Manipulator::RobotData::getRootLinkName().
+                 * @return (std::string) Mobile base link name (e.g., "base_footprint").
+                 */
+                const std::string& getBaseLinkName() const { return base_link_name_; }
+                /**
                  * @brief Get the degrees of freedom of the mobile base.
                  * @return (int) Degrees of freedom of the mobile base.
                 */
@@ -389,6 +520,7 @@ namespace drc
                  * @return (RobotData::MobileManipulator::ActuatorIndex) Joint index structure containing starting indices for manipulator and mobile joints.
                 */
                 virtual ActuatorIndex getActuatorIndex() const {return actuator_idx_;}
+                // @deprecated soon — use mobi.getWheelPosition() / mobi.getWheelVelocity() / mobi.getBasePose() / mani.getJointPosition()
                 /**
                  * @brief Get the wheel positions.
                  * @return (Eigen::VectorXd) Wheel positions.
@@ -490,6 +622,7 @@ namespace drc
                                                                             const std::string& link_name);
 
                 // Mobile
+                // @deprecated soon — use mobi.getFKJacobian() / mobi.getBaseVel()
                 /**
                  * @brief Get the Jacobian of the mobile base specific to the configured drive type.
                  * @return (Eigen::MatrixXd) Jacobian of the mobile base.
@@ -561,6 +694,8 @@ namespace drc
                 int mobi_dof_;          // Mobile base degrees of freedom
                 int virtual_dof_{3};    // Virtual joint degrees of freedom
                 int actuated_dof_;      // Actuated joint degrees of freedom
+
+                std::string base_link_name_;  // Child link of the last virtual joint (mobile base link)
         
                 JointIndex joint_idx_;          // Starting index for joints
                 ActuatorIndex actuator_idx_;    // Starting index for actuators

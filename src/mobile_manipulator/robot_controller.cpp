@@ -1,3 +1,20 @@
+// Copyright 2026 Electronics and Telecommunications Research Institute (ETRI)
+//
+// Developed by Yoon Junheon at the Dynamic Robotic Systems Laboratory (DYROS),
+// Seoul National University, under a research agreement with ETRI.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "dyros_robot_controller/mobile_manipulator/robot_controller.h"
 #include <iostream>
 #include <sstream>
@@ -36,6 +53,11 @@ namespace drc
     {
         RobotController::RobotController(std::shared_ptr<MobileManipulator::RobotData> robot_data)
         : Mobile::RobotController(std::static_pointer_cast<Mobile::RobotData>(robot_data))
+        , mani_ctrl_(std::make_shared<Manipulator::RobotController>(
+              std::shared_ptr<Manipulator::RobotData>(robot_data, &robot_data->mani)))
+        , moma(*this)
+        , mani(*mani_ctrl_)
+        , mobi(static_cast<Mobile::RobotController&>(*this))
         , dt_(robot_data->getDt())
         , robot_data_(std::move(robot_data))
         {

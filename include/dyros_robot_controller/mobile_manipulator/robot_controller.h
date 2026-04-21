@@ -1,3 +1,20 @@
+// Copyright 2026 Electronics and Telecommunications Research Institute (ETRI)
+//
+// Developed by Yoon Junheon at the Dynamic Robotic Systems Laboratory (DYROS),
+// Seoul National University, under a research agreement with ETRI.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #pragma once
 #include <string>
 #include "dyros_robot_controller/mobile_manipulator/robot_data.h"
@@ -20,20 +37,35 @@ namespace drc
         */
         class RobotController : public Mobile::RobotController
         {
+            private:
+                /// Arm-only controller instance, backed by RobotData::mani (ManipulatorProxy).
+                /// Must be declared first so the `mani` reference member can be initialized.
+                std::shared_ptr<Manipulator::RobotController> mani_ctrl_;
+
             public:
                 EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+                // =====================================================================
+                // === Sub-object accessors (preferred API) =============================
+                // =====================================================================
+                /** @brief Whole-body controller (world frame, full DOF). Equivalent to *this. */
+                RobotController&              moma;
+                /** @brief Arm-only controller (mobile-base frame, manipulator DOF only). */
+                Manipulator::RobotController& mani;
+                /** @brief Mobile-base controller. */
+                Mobile::RobotController&      mobi;
                 /**
                  * @brief Constructor.
                  * @param robot_data (std::shared_ptr<MobileManipulator::RobotData>) Shared pointer to the RobotData class.
                 */
                 RobotController(std::shared_ptr<MobileManipulator::RobotData> robot_data);
                 
+                // @deprecated soon — use mani.setJointGain() / mani.setJointKpGain() / mani.setJointKvGain()
                 /**
                  * @brief Set joint space PD gains for the manipulator.
                  * @param Kp (Eigen::VectorXd) Proportional gains; its size must same as mani_dof.
                  * @param Kv (Eigen::VectorXd) Derivative gains; its size must same as mani_dof.
-                */                
-                virtual void setManipulatorJointGain(const Eigen::Ref<const VectorXd>& Kp, 
+                */
+                virtual void setManipulatorJointGain(const Eigen::Ref<const VectorXd>& Kp,
                                                      const Eigen::Ref<const VectorXd>& Kv);
                 /**
                  * @brief Set joint space P gains for the manipulator.
@@ -46,6 +78,7 @@ namespace drc
                 */
                 virtual void setManipulatorJointKvGain(const Eigen::Ref<const VectorXd>& Kv);
 
+                // @deprecated soon — use moma.setIKGain() / moma.setIDGain() etc.
                 /**
                  * @brief Set IK task-space proportional gains for specified links.
                  * @param link_Kp (std::map<std::string, Vector6d>) Link-name to 6D task gain map.
@@ -99,6 +132,7 @@ namespace drc
                  */
                 virtual void setIDKvGain(const Vector6d& Kv);
 
+                // @deprecated soon — use moma.setQPIKGain() / moma.setQPIDGain() etc.
                 /**
                  * @brief Set QPIK task tracking weights only.
                  * @param w_tracking (Vector6d) Weight for task velocity tracking for every link.
@@ -235,6 +269,7 @@ namespace drc
 
 
                 // ================================== Mobile Functions ===================================
+                // @deprecated soon — use mobi.computeWheelVel() / mobi.computeIKJacobian() / mobi.VelocityCommand()
                 /**
                  * @brief Compute wheel velocities from desired base velocity using inverse kinematics.
                  *
@@ -258,7 +293,8 @@ namespace drc
                 */
                 virtual VectorXd MobileVelocityCommand(const Vector3d& desired_base_vel);
 
-                // ================================ Joint space Functions ================================                
+                // ================================ Joint space Functions ================================
+                // @deprecated soon — use mani.moveJointPositionCubic() / mani.moveJointTorqueCubic() etc.
                 /**
                  * @brief Perform cubic interpolation between the initial and desired manipulator joint configurations over the given duration.
                  * @param q_mani_target     (Eigen::VectorXd) Desired manipulator joint positions at the end of the segment.
@@ -335,6 +371,7 @@ namespace drc
                                                                  const bool use_mass = true);
 
                 // ================================ Task space Functions ================================
+                // @deprecated soon — use moma.CLIK() / moma.OSF() / moma.QPIK() / moma.QPID() etc.
                 /**
                  * @brief Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics, projecting null_qdot into null space to exploit redundancy.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
