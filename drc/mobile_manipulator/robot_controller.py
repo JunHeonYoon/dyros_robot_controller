@@ -467,11 +467,13 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
              null_qdot: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
-        Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics, projecting null_qdot into null space to exploit redundancy if provided.
+        Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics, projecting null velocities into null space if provided.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xdot_desired.
-            null_qdot      : (np.ndarray) [Optional] Desired actuated joint velocity to be projected on null space.
+            null_qdot      : (np.ndarray | None) Desired null velocity.
+                             Size may be mani_dof for manipulator-only null tracking, mobi_dof for mobile-only null tracking,
+                             or actuated_dof for mobile+manipulator null tracking.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
@@ -482,21 +484,20 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
                 link_task_data_cpp[k] = v.cpp()
         if null_qdot is None:
             return super().CLIK(link_task_data_cpp)
-        else:
-            null_qdot = null_qdot.reshape(-1)
-            assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().CLIK(link_task_data_cpp, null_qdot)
+        return super().CLIK(link_task_data_cpp, np.asarray(null_qdot).reshape(-1))
 
     def CLIK_step(self,
                   link_task_data: dict[str, TaskSpaceData],
                   null_qdot: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
-        Computes mobile base and manipulator joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics, projecting null_qdot into null space if provided.
+        Computes mobile base and manipulator joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics, projecting null velocities into null space if provided.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_qdot      : (np.ndarray) [Optional] Desired actuated joint velocity to be projected on null space.
+            null_qdot      : (np.ndarray | None) Desired null velocity.
+                             Size may be mani_dof for manipulator-only null tracking, mobi_dof for mobile-only null tracking,
+                             or actuated_dof for mobile+manipulator null tracking.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
@@ -507,10 +508,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
                 link_task_data_cpp[k] = v.cpp()
         if null_qdot is None:
             return super().CLIKStep(link_task_data_cpp)
-        else:
-            null_qdot = null_qdot.reshape(-1)
-            assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().CLIKStep(link_task_data_cpp, null_qdot)
+        return super().CLIKStep(link_task_data_cpp, np.asarray(null_qdot).reshape(-1))
 
     def CLIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
@@ -518,7 +516,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
                    null_qdot: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
-        Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK with null_qdot if provided.
+        Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK with null velocities if provided.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
@@ -547,7 +545,9 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            null_torque    : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
+            null_torque    : (np.ndarray | None) Desired null input.
+                             Size may be mani_dof for manipulator-only null torque, mobi_dof for mobile-only null torque,
+                             or actuated_dof for mobile+manipulator null tracking.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
@@ -558,10 +558,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is None:
             return super().OSF(link_task_data_cpp)
-        else:
-            null_torque = null_torque.reshape(-1)
-            assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().OSF(link_task_data_cpp, null_torque)
+        return super().OSF(link_task_data_cpp, np.asarray(null_torque).reshape(-1))
 
     def OSF_step(self,
                  link_task_data: dict[str, TaskSpaceData],
@@ -572,7 +569,9 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_torque    : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
+            null_torque    : (np.ndarray | None) Desired null input.
+                             Size may be mani_dof for manipulator-only null torque, mobi_dof for mobile-only null torque,
+                             or actuated_dof for mobile+manipulator null tracking.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
@@ -583,10 +582,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is None:
             return super().OSFStep(link_task_data_cpp)
-        else:
-            null_torque = null_torque.reshape(-1)
-            assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().OSFStep(link_task_data_cpp, null_torque)
+        return super().OSFStep(link_task_data_cpp, np.asarray(null_torque).reshape(-1))
 
     def OSF_cubic(self,
                   link_task_data: dict[str, TaskSpaceData],
@@ -599,7 +595,9 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration     : (float) Time duration.
-            null_torque  : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
+            null_torque  : (np.ndarray | None) Desired null input.
+                           Size may be mani_dof for manipulator-only null torque, mobi_dof for mobile-only null torque,
+                           or actuated_dof for mobile+manipulator null tracking.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
@@ -621,8 +619,9 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xdot_desired.
-            null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
-                             Size must be mani_dof. If None, defaults to zero (no null space tracking).
+            null_qdot      : (np.ndarray | None) Desired null velocity.
+                             Size may be mani_dof for manipulator-only null tracking, mobi_dof for mobile-only null tracking,
+                             or actuated_dof for mobile+manipulator null tracking.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
@@ -632,9 +631,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_qdot is not None:
-            null_qdot = np.asarray(null_qdot).reshape(-1)
-            assert null_qdot.size == self._robot_data.mani_dof, f"Size of null_qdot {null_qdot.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIK(link_task_data_cpp, null_qdot)
+            return super().QPIK(link_task_data_cpp, np.asarray(null_qdot).reshape(-1))
         return super().QPIK(link_task_data_cpp)
 
     def QPIK_step(self,
@@ -646,8 +643,9 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
-                             Size must be mani_dof. If None, defaults to zero (no null space tracking).
+            null_qdot      : (np.ndarray | None) Desired null velocity.
+                             Size may be mani_dof for manipulator-only null tracking, mobi_dof for mobile-only null tracking,
+                             or actuated_dof for mobile+manipulator null tracking.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
@@ -657,9 +655,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_qdot is not None:
-            null_qdot = np.asarray(null_qdot).reshape(-1)
-            assert null_qdot.size == self._robot_data.mani_dof, f"Size of null_qdot {null_qdot.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIKStep(link_task_data_cpp, null_qdot)
+            return super().QPIKStep(link_task_data_cpp, np.asarray(null_qdot).reshape(-1))
         return super().QPIKStep(link_task_data_cpp)
 
     def QPIK_cubic(self,
@@ -673,8 +669,9 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration       : (float) Time duration.
-            null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
-                             Size must be mani_dof. If None, defaults to zero (no null space tracking).
+            null_qdot      : (np.ndarray | None) Desired null velocity.
+                             Size may be mani_dof for manipulator-only null tracking, mobi_dof for mobile-only null tracking,
+                             or actuated_dof for mobile+manipulator null tracking.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
@@ -696,7 +693,10 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            null_torque    : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
+            null_torque    : (np.ndarray | None) Desired null input.
+                             Size may be mani_dof for manipulator-only null torque, mobi_dof for mobile-only null tracking,
+                             or actuated_dof for mobile+manipulator null tracking.
+                             The mobile block is interpreted as wheel acceleration and mapped to base acceleration.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
@@ -706,9 +706,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is not None:
-            null_torque = np.asarray(null_torque).reshape(-1)
-            assert null_torque.size == self._robot_data.mani_dof, f"Size of null_torque {null_torque.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPID(link_task_data_cpp, null_torque)
+            return super().QPID(link_task_data_cpp, np.asarray(null_torque).reshape(-1))
         return super().QPID(link_task_data_cpp)
 
     def QPID_step(self,
@@ -720,7 +718,10 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_torque    : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
+            null_torque    : (np.ndarray | None) Desired null input.
+                             Size may be mani_dof for manipulator-only null torque, mobi_dof for mobile-only null tracking,
+                             or actuated_dof for mobile+manipulator null tracking.
+                             The mobile block is interpreted as wheel acceleration and mapped to base acceleration.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
@@ -730,9 +731,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is not None:
-            null_torque = np.asarray(null_torque).reshape(-1)
-            assert null_torque.size == self._robot_data.mani_dof, f"Size of null_torque {null_torque.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIDStep(link_task_data_cpp, null_torque)
+            return super().QPIDStep(link_task_data_cpp, np.asarray(null_torque).reshape(-1))
         return super().QPIDStep(link_task_data_cpp)
 
     def QPID_cubic(self,
@@ -746,7 +745,10 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration     : (float) Time duration.
-            null_torque  : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
+            null_torque  : (np.ndarray | None) Desired null input.
+                           Size may be mani_dof for manipulator-only null torque, mobi_dof for mobile-only null tracking,
+                           or actuated_dof for mobile+manipulator null tracking.
+                           The mobile block is interpreted as wheel acceleration and mapped to base acceleration.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.

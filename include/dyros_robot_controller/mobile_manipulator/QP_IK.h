@@ -67,6 +67,12 @@ namespace drc
                 void setDesiredJointVel(const Eigen::Ref<const VectorXd>& qdot_desired) { mani_qdot_desired_ = qdot_desired; }
 
                 /**
+                 * @brief Set the desired mobile base velocity for null space tracking.
+                 * @param base_vel_desired (Eigen::Vector3d) Desired base twist [vx, vy, wz].
+                 */
+                void setDesiredBaseVel(const Eigen::Vector3d& base_vel_desired) { base_vel_desired_ = base_vel_desired; }
+
+                /**
                  * @brief Set manipulator joint acceleration damping weights only.
                  * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
                  */
@@ -172,7 +178,8 @@ namespace drc
                 VectorXd mani_qdot_desired_;                        // desired manipulator joint velocity for null space tracking (default: zero)
                 VectorXd w_mani_joint_vel_;                         // weight for manipulator joint velocity tracking; || qdot_mani - qdot_desired ||
                 VectorXd w_mani_acc_damping_;                       // weight for manipulator joint acceleration damping; || (eta_mani - eta_mani_now) / dt ||
-                Vector3d w_base_vel_damping_;                       // weight for mobile base velocity damping;         || v_base ||
+                Vector3d base_vel_desired_;                         // desired mobile base velocity for null space tracking (default: zero)
+                Vector3d w_base_vel_damping_;                       // weight for mobile base velocity tracking;        || v_base - base_vel_desired ||
                 Vector3d w_base_acc_damping_;                       // weight for mobile base acceleration damping;     || (v_base - v_base_now) / dt ||
 
                 // self-collision CBF gradient exponential filter
@@ -188,7 +195,7 @@ namespace drc
                  *       min     || x_i_dot_des - J_i_tilda*eta ||_Wi^2
                  *             + || eta_mani - qdot_desired ||_W2^2
                  *             + || (eta_mani - eta_mani_now) / dt ||_W3^2
-                 *             + || v_base ||_W4^2
+                 *             + || v_base - base_vel_desired ||_W4^2
                  *             + || (v_base - v_base_now) / dt ||_W5^2
                  *             + 1000*s
                  *     [eta,s]

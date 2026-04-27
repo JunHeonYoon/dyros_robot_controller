@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include "dyros_robot_controller/mobile_manipulator/QP_IK.h"
+#include <cmath>
 
 namespace drc
 {
@@ -69,6 +70,7 @@ namespace drc
             si_index_.con_base_acc_start      = si_index_.con_base_vel_start   + si_index_.con_base_vel_size;
 
             mani_qdot_desired_.setZero(mani_dof_);
+            base_vel_desired_.setZero();
             w_mani_joint_vel_.setOnes(mani_dof_);
             w_mani_acc_damping_.setOnes(mani_dof_);
             w_base_vel_damping_.setOnes();
@@ -186,6 +188,8 @@ namespace drc
                         si_index_.eta_start+mobi_start,
                         mobi_dof_,
                         mobi_dof_) += 2.0 * J_mobile_T * w_base_vel * J_mobile;
+            q_ds_.segment(si_index_.eta_start+mobi_start,
+                          mobi_dof_) += -2.0 * J_mobile_T * w_base_vel * base_vel_desired_;
 
             // for mobile base acceleration damping: a_base = (v_base - v_base_now) / dt
             const Vector3d base_vel_now = robot_data_->getMobileBaseVel().head<3>();
@@ -297,28 +301,46 @@ namespace drc
             // l_ineq_ds_(si_index_.con_sing_start) = - alpha*(mani_result.manipulability -0.01);
     
             // self collision avoidance (CBF)
-            Manipulator::MinDistResult min_dist_res = robot_data_->getMinDistance(true, false, false);
-            min_dist_res.grad = min_dist_res.grad.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const Manipulator::MinDistResult min_dist_res = robot_data_->getMinDistance(true, false, false);
+            const int mani_start = robot_data_->getJointIndex().mani_start;
+            const bool valid_col_grad =
+                std::isfinite(min_dist_res.distance) &&
+                min_dist_res.grad.size() >= mani_start + mani_dof_;
 
-            // exponential low-pass filter on grad to smooth discontinuous jumps
-            // when the closest collision pair switches (argmin is non-smooth)
-            if (!col_grad_initialized_) {
-                col_grad_filtered_    = min_dist_res.grad;
-                col_grad_initialized_ = true;
-            } else {
-                col_grad_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
-                                   + col_grad_filter_alpha_ * min_dist_res.grad;
+            if (valid_col_grad)
+            {
+                const VectorXd col_grad = min_dist_res.grad.segment(mani_start, mani_dof_);
+
+                if (col_grad.allFinite() && col_grad.squaredNorm() > 1e-12)
+                {
+                    // Skip the CBF row when the distance Jacobian becomes undefined.
+                    if (!col_grad_initialized_) {
+                        col_grad_filtered_    = col_grad;
+                        col_grad_initialized_ = true;
+                    } else {
+                        col_grad_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                           + col_grad_filter_alpha_ * col_grad;
+                    }
+
+                    A_ineq_ds_.block(si_index_.con_sel_col_start,
+                                     si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
+                                     si_index_.con_sel_col_size,
+                                     mani_dof_) = col_grad_filtered_.transpose();
+                    A_ineq_ds_.block(si_index_.con_sel_col_start,
+                                     si_index_.slack_sel_col_start,
+                                     si_index_.con_sel_col_size,
+                                     si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
+                    l_ineq_ds_(si_index_.con_sel_col_start) = -alpha * (min_dist_res.distance - 0.01);
+                }
+                else
+                {
+                    col_grad_initialized_ = false;
+                }
             }
-
-            A_ineq_ds_.block(si_index_.con_sel_col_start,
-                             si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-                             si_index_.con_sel_col_size,
-                             mani_dof_) = col_grad_filtered_.transpose();
-            A_ineq_ds_.block(si_index_.con_sel_col_start,
-                             si_index_.slack_sel_col_start,
-                             si_index_.con_sel_col_size,
-                             si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = -alpha * (min_dist_res.distance - 0.01);
+            else
+            {
+                col_grad_initialized_ = false;
+            }
 
             // Mobile base velocity limit
             const auto& param = robot_data_->getKineParam();

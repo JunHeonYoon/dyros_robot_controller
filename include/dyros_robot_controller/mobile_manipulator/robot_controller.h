@@ -373,11 +373,12 @@ namespace drc
                 // ================================ Task space Functions ================================
                 // @deprecated soon — use moma.CLIK() / moma.OSF() / moma.QPIK() / moma.QPID() etc.
                 /**
-                 * @brief Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics, projecting null_qdot into null space to exploit redundancy.
+                 * @brief Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics, projecting a single null space velocity input.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
-                 * @param null_qdot             (Eigen::VectorXd) Desired actuated joint velocity to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @param null_qdot             (Eigen::VectorXd) Desired null space velocity. Size may be mani_dof, mobi_dof, or actuator_dof.
+                 *                              mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
                  * @return (bool) True if sizes are valid and computation succeeded.
                  */
                 virtual bool CLIK(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -394,13 +395,13 @@ namespace drc
                 virtual bool CLIK(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator);
-
                 /**
-                 * @brief Computes mobile base and manipulator joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics, projecting null_qdot into null space.
+                 * @brief Computes mobile base and manipulator joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics, projecting a single null space velocity input.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
-                 * @param null_qdot             (Eigen::VectorXd) Desired actuated joint velocity to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @param null_qdot             (Eigen::VectorXd) Desired null space velocity. Size may be mani_dof, mobi_dof, or actuator_dof.
+                 *                              mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
                  * @return (bool) True if sizes are valid and computation succeeded.
                  */
                 virtual bool CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -417,14 +418,14 @@ namespace drc
                 virtual bool CLIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator);
-
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK with a single null space velocity input.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration              (double) Time duration.
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
-                 * @param null_qdot             (Eigen::VectorXd) Desired actuated joint velocity to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @param null_qdot             (Eigen::VectorXd) Desired null space velocity. Size may be mani_dof, mobi_dof, or actuator_dof.
+                 *                              mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
                  * @return (bool) True if sizes are valid and computation succeeded.
                  */
                 virtual bool CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -444,13 +445,13 @@ namespace drc
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator);
-
                 /**
-                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration (xddot_desired) of a link using operational space formulation, projecting null_torque into null space.
-                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
-                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
-                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_torque            (Eigen::VectorXd) Desired actuated joint torque to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration (xddot_desired) of a link using operational space formulation, projecting a single null space input.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
+                 * @param opt_qddot_mobile      (Eigen::VectorXd) Output optimal mobile wheel accelerations.
+                 * @param opt_torque_manipulator(Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @param null_torque           (Eigen::VectorXd) Desired null input. Size may be mani_dof, mobi_dof, or actuator_dof.
+                 *                              mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
                  * @return (bool) True if sizes are valid and computation succeeded.
                  */
                 virtual bool OSF(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -467,13 +468,13 @@ namespace drc
                 virtual bool OSF(const std::map<std::string, TaskSpaceData>& link_task_data,
                                  Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                  Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator);
-
                 /**
-                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link using operational space formulation, projecting null_torque into null space.
-                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
-                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
-                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_torque            (Eigen::VectorXd) Desired actuated joint torque to be projected on null space; size must be (mobi_dof + mani_dof).
+                 * @brief Computes mobile base accelerations and manipulator joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link using operational space formulation, projecting a single null space input.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
+                 * @param opt_qddot_mobile      (Eigen::VectorXd) Output optimal mobile wheel accelerations.
+                 * @param opt_torque_manipulator(Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @param null_torque           (Eigen::VectorXd) Desired null input. Size may be mani_dof, mobi_dof, or actuator_dof.
+                 *                              mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
                  * @return (bool) True if sizes are valid and computation succeeded.
                  */
                 virtual bool OSFStep(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -517,30 +518,24 @@ namespace drc
                                       const double& duration,
                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator);
-
                 /**
-                 * @brief Computes velocities for mobile base and manipulator joints to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
+                 * @brief QPIK with a single null space velocity input.
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
                  * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
                  * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
-                 * @param null_qdot             (Eigen::VectorXd) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted); size must be mani_dof.
+                 * @param null_qdot             (Eigen::VectorXd) Desired null space velocity. Size may be mani_dof, mobi_dof, or actuator_dof.
+                 *                              mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
                  * @param time_verbose          (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
-                */
+                 */
                 virtual bool QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                   const Eigen::Ref<const VectorXd>& null_qdot,
                                   std::string& time_verbose);
                 /**
-                 * @brief Compatibility overload of QPIK with null_qdot.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
-                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
-                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
-                 * @param null_qdot             (Eigen::VectorXd) Desired manipulator joint velocity for null space tracking; size must be mani_dof.
-                 * @param time_verbose          (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
-                */
+                 * @brief Compatibility overload of QPIK with a single null space velocity input.
+                 */
                 virtual bool QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
@@ -574,28 +569,16 @@ namespace drc
                                   const bool time_verbose=false);
 
                 /**
-                 * @brief Computes velocities for mobile base and manipulator joints to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
-                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
-                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
-                 * @param null_qdot             (Eigen::VectorXd) Desired manipulator joint velocity for null space tracking; size must be mani_dof.
-                 * @param time_verbose          (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
-                */
+                 * @brief QPIKStep with a single null space velocity input.
+                 */
                 virtual bool QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                       const Eigen::Ref<const VectorXd>& null_qdot,
                                       std::string& time_verbose);
                 /**
-                 * @brief Compatibility overload of QPIKStep with null_qdot.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
-                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
-                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
-                 * @param null_qdot             (Eigen::VectorXd) Desired manipulator joint velocity for null space tracking; size must be mani_dof.
-                 * @param time_verbose          (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
-                */
+                 * @brief Compatibility overload of QPIKStep with a single null space velocity input.
+                 */
                 virtual bool QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
@@ -629,34 +612,17 @@ namespace drc
                                       const bool time_verbose=false);
 
                 /**
-                 * @brief Perform cubic interpolation then compute velocities for mobile base and manipulator joints using QP.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time          (double) Current time.
-                 * @param duration              (double) Time duration.
-                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
-                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
-                 * @param null_qdot             (Eigen::VectorXd) Desired manipulator joint velocity for null space tracking; size must be mani_dof.
-                 * @param time_verbose          (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
-                */
+                 * @brief QPIKCubic with a single null space velocity input.
+                 */
                 virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_manipulator,
                                        const Eigen::Ref<const VectorXd>& null_qdot,
                                        std::string& time_verbose);
                 /**
-                 * @brief Compatibility overload of QPIKCubic with null_qdot.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time          (double) Current time.
-                 * @param duration              (double) Time duration.
-                 * @param opt_qdot_mobile       (Eigen::VectorXd) Output optimal mobile wheel velocities.
-                 * @param opt_qdot_manipulator  (Eigen::VectorXd) Output optimal manipulator joint velocities.
-                 * @param null_qdot             (Eigen::VectorXd) Desired manipulator joint velocity for null space tracking; size must be mani_dof.
-                 * @param time_verbose          (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
-                */
+                 * @brief Compatibility overload of QPIKCubic with a single null space velocity input.
+                 */
                 virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
@@ -719,32 +685,28 @@ namespace drc
                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                   const bool time_verbose=false);
                 /**
-                 * @brief QPID with manipulator null_torque projected into null space (Method 3: M-weighted qddot cost).
-                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
-                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
-                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_torque            (Eigen::VectorXd) Desired manipulator joint torque to track in null space; its size must same as mani_dof.
-                 * @param time_verbose           (std::string&) Output formatted computation time information for QP.
+                 * @brief QPID with a single null space input.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
+                 * @param opt_qddot_mobile      (Eigen::VectorXd) Output optimal mobile wheel accelerations.
+                 * @param opt_torque_manipulator(Eigen::VectorXd) Output optimal manipulator joint torques.
+                 * @param null_input            (Eigen::VectorXd) Desired null input. Size may be mani_dof, mobi_dof, or actuator_dof.
+                 *                              mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
+                 *                              The mobile block is interpreted as mobile wheel acceleration.
+                 * @param time_verbose          (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                  */
                 virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                  const Eigen::Ref<const VectorXd>& null_torque,
+                                  const Eigen::Ref<const VectorXd>& null_input,
                                   std::string& time_verbose);
                 /**
-                 * @brief Compatibility overload of QPID with null_torque.
-                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
-                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile wheel accelerations.
-                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_torque            (Eigen::VectorXd) Desired manipulator joint torque to track in null space; its size must same as mani_dof.
-                 * @param time_verbose           (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
+                 * @brief Compatibility overload of QPID with a single null space input.
                  */
                 virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                  const Eigen::Ref<const VectorXd>& null_torque,
+                                  const Eigen::Ref<const VectorXd>& null_input,
                                   const bool time_verbose=false);
 
                 /**
@@ -772,38 +734,25 @@ namespace drc
                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                       const bool time_verbose=false);
                 /**
-                 * @brief QPIDStep with manipulator null_torque projected into null space.
-                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
-                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
-                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_torque            (Eigen::VectorXd) Desired manipulator joint torque to track in null space; its size must same as mani_dof.
-                 * @param time_verbose           (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
+                 * @brief QPIDStep with a single null space input.
                  */
                 virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                      const Eigen::Ref<const VectorXd>& null_torque,
+                                      const Eigen::Ref<const VectorXd>& null_input,
                                       std::string& time_verbose);
                 /**
-                 * @brief Compatibility overload of QPIDStep with null_torque.
-                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
-                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
-                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_torque            (Eigen::VectorXd) Desired manipulator joint torque to track in null space; its size must same as mani_dof.
-                 * @param time_verbose           (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
+                 * @brief Compatibility overload of QPIDStep with a single null space input.
                  */
                 virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                      const Eigen::Ref<const VectorXd>& null_torque,
+                                      const Eigen::Ref<const VectorXd>& null_input,
                                       const bool time_verbose=false);
 
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using QP to follow the resulting trajectory.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time           (double) Current time.
+                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration               (double) Time duration.
                  * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
                  * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
@@ -830,39 +779,22 @@ namespace drc
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                        const bool time_verbose=false);
                 /**
-                 * @brief QPIDCubic with manipulator null_torque projected into null space.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time           (double) Current time.
-                 * @param duration               (double) Time duration.
-                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
-                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_torque            (Eigen::VectorXd) Desired manipulator joint torque to track in null space; its size must same as mani_dof.
-                 * @param time_verbose           (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
+                 * @brief QPIDCubic with a single null space input.
                  */
                 virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                       const Eigen::Ref<const VectorXd>& null_torque,
+                                       const Eigen::Ref<const VectorXd>& null_input,
                                        std::string& time_verbose);
                 /**
-                 * @brief Compatibility overload of QPIDCubic with null_torque.
-                 * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time           (double) Current time.
-                 * @param duration               (double) Time duration.
-                 * @param opt_qddot_mobile       (Eigen::VectorXd) Output optimal mobile base accelerations.
-                 * @param opt_torque_manipulator (Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_torque            (Eigen::VectorXd) Desired manipulator joint torque to track in null space; its size must same as mani_dof.
-                 * @param time_verbose           (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
+                 * @brief Compatibility overload of QPIDCubic with a single null space input.
                  */
                 virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                       const Eigen::Ref<const VectorXd>& null_torque,
+                                       const Eigen::Ref<const VectorXd>& null_input,
                                        const bool time_verbose=false);
 
    
@@ -900,7 +832,7 @@ namespace drc
                                   const Eigen::Ref<const VectorXd>& null_qdot);
 
                 /**
-                 * @brief Internal QPIK core with null_qdot; all public QPIK overloads delegate here.
+                 * @brief Internal QPIK core with a single null-space input.
                  */
                 virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
@@ -908,7 +840,7 @@ namespace drc
                                   const Eigen::Ref<const VectorXd>& null_qdot,
                                   std::string& time_verbose);
                 /**
-                 * @brief Internal compatibility overload of QPIK core with null_qdot.
+                 * @brief Internal compatibility overload of QPIK core with a single null-space input.
                  */
                 virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
@@ -932,7 +864,7 @@ namespace drc
                                  const Eigen::Ref<const VectorXd>& null_torque);
                 /**
                  * @brief Internal compatibility overload of QPIK with legacy bool argument.
-                 *        null_qdot defaults to zero (no null space tracking).
+                 *        null defaults to zero (no null space tracking).
                  */
                 virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot_mobile,
@@ -940,20 +872,20 @@ namespace drc
                                   const bool time_verbose=false);
 
                 /**
-                 * @brief Internal QPID core with null_torque; all public QPID overloads delegate here.
+                 * @brief Internal QPID core with a single null-space input.
                  */
                 virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                  const Eigen::Ref<const VectorXd>& null_torque,
+                                  const Eigen::Ref<const VectorXd>& null_input,
                                   std::string& time_verbose);
                 /**
-                 * @brief Internal compatibility overload of QPID core with null_torque.
+                 * @brief Internal compatibility overload of QPID core with a single null-space input.
                  */
                 virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                  const Eigen::Ref<const VectorXd>& null_torque,
+                                  const Eigen::Ref<const VectorXd>& null_input,
                                   const bool time_verbose=false);
                 /**
                  * @brief Internal QPID overload that stores QP timing information in a string.

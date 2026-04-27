@@ -24,6 +24,7 @@
 #define COD_THRESHOLD 1.0E-6
 
 #include <algorithm>
+#include <limits>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/MatrixFunctions>
 
@@ -457,15 +458,48 @@ namespace DyrosMath
 	}
 
 	template <typename _Matrix_Type_>
+	using PseudoInverseMatrix = Eigen::Matrix<typename _Matrix_Type_::Scalar,
+		_Matrix_Type_::ColsAtCompileTime,
+		_Matrix_Type_::RowsAtCompileTime,
+		0,
+		_Matrix_Type_::MaxColsAtCompileTime,
+		_Matrix_Type_::MaxRowsAtCompileTime>;
+
+	template <typename _Matrix_Type_>
 	/**
 	 * @brief Compute pseudo-inverse using SVD.
 	 */
-	static _Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double epsilon = std::numeric_limits<double>::epsilon())
+	static PseudoInverseMatrix<_Matrix_Type_> PinvSVD(
+		const _Matrix_Type_ &a,
+		typename Eigen::NumTraits<typename _Matrix_Type_::Scalar>::Real epsilon =
+			std::numeric_limits<typename Eigen::NumTraits<typename _Matrix_Type_::Scalar>::Real>::epsilon())
 	{
-		Eigen::JacobiSVD< _Matrix_Type_ > svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
-		double tolerance = epsilon * std::max(a.cols(), a.rows()) *svd.singularValues().array().abs()(0);
+		using Scalar = typename _Matrix_Type_::Scalar;
+		using RealScalar = typename Eigen::NumTraits<Scalar>::Real;
+		using DynamicMatrix = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+		using ReturnType = PseudoInverseMatrix<_Matrix_Type_>;
 
-		return svd.matrixV() *  (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * svd.matrixU().adjoint();
+		const DynamicMatrix dynamic_a = a;
+		Eigen::JacobiSVD<DynamicMatrix> svd(dynamic_a, Eigen::ComputeThinU | Eigen::ComputeThinV);
+		ReturnType pseudo_inverse = ReturnType::Zero(a.cols(), a.rows());
+
+		if (svd.singularValues().size() == 0)
+		{
+			return pseudo_inverse;
+		}
+
+		const RealScalar tolerance =
+			epsilon * static_cast<RealScalar>(std::max(a.cols(), a.rows())) *
+			svd.singularValues().array().abs().maxCoeff();
+
+		pseudo_inverse = svd.matrixV() *
+			(svd.singularValues().array().abs() > tolerance)
+				.select(svd.singularValues().array().inverse(), RealScalar(0))
+				.matrix()
+				.asDiagonal() *
+			svd.matrixU().adjoint();
+
+		return pseudo_inverse;
 	}
 
 

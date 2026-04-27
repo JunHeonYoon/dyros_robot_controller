@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include "dyros_robot_controller/manipulator/robot_data.h"
+#include <cmath>
 #include <sstream>
 
 namespace drc
@@ -419,7 +420,13 @@ namespace drc
                 const auto &res = geom_data.distanceResults[minPairIdx];
                 const Vector3d pA = res.nearest_points[0];
                 const Vector3d pB = res.nearest_points[1];
-                const Vector3d n  = (pB - pA).normalized();
+                const Vector3d pB_minus_pA = pB - pA;
+                const double witness_dist = pB_minus_pA.norm();
+                if (!std::isfinite(witness_dist) || witness_dist <= 1e-12)
+                {
+                    return result;
+                }
+                const Vector3d n  = pB_minus_pA / witness_dist;
         
                 // Joint-space 6 × total_dof Jacobians for the two parent joints
                 MatrixXd J_jointA = MatrixXd::Zero(6, q.size());
@@ -676,6 +683,11 @@ namespace drc
                         << "  <->  " << link2
                         << "   |  distance = " << minDistance << " [m]\n";
             }
+
+            if(minPairIdx < 0)
+            {
+                return result;
+            }
         
             if(with_grad || with_graddot)
             {
@@ -688,7 +700,13 @@ namespace drc
                 const auto &res = geom_data_.distanceResults[minPairIdx];
                 const Vector3d pA = res.nearest_points[0];
                 const Vector3d pB = res.nearest_points[1];
-                const Vector3d n  = (pB - pA).normalized();
+                const Vector3d pB_minus_pA = pB - pA;
+                const double witness_dist = pB_minus_pA.norm();
+                if (!std::isfinite(witness_dist) || witness_dist <= 1e-12)
+                {
+                    return result;
+                }
+                const Vector3d n  = pB_minus_pA / witness_dist;
         
                 // Joint-space 6 × total_dof Jacobians for the two parent joints
                 MatrixXd J_jointA = MatrixXd::Zero(6, q_.size());

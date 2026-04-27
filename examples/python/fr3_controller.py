@@ -216,7 +216,7 @@ class FR3Controller:
 
         # --- Mode: Gravity Compensation W QPID (no tracking) ---
         elif self.control_mode == "Gravity Compensation W QPID":
-            self.link_ee_task[self.ee_link_name].xddot = np.zeros(6)
+            self.link_ee_task[self.ee_link_name].xddot_desired = np.zeros(6)
             _, self.tau_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
 
         # Format output for simulator actuators

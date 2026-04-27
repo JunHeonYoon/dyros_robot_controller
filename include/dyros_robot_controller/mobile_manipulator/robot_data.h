@@ -74,11 +74,47 @@ namespace drc
                 {
                     drc::MobileManipulator::RobotData& src_;
                 public:
-                    explicit ManipulatorProxy(drc::MobileManipulator::RobotData& src) : src_(src) {}
+                    explicit ManipulatorProxy(drc::MobileManipulator::RobotData& src) : src_(src)
+                    {
+                        link_frame_names_ = src_.Manipulator::RobotData::getLinkFrameVector();
+                        joint_frame_names_ = src_.Manipulator::RobotData::getJointFrameVector();
+                        joint_names_ = src_.Manipulator::RobotData::getJointNames();
+                        root_link_name_ = src_.Manipulator::RobotData::getRootLinkName();
+
+                        link_frame_set_.clear();
+                        joint_frame_set_.clear();
+                        for (const auto& name : link_frame_names_) {
+                            link_frame_set_.insert(name);
+                        }
+                        for (const auto& name : joint_frame_names_) {
+                            joint_frame_set_.insert(name);
+                        }
+                    }
 
                     int      getDof()           const override { return src_.mani_dof_; }
                     VectorXd getJointPosition() const override { return src_.q_mani_; }
                     VectorXd getJointVelocity() const override { return src_.qdot_mani_; }
+                    std::pair<VectorXd,VectorXd> getJointPositionLimit() const override
+                    {
+                        const auto whole_limit = src_.Manipulator::RobotData::getJointPositionLimit();
+                        return std::make_pair(
+                            whole_limit.first.segment(src_.joint_idx_.mani_start, src_.mani_dof_),
+                            whole_limit.second.segment(src_.joint_idx_.mani_start, src_.mani_dof_));
+                    }
+                    std::pair<VectorXd,VectorXd> getJointVelocityLimit() const override
+                    {
+                        const auto whole_limit = src_.Manipulator::RobotData::getJointVelocityLimit();
+                        return std::make_pair(
+                            whole_limit.first.segment(src_.joint_idx_.mani_start, src_.mani_dof_),
+                            whole_limit.second.segment(src_.joint_idx_.mani_start, src_.mani_dof_));
+                    }
+                    std::pair<VectorXd,VectorXd> getJointEffortLimit() const override
+                    {
+                        const auto whole_limit = src_.Manipulator::RobotData::getJointEffortLimit();
+                        return std::make_pair(
+                            whole_limit.first.segment(src_.joint_idx_.mani_start, src_.mani_dof_),
+                            whole_limit.second.segment(src_.joint_idx_.mani_start, src_.mani_dof_));
+                    }
 
                     MatrixXd getMassMatrix() const override
                     {

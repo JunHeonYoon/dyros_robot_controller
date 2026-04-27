@@ -79,6 +79,18 @@ namespace drc
                 void setNullTorque(const Eigen::Ref<const VectorXd>& null_torque) { mani_null_torque_ = null_torque; }
 
                 /**
+                 * @brief Set the desired mobile base velocity for null space tracking.
+                 * @param base_vel_desired (Eigen::Vector3d) Desired base twist [vx, vy, wz].
+                 */
+                void setDesiredBaseVel(const Eigen::Vector3d& base_vel_desired) { base_vel_desired_ = base_vel_desired; }
+
+                /**
+                 * @brief Set the desired mobile base acceleration for null space tracking.
+                 * @param base_acc_desired (Eigen::Vector3d) Desired base acceleration [ax, ay, alphaz].
+                 */
+                void setDesiredBaseAcc(const Eigen::Vector3d& base_acc_desired) { base_acc_desired_ = base_acc_desired; }
+
+                /**
                  * @brief Set mobile base velocity damping weights only.
                  * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
                  */
@@ -204,8 +216,10 @@ namespace drc
                 std::map<std::string, Vector6d> link_w_tracking_; // weight for task acceleration tracking per links; || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||
                 VectorXd w_mani_vel_damping_;                     // weight for manipulator velocity damping;                     || eta_dot*dt + eta ||
                 VectorXd w_mani_acc_damping_;                     // weight for manipulator acceleration damping;                 || eta_ddot ||
-                Vector3d w_base_vel_damping_;                     // weight for mobile base velocity damping;                     || eta_dot*dt + eta ||
-                Vector3d w_base_acc_damping_;                     // weight for mobile base acceleration damping;                 || eta_ddot ||
+                Vector3d base_vel_desired_;                       // desired mobile base velocity for null space tracking
+                Vector3d base_acc_desired_;                       // desired mobile base acceleration for null space tracking
+                Vector3d w_base_vel_damping_;                     // weight for mobile base velocity tracking;                    || v_base_next - base_vel_desired ||
+                Vector3d w_base_acc_damping_;                     // weight for mobile base acceleration tracking;                || a_base - base_acc_desired ||
                 VectorXd mani_null_torque_;                       // desired manipulator null space torque (OSF convention: without gravity)
                 double   w_mani_null_torque_;                     // scale for manipulator null torque cost; w_null * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2
 
@@ -220,7 +234,7 @@ namespace drc
                  * @brief Set the cost function which minimizes task space acceleration error.
                  *        Use slack variables (s) to increase feasibility of QP.
                  *
-                 *         min       || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||_Wi^2 + || q_ddot ||_W2^2 + || q_ddot*dt + eta ||_W3^2 + w_null * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2 + 1000*s
+                 *         min       || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||_Wi^2 + || a_base - base_acc_desired ||_Wbase_acc^2 + || v_base_next - base_vel_desired ||_Wbase_vel^2 + || qddot_mani ||_W2^2 + || qddot_mani*dt + qdot_mani ||_W3^2 + w_null * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2 + 1000*s
                  *  [eta_dot, torque, s]
                  *
                  * =>      min         1/2 * [ eta_dot ].T * [ 2*J_i_tilda.T*Wi_i*J + 2*W2 + 2*dt*dt*W3 + 2*w_null*M_mani (mani block)  0  0 ] * [ eta_dot  ] + [ -2*J_i_tilda.T*Wi*(x_i_ddot_des - J_i_tilda_dot*eta) + 2*dt*eta - 2*w_null*null_torque (mani block) ].T * [ eta_dot  ]

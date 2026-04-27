@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include "dyros_robot_controller/mobile_manipulator/QP_ID.h"
+#include <cmath>
 
 namespace drc
 {
@@ -105,6 +106,8 @@ namespace drc
 
             w_mani_vel_damping_.setOnes(mani_dof_);
             w_mani_acc_damping_.setOnes(mani_dof_);
+            base_vel_desired_.setZero();
+            base_acc_desired_.setZero();
             w_base_vel_damping_.setOnes();
             w_base_acc_damping_.setOnes();
             mani_null_torque_.setZero(mani_dof_);
@@ -219,7 +222,9 @@ namespace drc
                         si_index_.eta_dot_start + mobi_start,
                         mobi_dof_,
                         mobi_dof_) += 2.0 * J_mobile_T * w_base_acc * J_mobile + 2.0 * dt_ * dt_ * J_mobile_T * w_base_vel * J_mobile;
-            q_ds_.segment(si_index_.eta_dot_start + mobi_start, mobi_dof_) += 2.0 * dt_ * J_mobile_T * w_base_vel * robot_data_->getBaseVel();
+            q_ds_.segment(si_index_.eta_dot_start + mobi_start, mobi_dof_) +=
+                -2.0 * J_mobile_T * w_base_acc * base_acc_desired_
+                + 2.0 * dt_ * J_mobile_T * w_base_vel * (robot_data_->getBaseVel() - base_vel_desired_);
 
             
             // for manipulator null torque tracking (Method 3: M-weighted qddot cost, equivalent to OSF null projection)
@@ -365,32 +370,53 @@ namespace drc
             // l_ineq_ds_(si_index_.con_sing_start) = -mani_data.grad_dot.dot(qdot_mani) - (alpha + alpha)*mani_data.grad.dot(qdot_mani) - alpha*alpha*(mani_data.manipulability -0.01);
     
             // self collision avoidance
-            Manipulator::MinDistResult min_dist_data = robot_data_->getMinDistance(true, true, false);
-            min_dist_data.grad = min_dist_data.grad.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
-            min_dist_data.grad_dot = min_dist_data.grad_dot.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const Manipulator::MinDistResult min_dist_data = robot_data_->getMinDistance(true, true, false);
+            const int mani_start = robot_data_->getJointIndex().mani_start;
+            const bool valid_col_grad =
+                std::isfinite(min_dist_data.distance) &&
+                min_dist_data.grad.size() >= mani_start + mani_dof_ &&
+                min_dist_data.grad_dot.size() >= mani_start + mani_dof_;
 
-            // exponential low-pass filter on grad and grad_dot to smooth discontinuous jumps
-            // when the closest collision pair switches (argmin is non-smooth)
-            if (!col_grad_initialized_) {
-                col_grad_filtered_     = min_dist_data.grad;
-                col_grad_dot_filtered_ = min_dist_data.grad_dot;
-                col_grad_initialized_  = true;
-            } else {
-                col_grad_filtered_     = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
-                                       + col_grad_filter_alpha_ * min_dist_data.grad;
-                col_grad_dot_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_dot_filtered_
-                                       + col_grad_filter_alpha_ * min_dist_data.grad_dot;
+            if (valid_col_grad)
+            {
+                const VectorXd col_grad = min_dist_data.grad.segment(mani_start, mani_dof_);
+                const VectorXd col_grad_dot = min_dist_data.grad_dot.segment(mani_start, mani_dof_);
+
+                if (col_grad.allFinite() &&
+                    col_grad_dot.allFinite() &&
+                    col_grad.squaredNorm() > 1e-12)
+                {
+                    // Skip the CBF row when the distance Jacobian becomes undefined.
+                    if (!col_grad_initialized_) {
+                        col_grad_filtered_     = col_grad;
+                        col_grad_dot_filtered_ = col_grad_dot;
+                        col_grad_initialized_  = true;
+                    } else {
+                        col_grad_filtered_     = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                               + col_grad_filter_alpha_ * col_grad;
+                        col_grad_dot_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_dot_filtered_
+                                               + col_grad_filter_alpha_ * col_grad_dot;
+                    }
+
+                    A_ineq_ds_.block(si_index_.con_sel_col_start,
+                                     si_index_.eta_dot_start + robot_data_->getActuatorIndex().mani_start,
+                                     si_index_.con_sel_col_size,
+                                     mani_dof_) = col_grad_filtered_.transpose();
+                    A_ineq_ds_.block(si_index_.con_sel_col_start,
+                                     si_index_.slack_sel_col_start,
+                                     si_index_.con_sel_col_size,
+                                     si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
+                    l_ineq_ds_(si_index_.con_sel_col_start) = -col_grad_dot_filtered_.dot(qdot_mani) - (alpha + alpha)*col_grad_filtered_.dot(qdot_mani) - alpha*alpha*(min_dist_data.distance - 0.01);
+                }
+                else
+                {
+                    col_grad_initialized_ = false;
+                }
             }
-
-            A_ineq_ds_.block(si_index_.con_sel_col_start,
-                             si_index_.eta_dot_start + robot_data_->getActuatorIndex().mani_start,
-                             si_index_.con_sel_col_size,
-                             mani_dof_) = col_grad_filtered_.transpose();
-            A_ineq_ds_.block(si_index_.con_sel_col_start,
-                             si_index_.slack_sel_col_start,
-                             si_index_.con_sel_col_size,
-                             si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = -col_grad_dot_filtered_.dot(qdot_mani) - (alpha + alpha)*col_grad_filtered_.dot(qdot_mani) - alpha*alpha*(min_dist_data.distance - 0.01);
+            else
+            {
+                col_grad_initialized_ = false;
+            }
             
             // Mobile base velocity & acceleration limit
             const auto& param = robot_data_->getKineParam();

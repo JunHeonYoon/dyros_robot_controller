@@ -248,10 +248,14 @@ std::unordered_map<std::string, double> FR3XLSController::compute()
 
         Eigen::VectorXd qdot_mobile_desired(mobile_dof_), qdot_mani_desired(mani_dof_);
         qdot_mobile_desired.setZero(); qdot_mani_desired.setZero();
+        Eigen::VectorXd null_qdot_desired = Eigen::VectorXd::Zero(actuator_dof_);
+        null_qdot_desired.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_) =
+            robot_controller_->MobileVelocityCommand(base_vel_desired_);
         robot_controller_->QPIKCubic(link_ee_task_,
                                      3.0,
                                      qdot_mobile_desired,
-                                     qdot_mani_desired);
+                                     qdot_mani_desired,
+                                     null_qdot_desired);
 
         qdot_mobile_desired_ = qdot_mobile_desired;
         qdot_mani_desired_ = qdot_mani_desired;
@@ -268,7 +272,11 @@ std::unordered_map<std::string, double> FR3XLSController::compute()
         link_ee_task_[ee_link_name_].xddot_desired.setZero();
         Eigen::VectorXd qddot_mobile_desired(mobile_dof_), tau_mani_desired(mani_dof_);
         qddot_mobile_desired.setZero(); tau_mani_desired.setZero();
-        robot_controller_->QPID(link_ee_task_, qddot_mobile_desired, tau_mani_desired);
+        const Eigen::VectorXd qdot_mobile_null = robot_controller_->MobileVelocityCommand(base_vel_desired_);
+        Eigen::VectorXd null_qddot_desired = Eigen::VectorXd::Zero(actuator_dof_);
+        null_qddot_desired.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_) =
+            (qdot_mobile_null - qdot_mobile_) / dt_;
+        robot_controller_->QPID(link_ee_task_, qddot_mobile_desired, tau_mani_desired, null_qddot_desired);
         // Integrate mobile acceleration output to wheel velocity command
         qdot_mobile_desired_ = qdot_mobile_ + qddot_mobile_desired * dt_;
         tau_mani_desired_ = tau_mani_desired;

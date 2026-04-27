@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include "dyros_robot_controller/manipulator/QP_IK.h"
+#include <cmath>
 
 namespace drc
 {
@@ -231,20 +232,31 @@ namespace drc
     
             // self collision avoidance (CBF)
             const Manipulator::MinDistResult min_dist_res = robot_data_->getMinDistance(true, false, false);
+            const bool valid_col_grad =
+                std::isfinite(min_dist_res.distance) &&
+                min_dist_res.grad.size() == joint_dof_ &&
+                min_dist_res.grad.allFinite() &&
+                min_dist_res.grad.squaredNorm() > 1e-12;
 
-            // exponential low-pass filter on grad to smooth discontinuous jumps
-            // when the closest collision pair switches (argmin is non-smooth)
-            if (!col_grad_initialized_) {
-                col_grad_filtered_    = min_dist_res.grad;
-                col_grad_initialized_ = true;
-            } else {
-                col_grad_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
-                                   + col_grad_filter_alpha_ * min_dist_res.grad;
+            if (valid_col_grad)
+            {
+                // Skip the CBF row when the distance Jacobian becomes undefined.
+                if (!col_grad_initialized_) {
+                    col_grad_filtered_    = min_dist_res.grad;
+                    col_grad_initialized_ = true;
+                } else {
+                    col_grad_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                       + col_grad_filter_alpha_ * min_dist_res.grad;
+                }
+
+                A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qdot_start, si_index_.con_sel_col_size, si_index_.qdot_size) = col_grad_filtered_.transpose();
+                A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.slack_sel_col_start, si_index_.con_sel_col_size, si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
+                l_ineq_ds_(si_index_.con_sel_col_start) = -alpha * (min_dist_res.distance - 0.01);
             }
-
-            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qdot_start, si_index_.con_sel_col_size, si_index_.qdot_size) = col_grad_filtered_.transpose();
-            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.slack_sel_col_start, si_index_.con_sel_col_size, si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = -alpha * (min_dist_res.distance - 0.01);
+            else
+            {
+                col_grad_initialized_ = false;
+            }
         }
     
         void QPIK::setEqConstraint()    
