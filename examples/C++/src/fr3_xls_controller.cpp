@@ -106,9 +106,8 @@ FR3XLSController::FR3XLSController(const double dt)
     // --- Gain
     mani_joint_kp_.setZero(mani_dof_);
     mani_joint_kv_.setZero(mani_dof_);
-    qpik_mani_vel_damping_.setZero(mani_dof_);
+    qpik_null_vel_gain_.setZero(actuator_dof_);
     qpik_mani_acc_damping_.setZero(mani_dof_);
-    qpik_base_vel_damping_.setZero();
     qpik_base_acc_damping_.setZero();
     qpid_mani_vel_damping_.setZero(mani_dof_);
     qpid_mani_acc_damping_.setZero(mani_dof_);
@@ -120,9 +119,10 @@ FR3XLSController::FR3XLSController(const double dt)
     task_id_kp_            << 600.0, 600.0, 600.0,1000.0,1000.0,1000.0;
     task_id_kv_            <<  20.0,  20.0,  20.0,  30.0,  30.0,  30.0;
     qpik_tracking_         <<  10.0,  10.0,  10.0,  40.0,  40.0,  40.0;
-    qpik_mani_vel_damping_ <<  0.01,  0.01,  0.01,  0.01,  0.01,  0.01,  0.01;
+    qpik_null_vel_gain_.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_)
+                            <<  0.01,  0.01,  0.01,  0.01,  0.01,  0.01,  0.01;
+    qpik_null_vel_gain_.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_).setConstant(0.1);
     qpik_mani_acc_damping_ << 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001;
-    qpik_base_vel_damping_ <<   0.1,   0.1,   0.1; // [vx, vy, wz]
     qpik_base_acc_damping_ <<   0.1,   0.1,   0.1; // [vx, vy, wz]
     qpid_tracking_         <<  10.0,  10.0,  10.0,   1.0,   1.0,   1.0;
     qpid_mani_vel_damping_ <<   0.1,   0.1,   0.1,   0.1,   0.1,   0.1,   0.1;
@@ -133,7 +133,7 @@ FR3XLSController::FR3XLSController(const double dt)
     robot_controller_->setManipulatorJointGain(mani_joint_kp_, mani_joint_kv_);
     robot_controller_->setIKGain(task_ik_kp_);
     robot_controller_->setIDGain(task_id_kp_, task_id_kv_);
-    robot_controller_->setQPIKGain(qpik_tracking_, qpik_mani_vel_damping_, qpik_mani_acc_damping_, qpik_base_vel_damping_, qpik_base_acc_damping_);
+    robot_controller_->setQPIKGain(qpik_tracking_, qpik_null_vel_gain_, qpik_mani_acc_damping_, qpik_base_acc_damping_);
     robot_controller_->setQPIDGain(qpid_tracking_, qpid_mani_vel_damping_, qpid_mani_acc_damping_, qpid_base_vel_damping_, qpid_base_acc_damping_);
 
 

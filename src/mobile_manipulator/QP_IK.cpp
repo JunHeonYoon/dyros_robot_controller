@@ -69,11 +69,9 @@ namespace drc
             si_index_.con_base_vel_start      = si_index_.con_sel_col_start    + si_index_.con_sel_col_size;
             si_index_.con_base_acc_start      = si_index_.con_base_vel_start   + si_index_.con_base_vel_size;
 
-            mani_qdot_desired_.setZero(mani_dof_);
-            base_vel_desired_.setZero();
-            w_mani_joint_vel_.setOnes(mani_dof_);
+            null_eta_desired_.setZero(actuator_dof_);
+            w_null_joint_vel_.setOnes(actuator_dof_);
             w_mani_acc_damping_.setOnes(mani_dof_);
-            w_base_vel_damping_.setOnes();
             w_base_acc_damping_.setOnes();
         }
     
@@ -88,28 +86,24 @@ namespace drc
         }
 
         void QPIK::setWeight(const std::map<std::string, Vector6d>& link_w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_mani_joint_vel,
+                             const Eigen::Ref<const VectorXd>& w_null_vel,
                              const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                             const Eigen::Vector3d& w_base_damping,
                              const Eigen::Vector3d& w_base_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
-            w_mani_joint_vel_ = w_mani_joint_vel;
+            w_null_joint_vel_ = w_null_vel;
             w_mani_acc_damping_ = w_mani_acc_damping;
-            w_base_vel_damping_ = w_base_damping;
             w_base_acc_damping_ = w_base_acc_damping;
         }
 
         void QPIK::setWeight(const Vector6d& w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_mani_joint_vel,
+                             const Eigen::Ref<const VectorXd>& w_null_vel,
                              const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                             const Eigen::Vector3d& w_base_damping,
                              const Eigen::Vector3d& w_base_acc_damping)
         {
             setTrackingWeight(w_tracking);
-            w_mani_joint_vel_ = w_mani_joint_vel;
+            w_null_joint_vel_ = w_null_vel;
             w_mani_acc_damping_ = w_mani_acc_damping;
-            w_base_vel_damping_ = w_base_damping;
             w_base_acc_damping_ = w_base_acc_damping;
         }
 
@@ -146,7 +140,11 @@ namespace drc
             P_ds_.setZero(nx_, nx_);
             q_ds_.setZero(nx_);
 
-            // for task space velocity tracking
+            // for task space velocity tracking; accumulate J_total_tilda for null space computation
+            MatrixXd J_total_tilda(6 * link_xdot_desired_.size(), actuator_dof_);
+            J_total_tilda.setZero();
+            int row = 0;
+
             for(const auto& [link_name, xdot_desired] : link_xdot_desired_)
             {
                 const MatrixXd J_i_tilda = robot_data_->getJacobianActuated(link_name);
@@ -157,19 +155,23 @@ namespace drc
 
                 P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) += 2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * J_i_tilda;
                 q_ds_.segment(si_index_.eta_start,si_index_.eta_size) += -2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * xdot_desired;
+
+                J_total_tilda.block(row, 0, 6, actuator_dof_) = J_i_tilda;
+                row += 6;
             }
 
             const int mani_start = robot_data_->getActuatorIndex().mani_start;
             const int mobi_start = robot_data_->getActuatorIndex().mobi_start;
             const double dt_sq_inv = 1.0 / (dt_ * dt_);
 
-            // for manipulator joint velocity tracking: || eta_mani - qdot_desired ||_W2^2
-            P_ds_.block(si_index_.eta_start+mani_start,
-                        si_index_.eta_start+mani_start,
-                        mani_dof_,
-                        mani_dof_) += 2.0 * w_mani_joint_vel_.asDiagonal();
-            q_ds_.segment(si_index_.eta_start+mani_start, mani_dof_) +=
-                -2.0 * w_mani_joint_vel_.asDiagonal() * mani_qdot_desired_;
+            // Null space projector in actuated space: N_tilda = I - J_tilda†J_tilda
+            const MatrixXd N_tilda = MatrixXd::Identity(actuator_dof_, actuator_dof_)
+                                   - DyrosMath::PinvSVD(J_total_tilda) * J_total_tilda;
+
+            // for null space tracking (mani + mobile unified): || N_tilda*(eta - null_eta_desired) ||²_{W_null}
+            const MatrixXd NWN = N_tilda.transpose() * w_null_joint_vel_.asDiagonal() * N_tilda;
+            P_ds_.block(si_index_.eta_start, si_index_.eta_start, actuator_dof_, actuator_dof_) += 2.0 * NWN;
+            q_ds_.segment(si_index_.eta_start, actuator_dof_) += -2.0 * NWN * null_eta_desired_;
 
             // for manipulator joint acceleration damping: || (eta_mani - eta_mani_now) / dt ||_W3^2
             P_ds_.block(si_index_.eta_start+mani_start,
@@ -179,19 +181,10 @@ namespace drc
             q_ds_.segment(si_index_.eta_start+mani_start, mani_dof_) +=
                 -2.0 * dt_sq_inv * w_mani_acc_damping_.asDiagonal() * robot_data_->getManiJointVelocity();
 
-            // for mobile base velocity damping
+            // for mobile base acceleration damping: || (v_base - v_base_now) / dt ||_W5^2
             const MatrixXd J_mobile = robot_data_->getMobileFKJacobian();
             const MatrixXd J_mobile_T = J_mobile.transpose();
-            const Matrix3d w_base_vel = w_base_vel_damping_.asDiagonal();
             const Matrix3d w_base_acc = w_base_acc_damping_.asDiagonal();
-            P_ds_.block(si_index_.eta_start+mobi_start,
-                        si_index_.eta_start+mobi_start,
-                        mobi_dof_,
-                        mobi_dof_) += 2.0 * J_mobile_T * w_base_vel * J_mobile;
-            q_ds_.segment(si_index_.eta_start+mobi_start,
-                          mobi_dof_) += -2.0 * J_mobile_T * w_base_vel * base_vel_desired_;
-
-            // for mobile base acceleration damping: a_base = (v_base - v_base_now) / dt
             const Vector3d base_vel_now = robot_data_->getMobileBaseVel().head<3>();
             P_ds_.block(si_index_.eta_start+mobi_start,
                         si_index_.eta_start+mobi_start,

@@ -140,9 +140,11 @@ class FR3XLSController:
         self.task_id_kp = np.array([600.0, 600.0, 600.0, 1000.0, 1000.0, 1000.0])
         self.task_id_kv = np.array([20.0, 20.0, 20.0, 30.0, 30.0, 30.0])
         self.qpik_tracking = np.array([10.0, 10.0, 10.0, 40.0, 40.0, 40.0])
-        self.qpik_mani_vel_damping = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        self.qpik_null_vel_gain = np.zeros(self.actuated_dof)
+        self.qpik_null_vel_gain[actuator_idx.mani_start:actuator_idx.mani_start + self.mani_dof] = \
+            np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        self.qpik_null_vel_gain[actuator_idx.mobi_start:actuator_idx.mobi_start + self.mobi_dof] = 0.1
         self.qpik_mani_acc_damping = np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001])
-        self.qpik_base_vel_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
         self.qpik_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
         self.qpid_tracking = np.array([10.0, 10.0, 10.0, 1.0, 1.0, 1.0])
         self.qpid_mani_vel_damping = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
@@ -154,9 +156,8 @@ class FR3XLSController:
         self.robot_controller.set_IK_gain(kp=self.task_ik_kp)
         self.robot_controller.set_ID_gain(kp=self.task_id_kp, kv=self.task_id_kv)
         self.robot_controller.set_QPIK_gain(w_tracking=self.qpik_tracking,
-                                            w_mani_vel_damping=self.qpik_mani_vel_damping,
+                                            w_null_vel=self.qpik_null_vel_gain,
                                             w_mani_acc_damping=self.qpik_mani_acc_damping,
-                                            w_base_vel_damping=self.qpik_base_vel_damping,
                                             w_base_acc_damping=self.qpik_base_acc_damping)
         self.robot_controller.set_QPID_gain(w_tracking=self.qpid_tracking,
                                             w_mani_vel_damping=self.qpid_mani_vel_damping,

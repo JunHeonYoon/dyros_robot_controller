@@ -126,10 +126,10 @@ namespace drc
                 void setQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
 
                 /**
-                 * @brief Set QPIK joint velocity damping weights only.
-                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @brief Set QPIK null space joint velocity weight only.
+                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space joint velocity; its size must same as dof.
                  */
-                void setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping);
+                void setQPIKNullJointVelGain(const Eigen::Ref<const VectorXd>& w_null_joint_vel);
 
                 /**
                  * @brief Set QPIK joint acceleration damping weights only.
@@ -140,21 +140,21 @@ namespace drc
                 /**
                  * @brief Set the weight vector for the cost terms of the QPIK.
                  * @param w_tracking (Vector6d) Weight for task velocity tracking for every link.
-                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space joint velocity; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
                 void setQPIKGain(const Vector6d& w_tracking,
-                                 const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                 const Eigen::Ref<const VectorXd>& w_null_joint_vel,
                                  const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
                  * @brief Set the weight vector for the cost terms of the QPIK.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
-                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space joint velocity; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
                 void setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking,
-                                 const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                 const Eigen::Ref<const VectorXd>& w_null_joint_vel,
                                  const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
@@ -400,7 +400,7 @@ namespace drc
                  * @brief Computes joint velocities to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data  (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
                  * @param opt_qdot       (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot      (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
+                 * @param null_qdot      (Eigen::VectorXd) Desired joint velocity for null space tracking (w_null_joint_vel weighted).
                  * @param time_verbose   (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                  */
@@ -412,7 +412,7 @@ namespace drc
                  * @brief Compatibility overload of QPIK with null_qdot.
                  * @param link_task_data  (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
                  * @param opt_qdot       (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot      (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
+                 * @param null_qdot      (Eigen::VectorXd) Desired joint velocity for null space tracking (w_null_joint_vel weighted).
                  * @param time_verbose   (bool) If true, print the formatted computation time information to std::cout.
                  * @return (bool) True if the problem was solved successfully.
                  */
@@ -446,7 +446,7 @@ namespace drc
                  * @brief Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
                  * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot     (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
+                 * @param null_qdot     (Eigen::VectorXd) Desired joint velocity for null space tracking (w_null_joint_vel weighted).
                  * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */
@@ -458,7 +458,7 @@ namespace drc
                  * @brief Compatibility overload of QPIKStep with null_qdot.
                  * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
                  * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot     (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
+                 * @param null_qdot     (Eigen::VectorXd) Desired joint velocity for null space tracking (w_null_joint_vel weighted).
                  * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
                  * @return (bool) True if the problem was solved successfully.
                 */
@@ -493,7 +493,7 @@ namespace drc
                  * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration             (double) Time duration.
                  * @param opt_qdot             (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot            (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
+                 * @param null_qdot            (Eigen::VectorXd) Desired joint velocity for null space tracking (w_null_joint_vel weighted).
                  * @param time_verbose         (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */
@@ -507,7 +507,7 @@ namespace drc
                  * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration             (double) Time duration.
                  * @param opt_qdot             (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot            (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
+                 * @param null_qdot            (Eigen::VectorXd) Desired joint velocity for null space tracking (w_null_joint_vel weighted).
                  * @param time_verbose         (bool) If true, print the formatted computation time information to std::cout.
                  * @return (bool) True if the problem was solved successfully.
                 */

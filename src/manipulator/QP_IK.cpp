@@ -61,8 +61,8 @@ namespace drc
             si_index_.con_sing_start      = si_index_.con_q_max_start + si_index_.con_q_max_size;
             si_index_.con_sel_col_start   = si_index_.con_sing_start  + si_index_.con_sing_size;
 
-            qdot_desired_.setZero(joint_dof_);
-            w_joint_vel_.setOnes(joint_dof_);
+            null_qdot_desired_.setZero(joint_dof_);
+            w_null_joint_vel_.setOnes(joint_dof_);
             w_acc_damping_.setOnes(joint_dof_);
 
         }
@@ -78,20 +78,20 @@ namespace drc
         }
 
         void QPIK::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_null_joint_vel,
                              const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
-            w_joint_vel_ = w_vel_damping;
+            w_null_joint_vel_ = w_null_joint_vel;
             w_acc_damping_ = w_acc_damping;
         }
 
         void QPIK::setWeight(const Vector6d w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_null_joint_vel,
                              const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             setTrackingWeight(w_tracking);
-            w_joint_vel_ = w_vel_damping;
+            w_null_joint_vel_ = w_null_joint_vel;
             w_acc_damping_ = w_acc_damping;
         }
 
@@ -129,7 +129,11 @@ namespace drc
             q_ds_.setZero(nx_);
             const VectorXd qdot_now = robot_data_->getJointVelocity();
 
-            // for task space velocity tracking
+            // for task space velocity tracking; accumulate J_total for null space computation
+            MatrixXd J_total(6 * link_xdot_desired_.size(), joint_dof_);
+            J_total.setZero();
+            int row = 0;
+
             for(const auto& [link_name, xdot_desired] : link_xdot_desired_)
             {
                 MatrixXd J_i = robot_data_->getJacobian(link_name);
@@ -140,11 +144,19 @@ namespace drc
 
                 P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * J_i.transpose() * w_tracking.asDiagonal() * J_i;
                 q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * J_i.transpose() * w_tracking.asDiagonal() * xdot_desired;
+
+                J_total.block(row, 0, 6, joint_dof_) = J_i;
+                row += 6;
             }
-            
-            // for joint velocity tracking: || q_dot - qdot_desired ||_W2^2
-            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * w_joint_vel_.asDiagonal();
-            q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * w_joint_vel_.asDiagonal() * qdot_desired_;
+
+            // Null space projector N = I - J†J; when no task is defined N = I
+            const MatrixXd N = MatrixXd::Identity(joint_dof_, joint_dof_)
+                             - DyrosMath::PinvSVD(J_total) * J_total;
+
+            // for null space tracking: || N*(qdot - qdot_desired) ||_W2^2
+            const MatrixXd NWN = N.transpose() * w_null_joint_vel_.asDiagonal() * N;
+            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * NWN;
+            q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * NWN * null_qdot_desired_;
 
             // for joint acceleration damping: || (q_dot - q_dot_now) / dt ||_W3^2
             const double dt_sq_inv = 1.0 / (dt_ * dt_);

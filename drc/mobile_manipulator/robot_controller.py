@@ -132,9 +132,8 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
     
     def set_QPIK_gain(self,
                       link_w_tracking: dict[str, np.ndarray] | None = None,
-                      w_mani_vel_damping: np.ndarray | None = None,
+                      w_null_vel: np.ndarray | None = None,
                       w_mani_acc_damping: np.ndarray | None = None,
-                      w_base_vel_damping: np.ndarray | None = None,
                       w_base_acc_damping: np.ndarray | None = None,
                       ):
         """
@@ -142,9 +141,8 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_w_tracking    : (dict[str, np.ndarray]) Weight for task velocity tracking per links.
-            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+            w_null_vel         : (np.ndarray) Weight for null space velocity tracking; its size must same as actuated_dof.
             w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
             w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
         """
         if link_w_tracking is not None:
@@ -153,20 +151,15 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
                 assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
             super().setQPIKTrackingGain(link_w_tracking)
 
-        if w_mani_vel_damping is not None:
-            w_mani_vel_damping = w_mani_vel_damping.reshape(-1)
-            assert w_mani_vel_damping.size == self._robot_data.mani_dof, f"Size of w_mani_vel_damping {w_mani_vel_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIKManiJointVelGain(w_mani_vel_damping)
+        if w_null_vel is not None:
+            w_null_vel = np.asarray(w_null_vel).reshape(-1)
+            assert w_null_vel.size == self._robot_data.actuated_dof, f"Size of w_null_vel {w_null_vel.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+            super().setQPIKNullVelGain(w_null_vel)
 
         if w_mani_acc_damping is not None:
             w_mani_acc_damping = w_mani_acc_damping.reshape(-1)
             assert w_mani_acc_damping.size == self._robot_data.mani_dof, f"Size of w_mani_acc_damping {w_mani_acc_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
             super().setQPIKManiJointAccGain(w_mani_acc_damping)
-
-        if w_base_vel_damping is not None:
-            w_base_vel_damping = np.asarray(w_base_vel_damping).reshape(-1)
-            assert w_base_vel_damping.size == 3, f"Size of w_base_vel_damping {w_base_vel_damping.size} is not equal to 3"
-            super().setQPIKBaseVelGain(w_base_vel_damping)
 
         if w_base_acc_damping is not None:
             w_base_acc_damping = np.asarray(w_base_acc_damping).reshape(-1)
@@ -175,9 +168,8 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
     def set_QPIK_gain(self,
                       w_tracking: np.ndarray | None = None,
-                      w_mani_vel_damping: np.ndarray | None = None,
+                      w_null_vel: np.ndarray | None = None,
                       w_mani_acc_damping: np.ndarray | None = None,
-                      w_base_vel_damping: np.ndarray | None = None,
                       w_base_acc_damping: np.ndarray | None = None,
                       ):
         """
@@ -185,9 +177,8 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             w_tracking         : (np.ndarray) Weight for task velocity tracking for every link.
-            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+            w_null_vel         : (np.ndarray) Weight for null space velocity tracking; its size must same as actuated_dof.
             w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
             w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
         """
         if w_tracking is not None:
@@ -195,20 +186,15 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             assert w_tracking.size == 6, f"Size of w_tracking {w_tracking.size} is not equal to 6"
             super().setQPIKTrackingGain(w_tracking)
 
-        if w_mani_vel_damping is not None:
-            w_mani_vel_damping = w_mani_vel_damping.reshape(-1)
-            assert w_mani_vel_damping.size == self._robot_data.mani_dof, f"Size of w_mani_vel_damping {w_mani_vel_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIKManiJointVelGain(w_mani_vel_damping)
+        if w_null_vel is not None:
+            w_null_vel = np.asarray(w_null_vel).reshape(-1)
+            assert w_null_vel.size == self._robot_data.actuated_dof, f"Size of w_null_vel {w_null_vel.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+            super().setQPIKNullVelGain(w_null_vel)
 
         if w_mani_acc_damping is not None:
             w_mani_acc_damping = w_mani_acc_damping.reshape(-1)
             assert w_mani_acc_damping.size == self._robot_data.mani_dof, f"Size of w_mani_acc_damping {w_mani_acc_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
             super().setQPIKManiJointAccGain(w_mani_acc_damping)
-
-        if w_base_vel_damping is not None:
-            w_base_vel_damping = np.asarray(w_base_vel_damping).reshape(-1)
-            assert w_base_vel_damping.size == 3, f"Size of w_base_vel_damping {w_base_vel_damping.size} is not equal to 3"
-            super().setQPIKBaseVelGain(w_base_vel_damping)
 
         if w_base_acc_damping is not None:
             w_base_acc_damping = np.asarray(w_base_acc_damping).reshape(-1)

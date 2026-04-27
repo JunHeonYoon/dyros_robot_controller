@@ -182,10 +182,10 @@ namespace drc
             QP_mani_IK_->setTrackingWeight(w_tracking);
         }
 
-        void RobotController::setQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping)
+        void RobotController::setQPIKNullJointVelGain(const Eigen::Ref<const VectorXd>& w_null_joint_vel)
         {
-            assert(w_vel_damping.size() == dof_);
-            QP_mani_IK_->setJointVelWeight(w_vel_damping);
+            assert(w_null_joint_vel.size() == dof_);
+            QP_mani_IK_->setNullJointVelWeight(w_null_joint_vel);
         }
 
         void RobotController::setQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping)
@@ -195,21 +195,21 @@ namespace drc
         }
         
         void RobotController::setQPIKGain(const Vector6d& w_tracking,
-                                          const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                          const Eigen::Ref<const VectorXd>& w_null_joint_vel,
                                           const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
-            assert(w_vel_damping.size() == dof_);
+            assert(w_null_joint_vel.size() == dof_);
             assert(w_acc_damping.size() == dof_);
-            QP_mani_IK_->setWeight(w_tracking, w_vel_damping, w_acc_damping);
+            QP_mani_IK_->setWeight(w_tracking, w_null_joint_vel, w_acc_damping);
         }
 
         void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking,
-                                          const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                          const Eigen::Ref<const VectorXd>& w_null_joint_vel,
                                           const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
-            assert(w_vel_damping.size() == dof_);
+            assert(w_null_joint_vel.size() == dof_);
             assert(w_acc_damping.size() == dof_);
-            QP_mani_IK_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
+            QP_mani_IK_->setWeight(link_w_tracking, w_null_joint_vel, w_acc_damping);
         }
 
         void RobotController::setQPIDTrackingGain(const Vector6d& w_tracking)
@@ -540,7 +540,7 @@ namespace drc
             opt_qdot.setZero();
 
             QP_mani_IK_->setDesiredTaskVel(link_xdot_target);
-            QP_mani_IK_->setDesiredJointVel(null_qdot);
+            QP_mani_IK_->setDesiredNullJointVel(null_qdot);
             QP::TimeDuration time_duration;
             const bool qp_success = QP_mani_IK_->getOptJointVel(opt_qdot, time_duration);
             if(!qp_success)
