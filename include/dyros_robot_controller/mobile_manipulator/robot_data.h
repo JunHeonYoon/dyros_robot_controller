@@ -182,6 +182,109 @@ namespace drc
                         return getJacobian(link_name) * src_.qdot_mani_;
                     }
 
+                    // ---- Compute overrides (explicit q/qdot, base frame output) ----
+
+                    MatrixXd computeMassMatrix(const Eigen::Ref<const VectorXd>& q_mani) override
+                    {
+                        const VectorXd q_full = src_.getJointVector(src_.q_virtual_, src_.q_mobile_, q_mani);
+                        return src_.Manipulator::RobotData::computeMassMatrix(q_full)
+                                   .block(src_.joint_idx_.mani_start, src_.joint_idx_.mani_start,
+                                          src_.mani_dof_, src_.mani_dof_);
+                    }
+
+                    VectorXd computeGravity(const Eigen::Ref<const VectorXd>& q_mani) override
+                    {
+                        const VectorXd q_full = src_.getJointVector(src_.q_virtual_, src_.q_mobile_, q_mani);
+                        return src_.Manipulator::RobotData::computeGravity(q_full)
+                                   .segment(src_.joint_idx_.mani_start, src_.mani_dof_);
+                    }
+
+                    VectorXd computeCoriolis(const Eigen::Ref<const VectorXd>& q_mani,
+                                            const Eigen::Ref<const VectorXd>& qdot_mani) override
+                    {
+                        const VectorXd q_full    = src_.getJointVector(src_.q_virtual_, src_.q_mobile_, q_mani);
+                        const VectorXd qdot_full = src_.getJointVector(src_.qdot_virtual_, src_.qdot_mobile_, qdot_mani);
+                        return src_.Manipulator::RobotData::computeCoriolis(q_full, qdot_full)
+                                   .segment(src_.joint_idx_.mani_start, src_.mani_dof_);
+                    }
+
+                    VectorXd computeNonlinearEffects(const Eigen::Ref<const VectorXd>& q_mani,
+                                                     const Eigen::Ref<const VectorXd>& qdot_mani) override
+                    {
+                        const VectorXd q_full    = src_.getJointVector(src_.q_virtual_, src_.q_mobile_, q_mani);
+                        const VectorXd qdot_full = src_.getJointVector(src_.qdot_virtual_, src_.qdot_mobile_, qdot_mani);
+                        return src_.Manipulator::RobotData::computeNonlinearEffects(q_full, qdot_full)
+                                   .segment(src_.joint_idx_.mani_start, src_.mani_dof_);
+                    }
+
+                    /// Returns the link pose expressed in the mobile-base frame for the given q_mani.
+                    Affine3d computePose(const Eigen::Ref<const VectorXd>& q_mani,
+                                        const std::string& link_name) override
+                    {
+                        const VectorXd q_full    = src_.getJointVector(src_.q_virtual_, src_.q_mobile_, q_mani);
+                        const Affine3d T_base_w  = src_.Manipulator::RobotData::computePose(q_full, src_.getBaseLinkName());
+                        return T_base_w.inverse() * src_.Manipulator::RobotData::computePose(q_full, link_name);
+                    }
+
+                    /// Returns the Jacobian with arm-only columns in the mobile-base frame for the given q_mani.
+                    MatrixXd computeJacobian(const Eigen::Ref<const VectorXd>& q_mani,
+                                             const std::string& link_name) override
+                    {
+                        const VectorXd q_full   = src_.getJointVector(src_.q_virtual_, src_.q_mobile_, q_mani);
+                        const MatrixXd J_full   = src_.Manipulator::RobotData::computeJacobian(q_full, link_name);
+                        const MatrixXd J_arm    = J_full.block(0, src_.joint_idx_.mani_start, 6, src_.mani_dof_);
+                        const Matrix3d R = src_.Manipulator::RobotData::computePose(
+                            q_full, src_.getBaseLinkName()).linear().transpose();
+                        MatrixXd J(6, src_.mani_dof_);
+                        J.topRows(3)    = R * J_arm.topRows(3);
+                        J.bottomRows(3) = R * J_arm.bottomRows(3);
+                        return J;
+                    }
+
+                    MatrixXd computeJacobianTimeVariation(const Eigen::Ref<const VectorXd>& q_mani,
+                                                          const Eigen::Ref<const VectorXd>& qdot_mani,
+                                                          const std::string& link_name) override
+                    {
+                        const VectorXd q_full    = src_.getJointVector(src_.q_virtual_, src_.q_mobile_, q_mani);
+                        const VectorXd qdot_full = src_.getJointVector(src_.qdot_virtual_, src_.qdot_mobile_, qdot_mani);
+                        const MatrixXd Jdot_full = src_.Manipulator::RobotData::computeJacobianTimeVariation(
+                            q_full, qdot_full, link_name);
+                        const MatrixXd Jdot_arm  = Jdot_full.block(0, src_.joint_idx_.mani_start, 6, src_.mani_dof_);
+                        const Matrix3d R = src_.Manipulator::RobotData::computePose(
+                            q_full, src_.getBaseLinkName()).linear().transpose();
+                        MatrixXd Jdot(6, src_.mani_dof_);
+                        Jdot.topRows(3)    = R * Jdot_arm.topRows(3);
+                        Jdot.bottomRows(3) = R * Jdot_arm.bottomRows(3);
+                        return Jdot;
+                    }
+
+                    VectorXd computeVelocity(const Eigen::Ref<const VectorXd>& q_mani,
+                                             const Eigen::Ref<const VectorXd>& qdot_mani,
+                                             const std::string& link_name) override
+                    {
+                        return computeJacobian(q_mani, link_name) * qdot_mani;
+                    }
+
+                    Manipulator::MinDistResult computeMinDistance(const Eigen::Ref<const VectorXd>& q_mani,
+                                                               const Eigen::Ref<const VectorXd>& qdot_mani,
+                                                               const bool& with_grad,
+                                                               const bool& with_graddot,
+                                                               const bool verbose) override
+                    {
+                        return src_.computeMinDistance(src_.q_virtual_, src_.q_mobile_, q_mani,
+                                                       src_.qdot_virtual_, src_.qdot_mobile_, qdot_mani,
+                                                       with_grad, with_graddot, verbose);
+                    }
+
+                    Manipulator::ManipulabilityResult computeManipulability(const Eigen::Ref<const VectorXd>& q_mani,
+                                                                            const Eigen::Ref<const VectorXd>& qdot_mani,
+                                                                            const bool& with_grad,
+                                                                            const bool& with_graddot,
+                                                                            const std::string& link_name) override
+                    {
+                        return src_.computeManipulability(q_mani, qdot_mani, with_grad, with_graddot, link_name);
+                    }
+
                     /// State update is a no-op: the parent MobileManipulator::RobotData
                     /// keeps all data current via its own updateState().
                     bool updateState(const Eigen::Ref<const VectorXd>&,
