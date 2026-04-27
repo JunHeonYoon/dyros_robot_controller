@@ -200,34 +200,28 @@ namespace drc
             QP_moma_IK_->setNullJointVelWeight(w_null_vel);
         }
 
-        void RobotController::setQPIKManiJointAccGain(const Eigen::Ref<const VectorXd>& w_mani_acc_damping)
+        void RobotController::setQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
-            QP_moma_IK_->setManiJointAccWeight(w_mani_acc_damping);
-        }
-
-        void RobotController::setQPIKBaseAccGain(const Eigen::Vector3d& w_base_acc_damping)
-        {
-            QP_moma_IK_->setBaseAccWeight(w_base_acc_damping);
+            assert(w_acc_damping.size() == actuator_dof_);
+            QP_moma_IK_->setJointAccWeight(w_acc_damping);
         }
 
         void RobotController::setQPIKGain(const Vector6d& w_tracking,
                                          const Eigen::Ref<const VectorXd>& w_null_vel,
-                                         const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                                         const Eigen::Vector3d& w_base_acc_damping)
+                                         const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             assert(w_null_vel.size() == actuator_dof_);
-            assert(w_mani_acc_damping.size() == mani_dof_);
-            QP_moma_IK_->setWeight(w_tracking, w_null_vel, w_mani_acc_damping, w_base_acc_damping);
+            assert(w_acc_damping.size() == actuator_dof_);
+            QP_moma_IK_->setWeight(w_tracking, w_null_vel, w_acc_damping);
         }
 
         void RobotController::setQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking,
                                          const Eigen::Ref<const VectorXd>& w_null_vel,
-                                         const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                                         const Eigen::Vector3d& w_base_acc_damping)
+                                         const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             assert(w_null_vel.size() == actuator_dof_);
-            assert(w_mani_acc_damping.size() == mani_dof_);
-            QP_moma_IK_->setWeight(link_w_tracking, w_null_vel, w_mani_acc_damping, w_base_acc_damping);
+            assert(w_acc_damping.size() == actuator_dof_);
+            QP_moma_IK_->setWeight(link_w_tracking, w_null_vel, w_acc_damping);
         }
 
         void RobotController::setQPIDTrackingGain(const Vector6d& w_tracking)
@@ -240,50 +234,38 @@ namespace drc
             QP_moma_ID_->setTrackingWeight(link_w_tracking);
         }
 
-        void RobotController::setQPIDManiJointVelGain(const Eigen::Ref<const VectorXd>& w_mani_vel_damping)
+        void RobotController::setQPIDJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping)
         {
-            QP_moma_ID_->setManiJointVelWeight(w_mani_vel_damping);
+            assert(w_vel_damping.size() == actuator_dof_);
+            QP_moma_ID_->setJointVelWeight(w_vel_damping);
         }
 
-        void RobotController::setQPIDManiJointAccGain(const Eigen::Ref<const VectorXd>& w_mani_acc_damping)
+        void RobotController::setQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
-            QP_moma_ID_->setManiJointAccWeight(w_mani_acc_damping);
-        }
-
-        void RobotController::setQPIDBaseVelGain(const Eigen::Vector3d& w_base_vel_damping)
-        {
-            QP_moma_ID_->setBaseVelWeight(w_base_vel_damping);
-        }
-
-        void RobotController::setQPIDBaseAccGain(const Eigen::Vector3d& w_base_acc_damping)
-        {
-            QP_moma_ID_->setBaseAccWeight(w_base_acc_damping);
+            assert(w_acc_damping.size() == actuator_dof_);
+            QP_moma_ID_->setJointAccWeight(w_acc_damping);
         }
 
         void RobotController::setQPIDGain(const Vector6d& w_tracking,
-                                          const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
-                                          const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                                          const Eigen::Vector3d& w_base_vel_damping,
-                                          const Eigen::Vector3d& w_base_acc_damping,
+                                          const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                          const Eigen::Ref<const VectorXd>& w_acc_damping,
                                           const Eigen::Ref<const VectorXd>& w_null_torque)
         {
-            assert(w_mani_vel_damping.size() == mani_dof_);
-            assert(w_mani_acc_damping.size() == mani_dof_);
+            assert(w_vel_damping.size() == actuator_dof_);
+            assert(w_acc_damping.size() == actuator_dof_);
             assert(w_null_torque.size() == actuator_dof_);
-            QP_moma_ID_->setWeight(w_tracking, w_mani_vel_damping, w_mani_acc_damping, w_base_vel_damping, w_base_acc_damping, w_null_torque);
+            QP_moma_ID_->setWeight(w_tracking, w_vel_damping, w_acc_damping, w_null_torque);
         }
 
         void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking,
-                                          const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
-                                          const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                                          const Eigen::Vector3d& w_base_vel_damping,
-                                          const Eigen::Vector3d& w_base_acc_damping,
+                                          const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                          const Eigen::Ref<const VectorXd>& w_acc_damping,
                                           const Eigen::Ref<const VectorXd>& w_null_torque)
         {
-            assert(w_mani_vel_damping.size() == mani_dof_);
-            assert(w_mani_acc_damping.size() == mani_dof_);
+            assert(w_vel_damping.size() == actuator_dof_);
+            assert(w_acc_damping.size() == actuator_dof_);
             assert(w_null_torque.size() == actuator_dof_);
-            QP_moma_ID_->setWeight(link_w_tracking, w_mani_vel_damping, w_mani_acc_damping, w_base_vel_damping, w_base_acc_damping, w_null_torque);
+            QP_moma_ID_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping, w_null_torque);
         }
 
         void RobotController::setQPIDNullTorqueGain(const Eigen::Ref<const VectorXd>& w_null_torque)
@@ -935,13 +917,8 @@ namespace drc
             opt_qddot_mobile.setZero();
             opt_torque_manipulator.setZero();
 
-            const Vector3d base_null_acc = robot_data_->getMobileFKJacobian() * null_input_actuated.segment(actuator_idx.mobi_start, mobi_dof_);
-            const Vector3d base_null_vel = robot_data_->getBaseVel() + dt_ * base_null_acc;
-
             QP_moma_ID_->setDesiredTaskAcc(link_xddot_target);
             QP_moma_ID_->setNullTorque(null_input_actuated);
-            QP_moma_ID_->setDesiredBaseAcc(base_null_acc);
-            QP_moma_ID_->setDesiredBaseVel(base_null_vel);
             VectorXd opt_qddot = VectorXd::Zero(actuator_dof_);
             VectorXd opt_torque = VectorXd::Zero(actuator_dof_);
             QP::TimeDuration time_duration;

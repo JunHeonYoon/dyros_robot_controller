@@ -60,6 +60,38 @@ namespace drc
                 void setNullJointVelWeight(const Eigen::Ref<const VectorXd>& w_null_joint_vel) { w_null_joint_vel_ = w_null_joint_vel; }
 
                 /**
+                 * @brief Set actuator-space acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping; its size must same as actuator_dof.
+                 */
+                void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
+
+                /**
+                 * @brief Set the weight vector for the cost terms.
+                 * @param w_tracking (Eigen::Vector6d) Weight for task space velocity tracking for all the links in the URDF.
+                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space velocity tracking toward null_eta_desired; its size must same as actuator_dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping toward eta_now; its size must same as actuator_dof.
+                 */
+                void setWeight(const Vector6d& w_tracking,
+                               const Eigen::Ref<const VectorXd>& w_null_joint_vel,
+                               const Eigen::Ref<const VectorXd>& w_acc_damping);
+
+                /**
+                 * @brief Set the weight vector for the cost terms.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space velocity tracking toward null_eta_desired; its size must same as actuator_dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping toward eta_now; its size must same as actuator_dof.
+                 */
+                void setWeight(const std::map<std::string, Vector6d>& link_w_tracking,
+                               const Eigen::Ref<const VectorXd>& w_null_joint_vel,
+                               const Eigen::Ref<const VectorXd>& w_acc_damping);
+                
+                /**
+                 * @brief Set the desired task space velocity for the link.
+                 * @param link_xdot_desired (std::map<std::string, Vector6d>) Desired task space velocity (6D twist) per links.
+                 */
+                void setDesiredTaskVel(const std::map<std::string, Vector6d> &link_xdot_desired);
+
+                /**
                  * @brief Set the desired actuated velocity for null space tracking.
                  *        When set, the null space cost becomes ||N_tilda*(eta - null_eta_desired)||_W_null^2,
                  *        where N_tilda = I - J_tilda†J_tilda is the task null space projector.
@@ -67,47 +99,6 @@ namespace drc
                  */
                 void setDesiredNullJointVel(const Eigen::Ref<const VectorXd>& null_eta_desired) { null_eta_desired_ = null_eta_desired; }
 
-                /**
-                 * @brief Set manipulator joint acceleration damping weights only.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-                 */
-                void setManiJointAccWeight(const Eigen::Ref<const VectorXd>& w_mani_acc_damping) { w_mani_acc_damping_ = w_mani_acc_damping; }
-
-                /**
-                 * @brief Set mobile base acceleration damping weights only.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
-                 */
-                void setBaseAccWeight(const Eigen::Vector3d& w_base_acc_damping) { w_base_acc_damping_ = w_base_acc_damping; }
-
-                /**
-                 * @brief Set the weight vector for the cost terms.
-                 * @param w_tracking (Eigen::Vector6d) Weight for task space velocity tracking for all the links in the URDF.
-                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space velocity tracking toward null_eta_desired; its size must same as actuator_dof.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping toward qdot_now; its size must same as mani_dof.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
-                 */
-                void setWeight(const Vector6d& w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_null_joint_vel,
-                               const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                               const Eigen::Vector3d& w_base_acc_damping);
-
-                /**
-                 * @brief Set the weight vector for the cost terms.
-                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
-                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space velocity tracking toward null_eta_desired; its size must same as actuator_dof.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping toward qdot_now; its size must same as mani_dof.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
-                 */
-                void setWeight(const std::map<std::string, Vector6d>& link_w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_null_joint_vel,
-                               const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                               const Eigen::Vector3d& w_base_acc_damping);
-                
-                /**
-                 * @brief Set the desired task space velocity for the link.
-                 * @param link_xdot_desired (std::map<std::string, Vector6d>) Desired task space velocity (6D twist) per links.
-                 */
-                void setDesiredTaskVel(const std::map<std::string, Vector6d> &link_xdot_desired);
                 
                 /**
                  * @brief Get the optimal joint velocity by solving QP.
@@ -161,9 +152,8 @@ namespace drc
                 std::map<std::string, Vector6d> link_xdot_desired_; // Desired task velocity per links
                 std::map<std::string, Vector6d> link_w_tracking_;   // weight for task velocity tracking per links; || x_i_dot_des - J_i_tilda*eta ||
                 VectorXd null_eta_desired_;                         // desired actuated velocity [qdot_mani; v_mobi] for null space tracking (default: zero)
-                VectorXd w_null_joint_vel_;                               // weight for null space velocity tracking;      || N_tilda*(eta - null_eta_desired) ||
-                VectorXd w_mani_acc_damping_;                       // weight for manipulator joint acceleration damping; || (eta_mani - eta_mani_now) / dt ||
-                Vector3d w_base_acc_damping_;                       // weight for mobile base acceleration damping;  || (v_base - v_base_now) / dt ||
+                VectorXd w_null_joint_vel_;                         // weight for null space velocity tracking; || N_tilda*(eta - null_eta_desired) ||
+                VectorXd w_acc_damping_;                            // weight for actuator acceleration damping; || (eta - eta_now) / dt ||
 
                 // self-collision CBF gradient exponential filter
                 // smooths discontinuous jumps when the closest collision pair changes
@@ -177,8 +167,7 @@ namespace drc
                  *
                  *       min     Σ_i || x_i_dot_des - J_i_tilda*eta ||_Wi^2
                  *     [eta,s]     + || N_tilda*(eta - null_eta_des) ||_W_null^2
-                 *                 + || (eta_mani - eta_mani_now) / dt ||_W3^2
-                 *                 + || (v_base - v_base_now) / dt ||_W5^2
+                 *                 + || (eta - eta_now) / dt ||_W3^2
                  *                 + 1000*s
                  *
                  *        where N_tilda = I - J_tilda†J_tilda  (actuated null space projector),  NWN = N_tilda^T * W_null * N_tilda

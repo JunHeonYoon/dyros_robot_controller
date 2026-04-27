@@ -54,77 +54,44 @@ namespace drc
                 void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
 
                 /**
-                 * @brief Set manipulator joint velocity damping weights only.
-                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @brief Set actuator-space velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for actuator velocity damping; its size must same as actuator_dof.
                  */
-                void setManiJointVelWeight(const Eigen::Ref<const VectorXd>& w_mani_vel_damping) { w_mani_vel_damping_ = w_mani_vel_damping; }
+                void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_vel_damping) { w_vel_damping_ = w_vel_damping; }
 
                 /**
-                 * @brief Set manipulator joint acceleration damping weights only.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 * @brief Set actuator-space acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping; its size must same as actuator_dof.
                  */
-                void setManiJointAccWeight(const Eigen::Ref<const VectorXd>& w_mani_acc_damping) { w_mani_acc_damping_ = w_mani_acc_damping; }
+                void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
                 /**
                  * @brief Set null space torque tracking weights only.
                  * @param w_null_torque (Eigen::VectorXd) Diagonal weight for actuator-space null torque tracking; its size must same as actuator_dof.
                  */
                 void setNullTorqueWeight(const Eigen::Ref<const VectorXd>& w_null_torque) { w_null_torque_ = w_null_torque; }
 
-
-                /**
-                 * @brief Set the desired mobile base velocity for null space tracking.
-                 * @param base_vel_desired (Eigen::Vector3d) Desired base twist [vx, vy, wz].
-                 */
-                void setDesiredBaseVel(const Eigen::Vector3d& base_vel_desired) { base_vel_desired_ = base_vel_desired; }
-
-                /**
-                 * @brief Set the desired mobile base acceleration for null space tracking.
-                 * @param base_acc_desired (Eigen::Vector3d) Desired base acceleration [ax, ay, alphaz].
-                 */
-                void setDesiredBaseAcc(const Eigen::Vector3d& base_acc_desired) { base_acc_desired_ = base_acc_desired; }
-
-                /**
-                 * @brief Set mobile base velocity damping weights only.
-                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
-                 */
-                void setBaseVelWeight(const Eigen::Vector3d& w_base_vel_damping) { w_base_vel_damping_ = w_base_vel_damping; }
-
-                /**
-                 * @brief Set mobile base acceleration damping weights only.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
-                 */
-                void setBaseAccWeight(const Eigen::Vector3d& w_base_acc_damping) { w_base_acc_damping_ = w_base_acc_damping; }
-
                 /**
                  * @brief Set the weight vectors for the cost terms.
                  * @param w_tracking (Vector6d) Weight for task space acceleration tracking for all the links in the URDF.
-                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for actuator velocity damping; its size must same as actuator_dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping; its size must same as actuator_dof.
                  * @param w_null_torque (Eigen::VectorXd) Diagonal weight for null space torque tracking; its size must same as actuator_dof.
                  */
                 void setWeight(const Vector6d w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
-                               const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                               const Eigen::Vector3d& w_base_vel_damping,
-                               const Eigen::Vector3d& w_base_acc_damping,
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
+                               const Eigen::Ref<const VectorXd>& w_acc_damping,
                                const Eigen::Ref<const VectorXd>& w_null_torque);
                 
                 /**
                  * @brief Set the weight vectors for the cost terms.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space acceleration tracking per links.
-                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for actuator velocity damping; its size must same as actuator_dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping; its size must same as actuator_dof.
                  * @param w_null_torque (Eigen::VectorXd) Diagonal weight for null space torque tracking; its size must same as actuator_dof.
                  */
                 void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
-                               const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                               const Eigen::Vector3d& w_base_vel_damping,
-                               const Eigen::Vector3d& w_base_acc_damping,
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
+                               const Eigen::Ref<const VectorXd>& w_acc_damping,
                                const Eigen::Ref<const VectorXd>& w_null_torque);
 
                 /**
@@ -219,14 +186,10 @@ namespace drc
                 
                 std::map<std::string, Vector6d> link_xddot_desired_; // Desired task acceleration per links
                 std::map<std::string, Vector6d> link_w_tracking_; // weight for task acceleration tracking per links; || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||
-                VectorXd w_mani_vel_damping_;                     // weight for manipulator velocity damping;                     || eta_dot*dt + eta ||
-                VectorXd w_mani_acc_damping_;                     // weight for manipulator acceleration damping;                 || eta_ddot ||
-                Vector3d w_base_vel_damping_;                     // weight for mobile base velocity tracking;                    || v_base_next - base_vel_desired ||
-                Vector3d w_base_acc_damping_;                     // weight for mobile base acceleration tracking;                || a_base - base_acc_desired ||
-                VectorXd w_null_torque_;                          // weight for actuator-space null torque tracking;              || N*(torque - null_torque) ||
-                Vector3d base_vel_desired_;                       // desired mobile base velocity for null space tracking
-                Vector3d base_acc_desired_;                       // desired mobile base acceleration for null space tracking
-                VectorXd null_torque_;                       // desired total null space torque
+                VectorXd w_vel_damping_;                          // weight for actuator velocity damping;            || eta_dot*dt + eta ||
+                VectorXd w_acc_damping_;                          // weight for actuator acceleration damping;        || eta_dot ||
+                VectorXd w_null_torque_;                          // weight for actuator-space null torque tracking;  || N*(torque - null_torque) ||
+                VectorXd null_torque_;                            // desired total null space torque
 
                 // self-collision CBF gradient exponential filter
                 // smooths discontinuous jumps when the closest collision pair changes
@@ -240,19 +203,17 @@ namespace drc
                  *        Use slack variables (s) to increase feasibility of QP.
                  *
                  *       min      Σ_i || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||_W1_i^2
-                 * [eta_dot,tau,s] + || eta_dot_mani ||_W2^2
-                 *                 + || dt*eta_dot_mani + eta_mani ||_W3^2
-                 *                 + || a_base - base_acc_desired ||_Wbase_acc^2
-                 *                 + || v_base_next - base_vel_desired ||_Wbase_vel^2
+                 * [eta_dot,tau,s] + || eta_dot ||_W2^2
+                 *                 + || dt*eta_dot + eta ||_W3^2
                  *                 + || N*(tau - null_tau_des) ||_W4^2
                  *                 + 1000*s
                  *        where N = I - J_tilda^T*Λ*J_tilda*M_tilda^-1,  Λ = (J_tilda*M_tilda^-1*J_tilda^T)^+,
                  *              W4 = diag(w_null_torque),  NWN = N^T*W4*N
                  *
-                 * =>    min        1/2 [ eta_dot ]^T * [ 2*Σ(J_i_tilda.T*W1_i*J_i_tilda) + damping/base terms     0       0 ] * [ eta_dot ]
+                 * =>    min        1/2 [ eta_dot ]^T * [ 2*Σ(J_i_tilda.T*W1_i*J_i_tilda) + damping terms     0       0 ] * [ eta_dot ]
                  * [eta_dot,tau,s]      [   tau   ]     [                         0                              2*NWN     0 ]   [   tau   ]
                  *                      [    s    ]     [                         0                                0       0 ]   [    s    ]
-                 *                    + [ -2*Σ(J_i_tilda.T*W1_i*(x_i_ddot_des - J_i_tilda_dot*eta)) + damping/base terms ].T * [ eta_dot ]
+                 *                    + [ -2*Σ(J_i_tilda.T*W1_i*(x_i_ddot_des - J_i_tilda_dot*eta)) + damping terms ].T * [ eta_dot ]
                  *                      [                          -2*NWN*null_tau_des                                   ]     [   tau   ]
                  *                      [                                 1000                                           ]     [    s    ]
                  */

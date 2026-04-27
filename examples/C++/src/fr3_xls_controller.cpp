@@ -107,12 +107,9 @@ FR3XLSController::FR3XLSController(const double dt)
     mani_joint_kp_.setZero(mani_dof_);
     mani_joint_kv_.setZero(mani_dof_);
     qpik_null_vel_gain_.setZero(actuator_dof_);
-    qpik_mani_acc_damping_.setZero(mani_dof_);
-    qpik_base_acc_damping_.setZero();
-    qpid_mani_vel_damping_.setZero(mani_dof_);
-    qpid_mani_acc_damping_.setZero(mani_dof_);
-    qpid_base_vel_damping_.setZero();
-    qpid_base_acc_damping_.setZero();
+    qpik_acc_damping_.setZero(actuator_dof_);
+    qpid_vel_damping_.setZero(actuator_dof_);
+    qpid_acc_damping_.setZero(actuator_dof_);
     qpid_null_torque_.setZero(actuator_dof_);
     mani_joint_kp_         << 600.0, 600.0, 600.0, 600.0, 250.0, 150.0,  50.0;
     mani_joint_kv_         <<  30.0,  30.0,  30.0,  30.0,  10.0,  10.0,   5.0;
@@ -123,19 +120,22 @@ FR3XLSController::FR3XLSController(const double dt)
     qpik_null_vel_gain_.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_)
                             <<  0.01,  0.01,  0.01,  0.01,  0.01,  0.01,  0.01;
     qpik_null_vel_gain_.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_).setConstant(0.1);
-    qpik_mani_acc_damping_ << 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001;
-    qpik_base_acc_damping_ <<   0.1,   0.1,   0.1; // [vx, vy, wz]
+    qpik_acc_damping_.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_)
+                        << 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001;
+    qpik_acc_damping_.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_).setConstant(0.1);
     qpid_tracking_         <<  10.0,  10.0,  10.0,   1.0,   1.0,   1.0;
-    qpid_mani_vel_damping_ <<   0.1,   0.1,   0.1,   0.1,   0.1,   0.1,   0.1;
-    qpid_mani_acc_damping_ <<   5.0,   5.0,   5.0,   5.0,   5.0,   5.0,   5.0;
-    qpid_base_vel_damping_ <<   0.1,   0.1,   0.1; // [vx, vy, wz]
-    qpid_base_acc_damping_ <<   0.1,   0.1,   0.1;
+    qpid_vel_damping_.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_)
+                        <<   0.1,   0.1,   0.1,   0.1,   0.1,   0.1,   0.1;
+    qpid_vel_damping_.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_).setConstant(0.1);
+    qpid_acc_damping_.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_)
+                        <<   5.0,   5.0,   5.0,   5.0,   5.0,   5.0,   5.0;
+    qpid_acc_damping_.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_).setConstant(0.1);
 
     robot_controller_->setManipulatorJointGain(mani_joint_kp_, mani_joint_kv_);
     robot_controller_->setIKGain(task_ik_kp_);
     robot_controller_->setIDGain(task_id_kp_, task_id_kv_);
-    robot_controller_->setQPIKGain(qpik_tracking_, qpik_null_vel_gain_, qpik_mani_acc_damping_, qpik_base_acc_damping_);
-    robot_controller_->setQPIDGain(qpid_tracking_, qpid_mani_vel_damping_, qpid_mani_acc_damping_, qpid_base_vel_damping_, qpid_base_acc_damping_, qpid_null_torque_);
+    robot_controller_->setQPIKGain(qpik_tracking_, qpik_null_vel_gain_, qpik_acc_damping_);
+    robot_controller_->setQPIDGain(qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_, qpid_null_torque_);
 
 
     // Print FR3 URDF info

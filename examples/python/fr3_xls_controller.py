@@ -144,13 +144,19 @@ class FR3XLSController:
         self.qpik_null_vel_gain[actuator_idx.mani_start:actuator_idx.mani_start + self.mani_dof] = \
             np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
         self.qpik_null_vel_gain[actuator_idx.mobi_start:actuator_idx.mobi_start + self.mobi_dof] = 0.1
-        self.qpik_mani_acc_damping = np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001])
-        self.qpik_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpik_acc_damping = np.zeros(self.actuated_dof)
+        self.qpik_acc_damping[actuator_idx.mani_start:actuator_idx.mani_start + self.mani_dof] = \
+            np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001])
+        self.qpik_acc_damping[actuator_idx.mobi_start:actuator_idx.mobi_start + self.mobi_dof] = 0.1
         self.qpid_tracking = np.array([10.0, 10.0, 10.0, 1.0, 1.0, 1.0])
-        self.qpid_mani_vel_damping = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-        self.qpid_mani_acc_damping = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
-        self.qpid_base_vel_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
-        self.qpid_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpid_vel_damping = np.zeros(self.actuated_dof)
+        self.qpid_vel_damping[actuator_idx.mani_start:actuator_idx.mani_start + self.mani_dof] = \
+            np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        self.qpid_vel_damping[actuator_idx.mobi_start:actuator_idx.mobi_start + self.mobi_dof] = 0.1
+        self.qpid_acc_damping = np.zeros(self.actuated_dof)
+        self.qpid_acc_damping[actuator_idx.mani_start:actuator_idx.mani_start + self.mani_dof] = \
+            np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
+        self.qpid_acc_damping[actuator_idx.mobi_start:actuator_idx.mobi_start + self.mobi_dof] = 0.1
         self.qpid_null_torque = np.zeros(self.actuated_dof)
 
         self.robot_controller.set_manipulator_joint_gain(kp=self.mani_joint_kp, kv=self.mani_joint_kv)
@@ -158,13 +164,10 @@ class FR3XLSController:
         self.robot_controller.set_ID_gain(kp=self.task_id_kp, kv=self.task_id_kv)
         self.robot_controller.set_QPIK_gain(w_tracking=self.qpik_tracking,
                                             w_null_vel=self.qpik_null_vel_gain,
-                                            w_mani_acc_damping=self.qpik_mani_acc_damping,
-                                            w_base_acc_damping=self.qpik_base_acc_damping)
+                                            w_acc_damping=self.qpik_acc_damping)
         self.robot_controller.set_QPID_gain(w_tracking=self.qpid_tracking,
-                                            w_mani_vel_damping=self.qpid_mani_vel_damping,
-                                            w_mani_acc_damping=self.qpid_mani_acc_damping,
-                                            w_base_vel_damping=self.qpid_base_vel_damping,
-                                            w_base_acc_damping=self.qpid_base_acc_damping,
+                                            w_vel_damping=self.qpid_vel_damping,
+                                            w_acc_damping=self.qpid_acc_damping,
                                             w_null_torque=self.qpid_null_torque)
         
         # Print FR3XLS URDF info
