@@ -185,6 +185,7 @@ class TaskSpaceData:
                  x_desired: np.ndarray | None = None,
                  xdot_desired: np.ndarray | None = None,
                  xddot_desired: np.ndarray | None = None,
+                 current_time: float = 0.0,
                  control_start_time: float = 0.0) -> None:
         """
         Constructor for task-space state and trajectory data.
@@ -199,6 +200,7 @@ class TaskSpaceData:
             x_desired           : (np.ndarray | None) Desired pose, shape (4, 4).
             xdot_desired        : (np.ndarray | None) Desired task-space velocity, size 6.
             xddot_desired       : (np.ndarray | None) Desired task-space acceleration, size 6.
+            current_time        : (float) Current time used by task-space cubic interpolation.
             control_start_time  : (float) Simulation time at the start of the current motion segment.
         """
 
@@ -215,6 +217,7 @@ class TaskSpaceData:
         self.xdot_desired  = np.zeros(6) if xdot_desired is None else np.array(xdot_desired, dtype=float, copy=True).reshape(-1)
         self.xddot_desired = np.zeros(6) if xddot_desired is None else np.array(xddot_desired, dtype=float, copy=True).reshape(-1)
 
+        self.current_time = float(current_time)
         self.control_start_time = float(control_start_time)
 
         # --------- Shape checks ----------
@@ -252,6 +255,7 @@ class TaskSpaceData:
         self._cpp.xdot_desired = self.xdot_desired.reshape(6,1)
         self._cpp.xddot_desired = self.xddot_desired.reshape(6,1)
 
+        self._cpp.current_time = self.current_time
         self._cpp.control_start_time = self.control_start_time
 
     def cpp(self) -> drc_cpp.TaskSpaceData:
@@ -274,6 +278,7 @@ class TaskSpaceData:
         self.xdot_desired[:] = 0.0
         self.xddot_desired[:] = 0.0
 
+        self.current_time = 0.0
         self.control_start_time = 0.0
 
         self._sync_to_cpp()
@@ -285,17 +290,12 @@ class TaskSpaceData:
         t.setZero()
         return t
 
-    def setInit(self, current_time: float | None = None) -> None:
-        """Store current state into *_init (same as C++ setInit()).
-
-        Parameters:
-            current_time : (float | None) If provided, stores it as control_start_time.
-        """
+    def setInit(self) -> None:
+        """Store current state into *_init and capture the current segment start time."""
         self.x_init[:] = self.x
         self.xdot_init[:] = self.xdot
         self.xddot_init[:] = self.xddot
-        if current_time is not None:
-            self.control_start_time = float(current_time)
+        self.control_start_time = self.current_time
         self._sync_to_cpp()
 
     def setDesired(self) -> None:

@@ -240,6 +240,7 @@ class FR3XLSController:
                                      qdot_mani=self.qdot_mani)
         self.link_ee_task[self.ee_link_name].x = self.robot_data.get_pose(self.ee_link_name).copy()
         self.link_ee_task[self.ee_link_name].xdot = self.robot_data.get_velocity(self.ee_link_name).copy()
+        self.link_ee_task[self.ee_link_name].current_time = self.sim_time
         
 
     def compute(self) -> Dict[str, float]:
@@ -300,8 +301,6 @@ class FR3XLSController:
 
             _, self.qdot_mobile_desired, self.qdot_mani_desired = self.robot_controller.QPIK_cubic(
                 link_task_data=self.link_ee_task,
-                init_time=self.control_start_time,
-                current_time=self.sim_time,
                 duration=2.0,
             )
             # Simple Euler integration for generating a joint-position target from qdot_desired (one-step lookahead)
@@ -314,7 +313,7 @@ class FR3XLSController:
             
         # --- Mode: Gravity Compensation W QPID (task-space QPID with zero desired acceleration) ---
         elif self.control_mode == "Gravity Compensation W QPID":
-            self.link_ee_task[self.ee_link_name].xddot = np.zeros(6)
+            self.link_ee_task[self.ee_link_name].xddot_desired = np.zeros(6)
             _, qddot_mobile_desired, self.tau_mani_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
             # Integrate mobile acceleration output to wheel velocity command
             self.qdot_mobile_desired = self.qdot_mobile + qddot_mobile_desired * self.dt

@@ -514,7 +514,6 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
     def CLIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
-                   current_time: float,
                    duration: float,
                    null_qdot: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray, np.ndarray]:
@@ -522,10 +521,11 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK with null_qdot if provided.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
-            current_time : (float) Current time.
-            duration     : (float) Time duration.
-            null_qdot    : (np.ndarray) [Optional] Desired actuated joint velocity to be projected on null space.
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+            duration       : (float) Time duration.
+            null_qdot      : (np.ndarray | None) Desired null velocity.
+                             Size may be mani_dof for manipulator-only null tracking, mobi_dof for mobile-only null tracking,
+                             or actuated_dof for mobile+manipulator null tracking.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
@@ -535,11 +535,8 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_qdot is None:
-            return super().CLIKCubic(link_task_data_cpp, current_time, 0.0, duration)
-        else:
-            null_qdot = null_qdot.reshape(-1)
-            assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().CLIKCubic(link_task_data_cpp, current_time, 0.0, duration, null_qdot)
+            return super().CLIKCubic(link_task_data_cpp, duration)
+        return super().CLIKCubic(link_task_data_cpp, duration, np.asarray(null_qdot).reshape(-1))
 
     def OSF(self,
             link_task_data: dict[str, TaskSpaceData],
@@ -593,7 +590,6 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
     def OSF_cubic(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  current_time: float,
                   duration: float,
                   null_torque: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray, np.ndarray]:
@@ -601,8 +597,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using OSF with null_torque if provided.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
-            current_time : (float) Current time.
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration     : (float) Time duration.
             null_torque  : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
 
@@ -614,11 +609,8 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is None:
-            return super().OSFCubic(link_task_data_cpp, current_time, 0.0, duration)
-        else:
-            null_torque = null_torque.reshape(-1)
-            assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().OSFCubic(link_task_data_cpp, current_time, 0.0, duration, null_torque)
+            return super().OSFCubic(link_task_data_cpp, duration)
+        return super().OSFCubic(link_task_data_cpp, duration, np.asarray(null_torque).reshape(-1))
 
     def QPIK(self,
              link_task_data: dict[str, TaskSpaceData],
@@ -672,7 +664,6 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
     def QPIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
-                   current_time: float,
                    duration: float,
                    null_qdot: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray, np.ndarray]:
@@ -680,8 +671,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute velocities for mobile base and manipulator joints using QP to follow the resulting trajectory.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
-            current_time   : (float) Current time.
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration       : (float) Time duration.
             null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
                              Size must be mani_dof. If None, defaults to zero (no null space tracking).
@@ -694,10 +684,8 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_qdot is not None:
-            null_qdot = np.asarray(null_qdot).reshape(-1)
-            assert null_qdot.size == self._robot_data.mani_dof, f"Size of null_qdot {null_qdot.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIKCubic(link_task_data_cpp, current_time, 0.0, duration, null_qdot)
-        return super().QPIKCubic(link_task_data_cpp, current_time, 0.0, duration)
+            return super().QPIKCubic(link_task_data_cpp, duration, np.asarray(null_qdot).reshape(-1))
+        return super().QPIKCubic(link_task_data_cpp, duration)
 
     def QPID(self,
              link_task_data: dict[str, TaskSpaceData],
@@ -749,7 +737,6 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
     def QPID_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
-                   current_time: float,
                    duration: float,
                    null_torque: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray, np.ndarray]:
@@ -757,8 +744,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using QP to follow the resulting trajectory.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
-            current_time : (float) Current time.
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration     : (float) Time duration.
             null_torque  : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
 
@@ -770,7 +756,5 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is not None:
-            null_torque = np.asarray(null_torque).reshape(-1)
-            assert null_torque.size == self._robot_data.mani_dof, f"Size of null_torque {null_torque.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIDCubic(link_task_data_cpp, current_time, 0.0, duration, null_torque)
-        return super().QPIDCubic(link_task_data_cpp, current_time, 0.0, duration)
+            return super().QPIDCubic(link_task_data_cpp, duration, np.asarray(null_torque).reshape(-1))
+        return super().QPIDCubic(link_task_data_cpp, duration)

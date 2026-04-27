@@ -141,6 +141,7 @@ class FR3Controller:
         self.robot_data.update_state(self.q, self.qdot)
         self.link_ee_task[self.ee_link_name].x = self.robot_data.get_pose(self.ee_link_name).copy()
         self.link_ee_task[self.ee_link_name].xdot = self.robot_data.get_velocity(self.ee_link_name).copy()
+        self.link_ee_task[self.ee_link_name].current_time = self.sim_time
 
     def compute(self) -> Dict[str, float]:
         """
@@ -199,8 +200,6 @@ class FR3Controller:
 
             _, self.qdot_desired = self.robot_controller.QPIK_cubic(
                 link_task_data=self.link_ee_task,
-                init_time=self.control_start_time,
-                current_time=self.sim_time,
                 duration=2.0,
             )
             # Simple Euler integrate desired joint positions from qdot_desired

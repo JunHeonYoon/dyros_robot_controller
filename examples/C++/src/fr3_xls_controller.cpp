@@ -193,6 +193,7 @@ void FR3XLSController::updateModel(const double current_time,
     robot_data_->updateState(q_virtual_, q_mobile_, q_mani_, qdot_virtual_, qdot_mobile_, qdot_mani_);
     link_ee_task_[ee_link_name_].x    = robot_data_->getPose(ee_link_name_);
     link_ee_task_[ee_link_name_].xdot = robot_data_->getVelocity(ee_link_name_);
+    link_ee_task_[ee_link_name_].current_time = sim_time_;
 }
 
 std::unordered_map<std::string, double> FR3XLSController::compute() 
@@ -248,8 +249,6 @@ std::unordered_map<std::string, double> FR3XLSController::compute()
         Eigen::VectorXd qdot_mobile_desired(mobile_dof_), qdot_mani_desired(mani_dof_);
         qdot_mobile_desired.setZero(); qdot_mani_desired.setZero();
         robot_controller_->QPIKCubic(link_ee_task_,
-                                     sim_time_,
-                                     control_start_time_,
                                      3.0,
                                      qdot_mobile_desired,
                                      qdot_mani_desired);

@@ -195,17 +195,20 @@ namespace drc
      * velocity, and acceleration). It is used for task-space control, trajectory
      * tracking, and logging.
      *
-     * @param x              (Affine3d)   Current pose of the frame.
-     * @param xdot           (Vector6d)   Current task-space velocity [v, w].
-     * @param xddot          (Vector6d)   Current task-space acceleration.
+     * @param x                  (Affine3d)   Current pose of the frame.
+     * @param xdot               (Vector6d)   Current task-space velocity [v, w].
+     * @param xddot              (Vector6d)   Current task-space acceleration.
      *
-     * @param x_init         (Affine3d)   Initial pose (snapshot taken when motion begins).
-     * @param xdot_init      (Vector6d)   Initial velocity.
-     * @param xddot_init     (Vector6d)   Initial acceleration.
+     * @param x_init             (Affine3d)   Initial pose (snapshot taken when motion begins).
+     * @param xdot_init          (Vector6d)   Initial velocity.
+     * @param xddot_init         (Vector6d)   Initial acceleration.
      *
-     * @param x_desired      (Affine3d)   Desired pose for task-space control.
-     * @param xdot_desired   (Vector6d)   Desired task-space velocity.
-     * @param xddot_desired  (Vector6d)   Desired task-space acceleration.
+     * @param x_desired          (Affine3d)   Desired pose for task-space control.
+     * @param xdot_desired       (Vector6d)   Desired task-space velocity.
+     * @param xddot_desired      (Vector6d)   Desired task-space acceleration.
+     * 
+     * @param current_time       (double)     Current time.
+     * @param control_start_time (double)     Initial control time.
      *
      * @note Use setInit() to store current values into the *_init fields.
      * @note Use setDesired() to store current values into the *_desired fields.
@@ -224,7 +227,8 @@ namespace drc
         Affine3d x_desired;
         Vector6d xdot_desired;
         Vector6d xddot_desired;
-
+        
+        double current_time{0.0};
         double control_start_time{0.0};
 
         /**
@@ -247,6 +251,7 @@ namespace drc
             xdot_desired.setZero();
             xddot_desired.setZero();
 
+            current_time = 0.0;
             control_start_time = 0.0;
         }
 
@@ -265,22 +270,14 @@ namespace drc
         /**
          * @brief Store the current task-space state into the *_init fields.
          *
-         * @param current_time Simulation time at the start of the motion.
          * @note Typical usage: call at the start of a motion or trajectory.
          */
-        void setInit(double current_time)
-        {
-            x_init = x;
-            xdot_init = xdot;
-            xddot_init = xddot;
-            control_start_time = current_time;
-        }
-
         void setInit()
         {
             x_init = x;
             xdot_init = xdot;
             xddot_init = xddot;
+            control_start_time = current_time;
         }
 
         /**
