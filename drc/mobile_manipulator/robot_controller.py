@@ -202,22 +202,35 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             super().setQPIKBaseAccGain(w_base_acc_damping)
 
     def set_QPID_gain(self,
+                      *,
+                      w_tracking: np.ndarray | None = None,
                       link_w_tracking: dict[str, np.ndarray] | None = None,
                       w_mani_vel_damping: np.ndarray | None = None,
                       w_mani_acc_damping: np.ndarray | None = None,
                       w_base_vel_damping: np.ndarray | None = None,
                       w_base_acc_damping: np.ndarray | None = None,
+                      w_null_torque: np.ndarray,
                       ):
         """
         Set the weight vector for the cost terms of the QPID.
 
         Parameters:
-            link_w_tracking    : (dict[str, np.ndarray]) Weight for task acceleration tracking per links.
-            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-            w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
-            w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
+            w_tracking          : (np.ndarray | None) Weight for task acceleration tracking for every link.
+            link_w_tracking     : (dict[str, np.ndarray] | None) Weight for task acceleration tracking per links.
+            w_mani_vel_damping  : (np.ndarray | None) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+            w_mani_acc_damping  : (np.ndarray | None) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+            w_base_vel_damping  : (np.ndarray | None) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
+            w_base_acc_damping  : (np.ndarray | None) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
+            w_null_torque       : (np.ndarray) Diagonal weight for actuator-space null torque tracking; its size must same as actuated_dof.
         """
+        if w_tracking is not None and link_w_tracking is not None:
+            raise ValueError("Only one of w_tracking or link_w_tracking can be set")
+
+        if w_tracking is not None:
+            w_tracking = w_tracking.reshape(-1)
+            assert w_tracking.size == 6, f"Size of w_tracking {w_tracking.size} is not equal to 6"
+            super().setQPIDTrackingGain(w_tracking)
+
         if link_w_tracking is not None:
             for k,v in link_w_tracking.items():
                 link_w_tracking[k] = v.reshape(-1)
@@ -244,47 +257,19 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             assert w_base_acc_damping.size == 3, f"Size of w_base_acc_damping {w_base_acc_damping.size} is not equal to 3"
             super().setQPIDBaseAccGain(w_base_acc_damping)
 
-    def set_QPID_gain(self,
-                      w_tracking: np.ndarray | None = None, 
-                      w_mani_vel_damping: np.ndarray | None = None, 
-                      w_mani_acc_damping: np.ndarray | None = None, 
-                      w_base_vel_damping: np.ndarray | None = None, 
-                      w_base_acc_damping: np.ndarray | None = None, 
-                      ):
+        self.set_QPID_null_torque_gain(w_null_torque)
+
+    def set_QPID_null_torque_gain(self, w_null_torque: np.ndarray):
         """
-        Set the weight vector for the cost terms of the QPID.
+        Set the vector weight for QPID actuator-space null torque tracking.
 
         Parameters:
-            w_tracking         : (np.ndarray) Weight for task acceleration tracking for every link.
-            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-            w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
-            w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
+            w_null_torque : (np.ndarray) Diagonal weight for actuator-space null torque tracking; size must be actuated_dof.
         """
-        if w_tracking is not None:
-            w_tracking = w_tracking.reshape(-1)
-            assert w_tracking.size == 6, f"Size of w_tracking {w_tracking.size} is not equal to 6"
-            super().setQPIDTrackingGain(w_tracking)
-
-        if w_mani_vel_damping is not None:
-            w_mani_vel_damping = w_mani_vel_damping.reshape(-1)
-            assert w_mani_vel_damping.size == self._robot_data.mani_dof, f"Size of w_mani_vel_damping {w_mani_vel_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIDManiJointVelGain(w_mani_vel_damping)
-
-        if w_mani_acc_damping is not None:
-            w_mani_acc_damping = w_mani_acc_damping.reshape(-1)
-            assert w_mani_acc_damping.size == self._robot_data.mani_dof, f"Size of w_mani_acc_damping {w_mani_acc_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIDManiJointAccGain(w_mani_acc_damping)
-
-        if w_base_vel_damping is not None:
-            w_base_vel_damping = np.asarray(w_base_vel_damping).reshape(-1)
-            assert w_base_vel_damping.size == 3, f"Size of w_base_vel_damping {w_base_vel_damping.size} is not equal to 3"
-            super().setQPIDBaseVelGain(w_base_vel_damping)
-
-        if w_base_acc_damping is not None:
-            w_base_acc_damping = np.asarray(w_base_acc_damping).reshape(-1)
-            assert w_base_acc_damping.size == 3, f"Size of w_base_acc_damping {w_base_acc_damping.size} is not equal to 3"
-            super().setQPIDBaseAccGain(w_base_acc_damping)
+        w_null_torque = np.asarray(w_null_torque).reshape(-1)
+        assert w_null_torque.size == self._robot_data.actuated_dof, \
+            f"Size of w_null_torque {w_null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+        super().setQPIDNullTorqueGain(w_null_torque)
 
     # ================================ Joint space Functions ================================        
 
@@ -679,9 +664,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            null_torque    : (np.ndarray | None) Desired null input.
-                             Size may be mani_dof for manipulator-only null torque, mobi_dof for mobile-only null tracking,
-                             or actuated_dof for mobile+manipulator null tracking.
+            null_torque    : (np.ndarray | None) Desired actuator-space null input; size must be actuated_dof.
                              The mobile block is interpreted as wheel acceleration and mapped to base acceleration.
 
         Returns:
@@ -692,7 +675,10 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is not None:
-            return super().QPID(link_task_data_cpp, np.asarray(null_torque).reshape(-1))
+            null_torque = np.asarray(null_torque).reshape(-1)
+            assert null_torque.size == self._robot_data.actuated_dof, \
+                f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+            return super().QPID(link_task_data_cpp, null_torque)
         return super().QPID(link_task_data_cpp)
 
     def QPID_step(self,
@@ -704,9 +690,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_torque    : (np.ndarray | None) Desired null input.
-                             Size may be mani_dof for manipulator-only null torque, mobi_dof for mobile-only null tracking,
-                             or actuated_dof for mobile+manipulator null tracking.
+            null_torque    : (np.ndarray | None) Desired actuator-space null input; size must be actuated_dof.
                              The mobile block is interpreted as wheel acceleration and mapped to base acceleration.
 
         Returns:
@@ -717,7 +701,10 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is not None:
-            return super().QPIDStep(link_task_data_cpp, np.asarray(null_torque).reshape(-1))
+            null_torque = np.asarray(null_torque).reshape(-1)
+            assert null_torque.size == self._robot_data.actuated_dof, \
+                f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+            return super().QPIDStep(link_task_data_cpp, null_torque)
         return super().QPIDStep(link_task_data_cpp)
 
     def QPID_cubic(self,
@@ -731,9 +718,7 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration     : (float) Time duration.
-            null_torque  : (np.ndarray | None) Desired null input.
-                           Size may be mani_dof for manipulator-only null torque, mobi_dof for mobile-only null tracking,
-                           or actuated_dof for mobile+manipulator null tracking.
+            null_torque  : (np.ndarray | None) Desired actuator-space null input; size must be actuated_dof.
                            The mobile block is interpreted as wheel acceleration and mapped to base acceleration.
 
         Returns:
@@ -744,5 +729,8 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             if hasattr(v, "cpp"):
                 link_task_data_cpp[k] = v.cpp()
         if null_torque is not None:
-            return super().QPIDCubic(link_task_data_cpp, duration, np.asarray(null_torque).reshape(-1))
+            null_torque = np.asarray(null_torque).reshape(-1)
+            assert null_torque.size == self._robot_data.actuated_dof, \
+                f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
+            return super().QPIDCubic(link_task_data_cpp, duration, null_torque)
         return super().QPIDCubic(link_task_data_cpp, duration)

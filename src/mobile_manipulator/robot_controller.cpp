@@ -264,26 +264,31 @@ namespace drc
                                           const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
                                           const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                                           const Eigen::Vector3d& w_base_vel_damping,
-                                          const Eigen::Vector3d& w_base_acc_damping)
+                                          const Eigen::Vector3d& w_base_acc_damping,
+                                          const Eigen::Ref<const VectorXd>& w_null_torque)
         {
             assert(w_mani_vel_damping.size() == mani_dof_);
             assert(w_mani_acc_damping.size() == mani_dof_);
-            QP_moma_ID_->setWeight(w_tracking, w_mani_vel_damping, w_mani_acc_damping, w_base_vel_damping, w_base_acc_damping);
+            assert(w_null_torque.size() == actuator_dof_);
+            QP_moma_ID_->setWeight(w_tracking, w_mani_vel_damping, w_mani_acc_damping, w_base_vel_damping, w_base_acc_damping, w_null_torque);
         }
 
         void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking,
                                           const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
                                           const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                                           const Eigen::Vector3d& w_base_vel_damping,
-                                          const Eigen::Vector3d& w_base_acc_damping)
+                                          const Eigen::Vector3d& w_base_acc_damping,
+                                          const Eigen::Ref<const VectorXd>& w_null_torque)
         {
             assert(w_mani_vel_damping.size() == mani_dof_);
             assert(w_mani_acc_damping.size() == mani_dof_);
-            QP_moma_ID_->setWeight(link_w_tracking, w_mani_vel_damping, w_mani_acc_damping, w_base_vel_damping, w_base_acc_damping);
+            assert(w_null_torque.size() == actuator_dof_);
+            QP_moma_ID_->setWeight(link_w_tracking, w_mani_vel_damping, w_mani_acc_damping, w_base_vel_damping, w_base_acc_damping, w_null_torque);
         }
 
-        void RobotController::setQPIDNullTorqueGain(const double w_null_torque)
+        void RobotController::setQPIDNullTorqueGain(const Eigen::Ref<const VectorXd>& w_null_torque)
         {
+            assert(w_null_torque.size() == actuator_dof_);
             QP_moma_ID_->setNullTorqueWeight(w_null_torque);
         }
 
@@ -920,25 +925,13 @@ namespace drc
                           << ") are not same as mobi_dof_(" << mobi_dof_ << ") and mani_dof_(" << mani_dof_ << ")" << std::endl;
                 return false;
             }
-            if(mobi_dof_ == mani_dof_ && null_input.size() == mobi_dof_)
-            {
-                std::cerr << "Size of null_input(" << null_input.size() << ") is not same as mobi_dof_(" << mobi_dof_
-                          << "), mani_dof_(" << mani_dof_ << "), or actuator_dof_(" << actuator_dof_
-                          << "). If mobi_dof_ equals mani_dof_, use an actuator_dof-sized vector." << std::endl;
-                return false;
-            }
             const auto actuator_idx = robot_data_->getActuatorIndex();
-            VectorXd null_input_actuated = VectorXd::Zero(actuator_dof_);
-            if(null_input.size() == actuator_dof_)  null_input_actuated = null_input;
-            else if(null_input.size() == mobi_dof_) null_input_actuated.segment(actuator_idx.mobi_start, mobi_dof_) = null_input;
-            else if(null_input.size() == mani_dof_) null_input_actuated.segment(actuator_idx.mani_start, mani_dof_) = null_input;
-            else
+            if(null_input.size() != actuator_dof_)
             {
-                std::cerr << "Size of null_input(" << null_input.size() << ") is not same as mobi_dof_(" << mobi_dof_
-                          << "), mani_dof_(" << mani_dof_ << "), or actuator_dof_(" << actuator_dof_
-                          << "). If mobi_dof_ equals mani_dof_, use an actuator_dof-sized vector." << std::endl;
+                std::cerr << "Size of null_input(" << null_input.size() << ") is not same as actuator_dof_(" << actuator_dof_ << ")." << std::endl;
                 return false;
             }
+            const VectorXd null_input_actuated = null_input;
             opt_qddot_mobile.setZero();
             opt_torque_manipulator.setZero();
 
@@ -946,7 +939,7 @@ namespace drc
             const Vector3d base_null_vel = robot_data_->getBaseVel() + dt_ * base_null_acc;
 
             QP_moma_ID_->setDesiredTaskAcc(link_xddot_target);
-            QP_moma_ID_->setNullTorque(null_input_actuated.segment(actuator_idx.mani_start, mani_dof_));
+            QP_moma_ID_->setNullTorque(null_input_actuated);
             QP_moma_ID_->setDesiredBaseAcc(base_null_acc);
             QP_moma_ID_->setDesiredBaseVel(base_null_vel);
             VectorXd opt_qddot = VectorXd::Zero(actuator_dof_);

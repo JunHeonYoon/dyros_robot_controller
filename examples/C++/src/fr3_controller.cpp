@@ -54,6 +54,7 @@ FR3Controller::FR3Controller(const double dt)
     qpik_acc_damping_.setZero(dof_);
     qpid_vel_damping_.setZero(dof_);
     qpid_acc_damping_.setZero(dof_);
+    qpid_null_torque_.setZero(dof_);
     joint_kp_        << 600.0, 600.0, 600.0, 600.0, 250.0, 150.0,  50.0;
     joint_kv_        <<  30.0,  30.0,  30.0,  30.0,  10.0,  10.0,   5.0;
     task_ik_kp_      <<  10.0,  10.0,  10.0,  30.0,  30.0,  30.0;
@@ -70,7 +71,7 @@ FR3Controller::FR3Controller(const double dt)
     robot_controller_->setIKGain(task_ik_kp_);
     robot_controller_->setIDGain(task_id_kp_, task_id_kv_);
     robot_controller_->setQPIKGain(qpik_tracking_, qpik_vel_damping_, qpik_acc_damping_);
-    robot_controller_->setQPIDGain(qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_);
+    robot_controller_->setQPIDGain(qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_, qpid_null_torque_);
 
 
     // Print FR3 URDF info

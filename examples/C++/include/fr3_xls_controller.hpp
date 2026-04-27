@@ -126,6 +126,7 @@ class FR3XLSController
         Eigen::VectorXd qpid_mani_acc_damping_;
         Eigen::Vector3d qpid_base_vel_damping_;
         Eigen::Vector3d qpid_base_acc_damping_;
+        Eigen::VectorXd qpid_null_torque_;
 
         // Dyros model/controller handles
         std::shared_ptr<drc::MobileManipulator::RobotData>       robot_data_;

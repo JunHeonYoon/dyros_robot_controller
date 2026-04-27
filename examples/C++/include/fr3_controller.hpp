@@ -98,6 +98,7 @@ class FR3Controller
         Vector6d        qpid_tracking_;
         Eigen::VectorXd qpid_vel_damping_;
         Eigen::VectorXd qpid_acc_damping_;
+        Eigen::VectorXd qpid_null_torque_;
 
         // Dyros model/controller handles
         std::shared_ptr<drc::Manipulator::RobotData>       robot_data_;

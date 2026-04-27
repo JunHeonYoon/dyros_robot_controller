@@ -193,7 +193,7 @@ namespace drc
             assert(w_acc_damping.size() == dof_);
             QP_mani_IK_->setJointAccWeight(w_acc_damping);
         }
-        
+
         void RobotController::setQPIKGain(const Vector6d& w_tracking,
                                           const Eigen::Ref<const VectorXd>& w_null_joint_vel,
                                           const Eigen::Ref<const VectorXd>& w_acc_damping)
@@ -232,18 +232,25 @@ namespace drc
             QP_mani_ID_->setJointAccWeight(w_acc_damping);
         }
 
-        void RobotController::setQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
+        void RobotController::setQPIDNullTorqueGain(const Eigen::Ref<const VectorXd>& w_null_torque)
         {
-            QP_mani_ID_->setWeight(w_tracking, w_vel_damping, w_acc_damping);
-        }
-        
-        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
-        {
-            QP_mani_ID_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
+            assert(w_null_torque.size() == dof_);
+            QP_mani_ID_->setNullTorqueWeight(w_null_torque);
         }
 
-        void RobotController::setQPIDNullTorqueGain(const double w_null_torque)
+        void RobotController::setQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping, const Eigen::Ref<const VectorXd>& w_null_torque)
         {
+            QP_mani_ID_->setTrackingWeight(w_tracking);
+            QP_mani_ID_->setJointVelWeight(w_vel_damping);
+            QP_mani_ID_->setJointAccWeight(w_acc_damping);
+            QP_mani_ID_->setNullTorqueWeight(w_null_torque);
+        }
+
+        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping, const Eigen::Ref<const VectorXd>& w_null_torque)
+        {
+            QP_mani_ID_->setTrackingWeight(link_w_tracking);
+            QP_mani_ID_->setJointVelWeight(w_vel_damping);
+            QP_mani_ID_->setJointAccWeight(w_acc_damping);
             QP_mani_ID_->setNullTorqueWeight(w_null_torque);
         }
 

@@ -81,7 +81,7 @@ namespace drc
             w_vel_damping_.setOnes(joint_dof_);
             w_acc_damping_.setOnes(joint_dof_);
             null_torque_.setZero(joint_dof_);
-            w_null_torque_ = 0.0;
+            w_null_torque_.setZero(joint_dof_);
         }
 
         void QPID::setTrackingWeight(const Vector6d w_tracking)
@@ -96,20 +96,24 @@ namespace drc
 
         void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
                              const Eigen::Ref<const VectorXd>& w_vel_damping,
-                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+                             const Eigen::Ref<const VectorXd>& w_acc_damping,
+                             const Eigen::Ref<const VectorXd>& w_null_torque)
         {
             link_w_tracking_ = link_w_tracking;
             w_vel_damping_ = w_vel_damping;
             w_acc_damping_ = w_acc_damping;
+            w_null_torque_ = w_null_torque;
         }
 
         void QPID::setWeight(const Vector6d w_tracking,
                              const Eigen::Ref<const VectorXd>& w_vel_damping,
-                             const Eigen::Ref<const VectorXd>& w_acc_damping)
+                             const Eigen::Ref<const VectorXd>& w_acc_damping,
+                             const Eigen::Ref<const VectorXd>& w_null_torque)
         {
             setTrackingWeight(w_tracking);
             w_vel_damping_ = w_vel_damping;
             w_acc_damping_ = w_acc_damping;
+            w_null_torque_ = w_null_torque;
         }
 
         void QPID::setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired)
@@ -147,8 +151,12 @@ namespace drc
             P_ds_.setZero(nx_, nx_);
             q_ds_.setZero(nx_);
             
-            // for task space acceleration tracking
             const VectorXd qdot = robot_data_->getJointVelocity();
+            MatrixXd J_total(6 * link_xddot_desired_.size(), joint_dof_);
+            J_total.setZero();
+            int row = 0;
+
+            // for task space acceleration tracking; accumulate J_total for null space computation
             for(const auto& [link_name, xddot_desired] : link_xddot_desired_)
             {
                 const MatrixXd J_i = robot_data_->getJacobian(link_name);
@@ -160,6 +168,9 @@ namespace drc
 
                 P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) += 2.0 * J_i.transpose() * w_tracking.asDiagonal() * J_i;
                 q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += -2.0 * J_i.transpose() * w_tracking.asDiagonal() * (xddot_desired - J_i_dot * qdot);
+
+                J_total.block(row, 0, 6, joint_dof_) = J_i;
+                row += 6;
             }
 
             // for joint velocity/acceleration damping
@@ -167,14 +178,25 @@ namespace drc
                                                                                                                   2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
             q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * w_vel_damping_.asDiagonal() * qdot;
 
-            // for null torque tracking (Method 3: M-weighted qddot cost, equivalent to OSF null projection)
-            // min w_null * || qddot - M^{-1}*null_torque ||_M^2
-            // => P qddot: += 2*w_null*M,  q qddot: += -2*w_null*null_torque
-            if(w_null_torque_ > 0.0)
+            if(w_null_torque_.cwiseAbs().maxCoeff() > 0.0)
             {
-                const MatrixXd M = robot_data_->getMassMatrix();
-                P_ds_.block(si_index_.qddot_start, si_index_.qddot_start, si_index_.qddot_size, si_index_.qddot_size) += 2.0 * w_null_torque_ * M;
-                q_ds_.segment(si_index_.qddot_start, si_index_.qddot_size) += -2.0 * w_null_torque_ * null_torque_;
+                // Null space projector N = I - J^T*Λ*J*M^-1,  Λ = (J*M^-1*J^T)^+
+                const MatrixXd M_inv = robot_data_->getMassMatrixInv();
+                MatrixXd N = MatrixXd::Identity(joint_dof_, joint_dof_);
+
+                if(J_total.rows() > 0)
+                {
+                    const MatrixXd J_total_T = J_total.transpose();
+                    const MatrixXd M_task_total = DyrosMath::PinvSVD(J_total * M_inv * J_total_T);
+                    const MatrixXd J_total_T_pinv = M_task_total * J_total * M_inv;
+                    N -= J_total_T * J_total_T_pinv;
+                }
+
+                // for null space tracking: || N*(torque - null_torque) ||_W_null^2
+                const MatrixXd W_null = w_null_torque_.asDiagonal();
+                const MatrixXd NWN = N.transpose() * W_null * N;
+                P_ds_.block(si_index_.torque_start, si_index_.torque_start, si_index_.torque_size, si_index_.torque_size) += 2.0 * NWN;
+                q_ds_.segment(si_index_.torque_start, si_index_.torque_size) += -2.0 * NWN * null_torque_;
             }
 
             // for slack

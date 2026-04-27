@@ -183,25 +183,28 @@ namespace drc
                 void setQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
+                 * @brief Set QPID null space joint torque weight only.
+                 * @param w_null_torque (Eigen::VectorXd) Weight for null space torque tracking; its size must same as dof.
+                 */
+                void setQPIDNullTorqueGain(const Eigen::Ref<const VectorXd>& w_null_torque);
+
+                /**
                  * @brief Set the weight vector for the cost terms of the QPID.
                  * @param w_tracking (Vector6d) Weight for task acceleration tracking for every link.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 * @param w_null_torque (Eigen::VectorXd) Weight for null space torque tracking; its size must same as dof.
                  */
-                void setQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
+                void setQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping, const Eigen::Ref<const VectorXd>& w_null_torque);
 
                 /**
                  * @brief Set the weight vector for the cost terms of the QPID.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 * @param w_null_torque (Eigen::VectorXd) Weight for null space torque tracking; its size must same as dof.
                  */
-                void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
-                /**
-                 * @brief Set the null torque scale for the QPID null space cost (Method 3: M-weighted qddot cost).
-                 * @param w_null_torque (double) Scale factor; 0 disables the null space cost (default).
-                 */
-                void setQPIDNullTorqueGain(const double w_null_torque);
+                void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping, const Eigen::Ref<const VectorXd>& w_null_torque);
 
 
                 // ================================ Joint space Functions ================================
@@ -563,10 +566,10 @@ namespace drc
                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
                                   const bool time_verbose=false);
                 /**
-                 * @brief Computes joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP, with null_torque projected into null space (Method 3: M-weighted qddot cost, equivalent to OSF null projection).
+                 * @brief Computes joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP, with null_torque projected by OSF's torque null projector.
                  * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
                  * @param opt_torque     (Eigen::VectorXd) Output desired joint torques.
-                 * @param null_torque    (Eigen::VectorXd) Desired joint torque to track in null space (OSF convention: without gravity); its size must same as dof.
+                 * @param null_torque    (Eigen::VectorXd) Desired total joint torque to track in null space; its size must same as dof.
                  * @param time_verbose   (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                  */

@@ -151,6 +151,7 @@ class FR3XLSController:
         self.qpid_mani_acc_damping = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
         self.qpid_base_vel_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
         self.qpid_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpid_null_torque = np.zeros(self.actuated_dof)
 
         self.robot_controller.set_manipulator_joint_gain(kp=self.mani_joint_kp, kv=self.mani_joint_kv)
         self.robot_controller.set_IK_gain(kp=self.task_ik_kp)
@@ -163,7 +164,8 @@ class FR3XLSController:
                                             w_mani_vel_damping=self.qpid_mani_vel_damping,
                                             w_mani_acc_damping=self.qpid_mani_acc_damping,
                                             w_base_vel_damping=self.qpid_base_vel_damping,
-                                            w_base_acc_damping=self.qpid_base_acc_damping)
+                                            w_base_acc_damping=self.qpid_base_acc_damping,
+                                            w_null_torque=self.qpid_null_torque)
         
         # Print FR3XLS URDF info
         print("info:")

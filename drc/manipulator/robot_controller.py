@@ -191,18 +191,31 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             super().setQPIKJointAccGain(w_acc_damping)
         
     def set_QPID_gain(self,
+                      *,
+                      w_tracking: np.ndarray | None = None,
                       link_w_tracking: dict[str, np.ndarray] | None = None,
                       w_vel_damping: np.ndarray | None = None,
                       w_acc_damping: np.ndarray | None = None,
+                      w_null_torque: np.ndarray,
                       ):
         """
         Set the weight vector for the cost terms of the QPID.
 
         Parameters:
-            link_w_tracking : (dict[str, np.ndarray]) Weight for task acceleration tracking per links.
-            w_vel_damping   : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
-            w_acc_damping   : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
+            w_tracking     : (np.ndarray | None) Weight for task acceleration tracking for every link.
+            link_w_tracking: (dict[str, np.ndarray] | None) Weight for task acceleration tracking per links.
+            w_vel_damping  : (np.ndarray | None) Weight for joint velocity damping; its size must same as dof.
+            w_acc_damping  : (np.ndarray | None) Weight for joint acceleration damping; its size must same as dof.
+            w_null_torque  : (np.ndarray) Diagonal weight for null space torque tracking; its size must same as dof.
         """
+        if w_tracking is not None and link_w_tracking is not None:
+            raise ValueError("Only one of w_tracking or link_w_tracking can be set")
+
+        if w_tracking is not None:
+            w_tracking = w_tracking.reshape(-1)
+            assert w_tracking.size == 6, f"Size of w_tracking {w_tracking.size} is not equal to 6"
+            super().setQPIDTrackingGain(w_tracking)
+
         if link_w_tracking is not None:
             for k,v in link_w_tracking.items():
                 link_w_tracking[k] = v.reshape(-1)
@@ -219,33 +232,19 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
             super().setQPIDJointAccGain(w_acc_damping)
 
-    def set_QPID_gain(self,
-                      w_tracking: np.ndarray,
-                      w_vel_damping: np.ndarray,
-                      w_acc_damping: np.ndarray,
-                      ):
+        self.set_QPID_null_torque_gain(w_null_torque)
+
+    def set_QPID_null_torque_gain(self, w_null_torque: np.ndarray):
         """
-        Set the weight vector for the cost terms of the QPID.
+        Set the vector weight for QPID null torque tracking.
 
         Parameters:
-            w_tracking    : (np.ndarray) Weight for task acceleration tracking for every link.
-            w_vel_damping : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
-            w_acc_damping : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
+            w_null_torque : (np.ndarray) Diagonal weight for the OSF-style null torque cost; size must be dof.
         """
-        if w_tracking is not None:
-            w_tracking = w_tracking.reshape(-1)
-            assert w_tracking.size == 6, f"Size of w_tracking {w_tracking.size} is not equal to 6"
-            super().setQPIDTrackingGain(w_tracking)
-
-        if w_vel_damping is not None:
-            w_vel_damping = w_vel_damping.reshape(-1)
-            assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
-            super().setQPIDJointVelGain(w_vel_damping)
-
-        if w_acc_damping is not None:
-            w_acc_damping = w_acc_damping.reshape(-1)
-            assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
-            super().setQPIDJointAccGain(w_acc_damping)
+        w_null_torque = np.asarray(w_null_torque).reshape(-1)
+        assert w_null_torque.size == self._robot_data.dof, \
+            f"Size of w_null_torque {w_null_torque.size} is not equal to dof {self._robot_data.dof}"
+        super().setQPIDNullTorqueGain(w_null_torque)
 
     # ================================ Joint space Functions ================================
     def move_joint_position_cubic(self,
@@ -650,7 +649,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            null_torque    : (np.ndarray | None) Desired null space torque (OSF convention: without gravity); size must equal dof. If None, uses zero.
+            null_torque    : (np.ndarray | None) Desired total null-space torque; size must equal dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
@@ -674,7 +673,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_torque    : (np.ndarray | None) Desired null space torque (OSF convention: without gravity); size must equal dof. If None, uses zero.
+            null_torque    : (np.ndarray | None) Desired total null-space torque; size must equal dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
@@ -700,7 +699,7 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration     : (float) Time duration.
-            null_torque  : (np.ndarray | None) Desired null space torque (OSF convention: without gravity); size must equal dof. If None, uses zero.
+            null_torque  : (np.ndarray | None) Desired total null-space torque; size must equal dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.

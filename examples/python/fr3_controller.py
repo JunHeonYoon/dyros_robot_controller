@@ -88,12 +88,16 @@ class FR3Controller:
         self.qpid_tracking = np.array([10.0, 10.0, 10.0, 1.0, 1.0, 1.0])
         self.qpid_vel_damping = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         self.qpid_acc_damping = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
+        self.qpid_null_torque = np.zeros(self.dof)
         
         self.robot_controller.set_joint_gain(kp=self.joint_kp, kv=self.joint_kv)
         self.robot_controller.set_IK_gain(kp=self.task_ik_kp)
         self.robot_controller.set_ID_gain(kp=self.task_id_kp, kv=self.task_id_kv)
         self.robot_controller.set_QPIK_gain(w_tracking=self.qpik_tracking, w_vel_damping=self.qpik_vel_damping, w_acc_damping=self.qpik_acc_damping)
-        self.robot_controller.set_QPID_gain(w_tracking=self.qpid_tracking, w_vel_damping=self.qpid_vel_damping, w_acc_damping=self.qpid_acc_damping)
+        self.robot_controller.set_QPID_gain(w_tracking=self.qpid_tracking,
+                                            w_vel_damping=self.qpid_vel_damping,
+                                            w_acc_damping=self.qpid_acc_damping,
+                                            w_null_torque=self.qpid_null_torque)
         
         # Print FR3 URDF info
         print("info:")

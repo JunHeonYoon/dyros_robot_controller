@@ -231,12 +231,14 @@ namespace drc
                  * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
                  * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
                  * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 * @param w_null_torque (Eigen::VectorXd) Weight for actuator-space null torque tracking; its size must same as actuator_dof.
                  */
                 void setQPIDGain(const Vector6d& w_tracking,
                                  const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
                                  const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                                  const Eigen::Vector3d& w_base_vel_damping,
-                                 const Eigen::Vector3d& w_base_acc_damping);
+                                 const Eigen::Vector3d& w_base_acc_damping,
+                                 const Eigen::Ref<const VectorXd>& w_null_torque);
 
                 /**
                  * @brief Set the weight vector for the cost terms of the QPID.
@@ -245,17 +247,19 @@ namespace drc
                  * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
                  * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
                  * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 * @param w_null_torque (Eigen::VectorXd) Weight for actuator-space null torque tracking; its size must same as actuator_dof.
                  */
                 void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking,
                                  const Eigen::Ref<const VectorXd>& w_mani_vel_damping,
                                  const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
                                  const Eigen::Vector3d& w_base_vel_damping,
-                                 const Eigen::Vector3d& w_base_acc_damping);
+                                 const Eigen::Vector3d& w_base_acc_damping,
+                                 const Eigen::Ref<const VectorXd>& w_null_torque);
                 /**
-                 * @brief Set the null torque scale for the QPID manipulator null space cost (Method 3: M-weighted qddot cost).
-                 * @param w_null_torque (double) Scale factor; 0 disables the null space cost (default).
+                 * @brief Set the actuator-space null torque weights for the QPID null space cost.
+                 * @param w_null_torque (Eigen::VectorXd) Weight for actuator-space null torque tracking; its size must same as actuator_dof.
                  */
-                void setQPIDNullTorqueGain(const double w_null_torque);
+                void setQPIDNullTorqueGain(const Eigen::Ref<const VectorXd>& w_null_torque);
 
 
                 // ================================== Mobile Functions ===================================
@@ -679,8 +683,7 @@ namespace drc
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
                  * @param opt_qddot_mobile      (Eigen::VectorXd) Output optimal mobile wheel accelerations.
                  * @param opt_torque_manipulator(Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_input            (Eigen::VectorXd) Desired null input. Size may be mani_dof, mobi_dof, or actuator_dof.
-                 *                              mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
+                 * @param null_input            (Eigen::VectorXd) Desired actuator-space null input; its size must same as actuator_dof.
                  *                              The mobile block is interpreted as mobile wheel acceleration.
                  * @param time_verbose          (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
