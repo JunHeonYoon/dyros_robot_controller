@@ -211,26 +211,22 @@ namespace drc
             q_ds_.segment(si_index_.eta_dot_start, si_index_.eta_dot_size) +=
                 2.0 * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix() * eta;
 
-            
-            if(w_null_torque_.cwiseAbs().maxCoeff() > 0.0)
+
+            // Null space projector N = I - J_tilda^T * Λ * J_tilda * M_tilda^-1,  Λ = (J_tilda * M_tilda^-1 * J_tilda^T)^+
+            const MatrixXd M_inv = robot_data_->getMassMatrixActuatedInv();
+            MatrixXd N = MatrixXd::Identity(actuator_dof_, actuator_dof_);
+
+            if(J_total.rows() > 0)
             {
-                // Null space projector N = I - J_tilda^T*Λ*J_tilda*M_tilda^-1,  Λ = (J_tilda*M_tilda^-1*J_tilda^T)^+
-                const MatrixXd M_inv = robot_data_->getMassMatrixActuatedInv();
-                MatrixXd N = MatrixXd::Identity(actuator_dof_, actuator_dof_);
-
-                if(J_total.rows() > 0)
-                {
-                    const MatrixXd J_total_T = J_total.transpose();
-                    const MatrixXd M_task_total = DyrosMath::PinvSVD(J_total * M_inv * J_total_T);
-                    const MatrixXd J_total_T_pinv = M_task_total * J_total * M_inv;
-                    N -= J_total_T * J_total_T_pinv;
-                }
-
-                // for actuator-space null tracking: || N*(torque - null_torque) ||_W_null^2
-                const MatrixXd NWN = N.transpose() * w_null_torque_.asDiagonal() * N;
-                P_ds_.block(si_index_.torque_start, si_index_.torque_start, si_index_.torque_size, si_index_.torque_size) += 2.0 * NWN;
-                q_ds_.segment(si_index_.torque_start, si_index_.torque_size) += -2.0 * NWN * null_torque_;
+                const MatrixXd J_total_T = J_total.transpose();
+                const MatrixXd M_task_total = DyrosMath::PinvCOD(J_total * M_inv * J_total_T);
+                N -= J_total_T * M_task_total * J_total * M_inv;
             }
+
+            // for actuator-space null tracking: || N*(torque - null_torque) ||_W_null^2
+            const MatrixXd NWN = N.transpose() * w_null_torque_.asDiagonal() * N;
+            P_ds_.block(si_index_.torque_start, si_index_.torque_start, si_index_.torque_size, si_index_.torque_size) += 2.0 * NWN;
+            q_ds_.segment(si_index_.torque_start, si_index_.torque_size) += -2.0 * NWN * null_torque_;
 
             // for slack
             q_ds_.segment(si_index_.slack_q_mani_min_start,   si_index_.slack_q_mani_min_size)    = VectorXd::Constant(si_index_.slack_q_mani_min_size,    1000.0);
@@ -362,16 +358,15 @@ namespace drc
     
             // self collision avoidance
             const Manipulator::MinDistResult min_dist_data = robot_data_->getMinDistance(true, true, false);
-            const int mani_start = robot_data_->getJointIndex().mani_start;
             const bool valid_col_grad =
                 std::isfinite(min_dist_data.distance) &&
-                min_dist_data.grad.size() >= mani_start + mani_dof_ &&
-                min_dist_data.grad_dot.size() >= mani_start + mani_dof_;
+                min_dist_data.grad.size() >= mani_dof_ &&
+                min_dist_data.grad_dot.size() >= mani_dof_;
 
             if (valid_col_grad)
             {
-                const VectorXd col_grad = min_dist_data.grad.segment(mani_start, mani_dof_);
-                const VectorXd col_grad_dot = min_dist_data.grad_dot.segment(mani_start, mani_dof_);
+                const VectorXd col_grad = min_dist_data.grad.segment(0, mani_dof_);
+                const VectorXd col_grad_dot = min_dist_data.grad_dot.segment(0, mani_dof_);
 
                 if (col_grad.allFinite() &&
                     col_grad_dot.allFinite() &&

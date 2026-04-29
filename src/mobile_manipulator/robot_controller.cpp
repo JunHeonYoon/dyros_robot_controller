@@ -897,7 +897,7 @@ namespace drc
         bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                    Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                    Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                   const Eigen::Ref<const VectorXd>& null_input,
+                                   const Eigen::Ref<const VectorXd>& null_torque,
                                    std::string& time_verbose)
         {
             time_verbose.clear();
@@ -907,18 +907,26 @@ namespace drc
                           << ") are not same as mobi_dof_(" << mobi_dof_ << ") and mani_dof_(" << mani_dof_ << ")" << std::endl;
                 return false;
             }
+
             const auto actuator_idx = robot_data_->getActuatorIndex();
-            if(null_input.size() != actuator_dof_)
+
+            VectorXd null_torque_actuated = VectorXd::Zero(actuator_dof_);
+            if(null_torque.size() == actuator_dof_)  null_torque_actuated = null_torque;
+            else if(null_torque.size() == mobi_dof_) null_torque_actuated.segment(actuator_idx.mobi_start, mobi_dof_) = null_torque;
+            else if(null_torque.size() == mani_dof_) null_torque_actuated.segment(actuator_idx.mani_start, mani_dof_) = null_torque;
+            else
             {
-                std::cerr << "Size of null_input(" << null_input.size() << ") is not same as actuator_dof_(" << actuator_dof_ << ")." << std::endl;
+                std::cerr << "Size of null_torque(" << null_torque.size() << ") is not same as mobi_dof_(" << mobi_dof_
+                          << "), mani_dof_(" << mani_dof_ << "), or actuator_dof_(" << actuator_dof_
+                          << ")." << std::endl;
                 return false;
             }
-            const VectorXd null_input_actuated = null_input;
+
             opt_qddot_mobile.setZero();
             opt_torque_manipulator.setZero();
 
             QP_moma_ID_->setDesiredTaskAcc(link_xddot_target);
-            QP_moma_ID_->setNullTorque(null_input_actuated);
+            QP_moma_ID_->setNullTorque(null_torque_actuated);
             VectorXd opt_qddot = VectorXd::Zero(actuator_dof_);
             VectorXd opt_torque = VectorXd::Zero(actuator_dof_);
             QP::TimeDuration time_duration;
@@ -938,11 +946,11 @@ namespace drc
         bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                    Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                    Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                   const Eigen::Ref<const VectorXd>& null_input,
+                                   const Eigen::Ref<const VectorXd>& null_torque,
                                    const bool time_verbose)
         {
             std::string time_verbose_str;
-            const bool qp_success = QPID(link_xddot_target, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose_str);
+            const bool qp_success = QPID(link_xddot_target, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose_str);
             printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
@@ -952,8 +960,8 @@ namespace drc
                                    Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                    std::string& time_verbose)
         {
-            const VectorXd null_input = VectorXd::Zero(actuator_dof_);
-            return QPID(link_xddot_target, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose);
+            const VectorXd null_torque = VectorXd::Zero(actuator_dof_);
+            return QPID(link_xddot_target, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose);
         }
 
         bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
@@ -970,7 +978,7 @@ namespace drc
         bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                    Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                    Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                   const Eigen::Ref<const VectorXd>& null_input,
+                                   const Eigen::Ref<const VectorXd>& null_torque,
                                    std::string& time_verbose)
         {
             std::map<std::string, Vector6d> link_xddot_target;
@@ -979,17 +987,17 @@ namespace drc
                 link_xddot_target[link_name] = task_data.xddot_desired;
             }
 
-            return QPID(link_xddot_target, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose);
+            return QPID(link_xddot_target, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose);
         }
 
         bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                    Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                    Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                   const Eigen::Ref<const VectorXd>& null_input,
+                                   const Eigen::Ref<const VectorXd>& null_torque,
                                    const bool time_verbose)
         {
             std::string time_verbose_str;
-            const bool qp_success = QPID(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose_str);
+            const bool qp_success = QPID(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose_str);
             printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
@@ -999,8 +1007,8 @@ namespace drc
                                    Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                    std::string& time_verbose)
         {
-            const VectorXd null_input = VectorXd::Zero(actuator_dof_);
-            return QPID(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose);
+            const VectorXd null_torque = VectorXd::Zero(actuator_dof_);
+            return QPID(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose);
         }
 
         bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -1017,7 +1025,7 @@ namespace drc
         bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                       const Eigen::Ref<const VectorXd>& null_input,
+                                       const Eigen::Ref<const VectorXd>& null_torque,
                                        std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -1035,17 +1043,17 @@ namespace drc
 
                 link_task_data_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
             }
-            return QPID(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose);
+            return QPID(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose);
         }
 
         bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                       const Eigen::Ref<const VectorXd>& null_input,
+                                       const Eigen::Ref<const VectorXd>& null_torque,
                                        const bool time_verbose)
         {
             std::string time_verbose_str;
-            const bool qp_success = QPIDStep(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose_str);
+            const bool qp_success = QPIDStep(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose_str);
             printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
@@ -1055,8 +1063,8 @@ namespace drc
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                        std::string& time_verbose)
         {
-            const VectorXd null_input = VectorXd::Zero(actuator_dof_);
-            return QPIDStep(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose);
+            const VectorXd null_torque = VectorXd::Zero(actuator_dof_);
+            return QPIDStep(link_task_data, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose);
         }
 
         bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -1074,7 +1082,7 @@ namespace drc
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                         Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                        const Eigen::Ref<const VectorXd>& null_input,
+                                        const Eigen::Ref<const VectorXd>& null_torque,
                                         std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -1084,18 +1092,18 @@ namespace drc
                 DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, task_data.current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
-            return QPIDStep(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose);
+            return QPIDStep(link_task_data_result, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose);
         }
 
         bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                         Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                        const Eigen::Ref<const VectorXd>& null_input,
+                                        const Eigen::Ref<const VectorXd>& null_torque,
                                         const bool time_verbose)
         {
             std::string time_verbose_str;
-            const bool qp_success = QPIDCubic(link_task_data, duration, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose_str);
+            const bool qp_success = QPIDCubic(link_task_data, duration, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose_str);
             printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
@@ -1106,8 +1114,8 @@ namespace drc
                                         Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
                                         std::string& time_verbose)
         {
-            const VectorXd null_input = VectorXd::Zero(actuator_dof_);
-            return QPIDCubic(link_task_data, duration, opt_qddot_mobile, opt_torque_manipulator, null_input, time_verbose);
+            const VectorXd null_torque = VectorXd::Zero(actuator_dof_);
+            return QPIDCubic(link_task_data, duration, opt_qddot_mobile, opt_torque_manipulator, null_torque, time_verbose);
         }
 
         bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,

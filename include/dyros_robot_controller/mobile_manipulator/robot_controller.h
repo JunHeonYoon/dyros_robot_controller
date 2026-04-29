@@ -653,7 +653,7 @@ namespace drc
                  * @param link_task_data        (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
                  * @param opt_qddot_mobile      (Eigen::VectorXd) Output optimal mobile wheel accelerations.
                  * @param opt_torque_manipulator(Eigen::VectorXd) Output optimal manipulator joint torques.
-                 * @param null_input            (Eigen::VectorXd) Desired actuator-space null input; its size must same as actuator_dof.
+                 * @param null_torque            (Eigen::VectorXd) Desired actuator-space null input; its size must same as actuator_dof.
                  *                              The mobile block is interpreted as mobile wheel acceleration.
                  * @param time_verbose          (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
@@ -661,7 +661,7 @@ namespace drc
                 virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                  const Eigen::Ref<const VectorXd>& null_input,
+                                  const Eigen::Ref<const VectorXd>& null_torque,
                                   std::string& time_verbose);
                 /**
                  * @brief Compatibility overload of QPID with a single null space input.
@@ -669,7 +669,7 @@ namespace drc
                 virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                  const Eigen::Ref<const VectorXd>& null_input,
+                                  const Eigen::Ref<const VectorXd>& null_torque,
                                   const bool time_verbose=false);
 
                 /**
@@ -702,7 +702,7 @@ namespace drc
                 virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                      const Eigen::Ref<const VectorXd>& null_input,
+                                      const Eigen::Ref<const VectorXd>& null_torque,
                                       std::string& time_verbose);
                 /**
                  * @brief Compatibility overload of QPIDStep with a single null space input.
@@ -710,7 +710,7 @@ namespace drc
                 virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                       Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                      const Eigen::Ref<const VectorXd>& null_input,
+                                      const Eigen::Ref<const VectorXd>& null_torque,
                                       const bool time_verbose=false);
 
                 /**
@@ -748,7 +748,7 @@ namespace drc
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                       const Eigen::Ref<const VectorXd>& null_input,
+                                       const Eigen::Ref<const VectorXd>& null_torque,
                                        std::string& time_verbose);
                 /**
                  * @brief Compatibility overload of QPIDCubic with a single null space input.
@@ -757,7 +757,7 @@ namespace drc
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                       const Eigen::Ref<const VectorXd>& null_input,
+                                       const Eigen::Ref<const VectorXd>& null_torque,
                                        const bool time_verbose=false);
 
    
@@ -840,7 +840,7 @@ namespace drc
                 virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                  const Eigen::Ref<const VectorXd>& null_input,
+                                  const Eigen::Ref<const VectorXd>& null_torque,
                                   std::string& time_verbose);
                 /**
                  * @brief Internal compatibility overload of QPID core with a single null-space input.
@@ -848,7 +848,7 @@ namespace drc
                 virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qddot_mobile,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque_manipulator,
-                                  const Eigen::Ref<const VectorXd>& null_input,
+                                  const Eigen::Ref<const VectorXd>& null_torque,
                                   const bool time_verbose=false);
                 /**
                  * @brief Internal QPID overload that stores QP timing information in a string.
