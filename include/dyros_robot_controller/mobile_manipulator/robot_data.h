@@ -76,6 +76,7 @@ namespace drc
                 public:
                     explicit ManipulatorProxy(drc::MobileManipulator::RobotData& src) : src_(src)
                     {
+                        dt_ = src_.Mobile::RobotData::getDt();
                         link_frame_names_ = src_.Manipulator::RobotData::getLinkFrameVector();
                         joint_frame_names_ = src_.Manipulator::RobotData::getJointFrameVector();
                         joint_names_ = src_.Manipulator::RobotData::getJointNames();
@@ -276,6 +277,27 @@ namespace drc
                                                        with_grad, with_graddot, verbose);
                     }
 
+                    Manipulator::MinDistResult getMinDistance(const bool& with_grad,
+                                                              const bool& with_graddot,
+                                                              const bool verbose) override
+                    {
+                        const auto full = src_.computeMinDistance(src_.q_virtual_, src_.q_mobile_, src_.q_mani_,
+                                                                  src_.qdot_virtual_, src_.qdot_mobile_, src_.qdot_mani_,
+                                                                  with_grad, with_graddot, verbose);
+                        Manipulator::MinDistResult result;
+                        result.setZero(src_.mani_dof_);
+                        result.distance = full.distance;
+
+                        const int start = src_.joint_idx_.mani_start;
+                        if (with_grad && full.grad.size() >= start + src_.mani_dof_) {
+                            result.grad = full.grad.segment(start, src_.mani_dof_);
+                        }
+                        if (with_graddot && full.grad_dot.size() >= start + src_.mani_dof_) {
+                            result.grad_dot = full.grad_dot.segment(start, src_.mani_dof_);
+                        }
+                        return result;
+                    }
+
                     Manipulator::ManipulabilityResult computeManipulability(const Eigen::Ref<const VectorXd>& q_mani,
                                                                             const Eigen::Ref<const VectorXd>& qdot_mani,
                                                                             const bool& with_grad,
@@ -283,6 +305,14 @@ namespace drc
                                                                             const std::string& link_name) override
                     {
                         return src_.computeManipulability(q_mani, qdot_mani, with_grad, with_graddot, link_name);
+                    }
+
+                    Manipulator::ManipulabilityResult getManipulability(const bool& with_grad,
+                                                                        const bool& with_graddot,
+                                                                        const std::string& link_name) override
+                    {
+                        return computeManipulability(src_.q_mani_, src_.qdot_mani_,
+                                                     with_grad, with_graddot, link_name);
                     }
 
                     /// State update is a no-op: the parent MobileManipulator::RobotData
