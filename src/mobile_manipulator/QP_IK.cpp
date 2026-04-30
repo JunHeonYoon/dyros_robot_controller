@@ -25,6 +25,7 @@ namespace drc
         QPIK::QPIK(std::shared_ptr<MobileManipulator::RobotData> robot_data, const double dt)
         : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
+            if (dt_ <= 1e-9) std::cerr << "[QPIK] WARNING: constructed with dt=" << dt_ << " (zero or near-zero)" << std::endl;
             actuator_dof_ = robot_data_->getActuatorDof();
             mani_dof_ = robot_data_->getManipulatorDof();
             mobi_dof_ = robot_data_->getMobileDof();
@@ -125,7 +126,15 @@ namespace drc
             }
             else
             {
-                opt_eta = sol.block(si_index_.eta_start,0,si_index_.eta_size,1);
+                const VectorXd eta_sol = sol.block(si_index_.eta_start,0,si_index_.eta_size,1);
+                if(!eta_sol.allFinite())
+                {
+                    std::cerr << "QP IK returned non-finite actuator velocity." << std::endl;
+                    opt_eta.setZero();
+                    time_status.setZero();
+                    return false;
+                }
+                opt_eta = eta_sol;
                 return true;
             }
         }

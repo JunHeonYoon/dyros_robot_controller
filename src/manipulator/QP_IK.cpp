@@ -25,6 +25,7 @@ namespace drc
         QPIK::QPIK(std::shared_ptr<Manipulator::RobotData> robot_data, const double dt)
         : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
+            if (dt_ <= 1e-9) std::cerr << "[QPIK] WARNING: constructed with dt=" << dt_ << " (zero or near-zero)" << std::endl;
             joint_dof_ = robot_data_->getDof();
     
             si_index_.qdot_size            = joint_dof_;
@@ -118,7 +119,15 @@ namespace drc
             }
             else
             {
-                opt_qdot = sol.block(si_index_.qdot_start,0,si_index_.qdot_size,1);
+                const VectorXd qdot_sol = sol.block(si_index_.qdot_start,0,si_index_.qdot_size,1);
+                if(!qdot_sol.allFinite())
+                {
+                    std::cerr << "QP IK returned non-finite joint velocity." << std::endl;
+                    opt_qdot.setZero();
+                    time_status.setZero();
+                    return false;
+                }
+                opt_qdot = qdot_sol;
                 return true;
             }
         }
@@ -159,9 +168,16 @@ namespace drc
             q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * NWN * null_qdot_desired_;
 
             // for joint acceleration damping: || (q_dot - q_dot_now) / dt ||_W3^2
-            const double dt_sq_inv = 1.0 / (dt_ * dt_);
-            P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * dt_sq_inv * w_acc_damping_.asDiagonal();
-            q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * dt_sq_inv * w_acc_damping_.asDiagonal() * qdot_now;
+            if (dt_ <= 1e-9)
+            {
+                std::cerr << "[QPIK::setCost] dt_=" << dt_ << " is zero or near-zero! Skipping acc damping term." << std::endl;
+            }
+            else
+            {
+                const double dt_sq_inv = 1.0 / (dt_ * dt_);
+                P_ds_.block(si_index_.qdot_start,si_index_.qdot_start,si_index_.qdot_size,si_index_.qdot_size) += 2.0 * dt_sq_inv * w_acc_damping_.asDiagonal();
+                q_ds_.segment(si_index_.qdot_start,si_index_.qdot_size) += -2.0 * dt_sq_inv * w_acc_damping_.asDiagonal() * qdot_now;
+            }
             
             // for slack
             q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 100.0);
