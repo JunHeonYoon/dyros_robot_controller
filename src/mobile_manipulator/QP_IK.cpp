@@ -277,14 +277,10 @@ namespace drc
     
             // self collision avoidance (CBF)
             const Manipulator::MinDistResult min_dist_res = robot_data_->getMinDistance(true, false, false);
-            const int mani_start = robot_data_->getJointIndex().mani_start;
-            const bool valid_col_grad =
-                std::isfinite(min_dist_res.distance) &&
-                min_dist_res.grad.size() >= mani_start + mani_dof_;
 
-            if (valid_col_grad)
+            if (std::isfinite(min_dist_res.distance))
             {
-                const VectorXd col_grad = min_dist_res.grad.segment(mani_start, mani_dof_);
+                const VectorXd col_grad = min_dist_res.grad.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
 
                 if (col_grad.allFinite() && col_grad.squaredNorm() > 1e-12)
                 {
