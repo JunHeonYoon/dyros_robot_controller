@@ -118,12 +118,11 @@ class FR3XLSController
         Vector6d        task_id_kp_;
         Vector6d        task_id_kv_;
         Vector6d        qpik_tracking_;
-        Eigen::VectorXd qpik_null_vel_gain_;
+        Eigen::VectorXd qpik_vel_damping_;
         Eigen::VectorXd qpik_acc_damping_;
         Vector6d        qpid_tracking_;
         Eigen::VectorXd qpid_vel_damping_;
         Eigen::VectorXd qpid_acc_damping_;
-        Eigen::VectorXd qpid_null_torque_;
 
         // Dyros model/controller handles
         std::shared_ptr<drc::MobileManipulator::RobotData>       robot_data_;

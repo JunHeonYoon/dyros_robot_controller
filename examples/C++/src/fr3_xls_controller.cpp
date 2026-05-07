@@ -106,20 +106,19 @@ FR3XLSController::FR3XLSController(const double dt)
     // --- Gain
     mani_joint_kp_.setZero(mani_dof_);
     mani_joint_kv_.setZero(mani_dof_);
-    qpik_null_vel_gain_.setZero(actuator_dof_);
+    qpik_vel_damping_.setZero(actuator_dof_);
     qpik_acc_damping_.setZero(actuator_dof_);
     qpid_vel_damping_.setZero(actuator_dof_);
     qpid_acc_damping_.setZero(actuator_dof_);
-    qpid_null_torque_.setZero(actuator_dof_);
     mani_joint_kp_         << 600.0, 600.0, 600.0, 600.0, 250.0, 150.0,  50.0;
     mani_joint_kv_         <<  30.0,  30.0,  30.0,  30.0,  10.0,  10.0,   5.0;
     task_ik_kp_            <<  10.0,  10.0,  10.0,  30.0,  30.0,  30.0;
     task_id_kp_            << 600.0, 600.0, 600.0,1000.0,1000.0,1000.0;
     task_id_kv_            <<  20.0,  20.0,  20.0,  30.0,  30.0,  30.0;
     qpik_tracking_         <<  10.0,  10.0,  10.0,  40.0,  40.0,  40.0;
-    qpik_null_vel_gain_.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_)
+    qpik_vel_damping_.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_)
                             <<  0.01,  0.01,  0.01,  0.01,  0.01,  0.01,  0.01;
-    qpik_null_vel_gain_.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_).setConstant(0.1);
+    qpik_vel_damping_.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_).setConstant(0.1);
     qpik_acc_damping_.segment(robot_data_->getActuatorIndex().mani_start, mani_dof_)
                         << 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001;
     qpik_acc_damping_.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_).setConstant(0.1);
@@ -134,8 +133,8 @@ FR3XLSController::FR3XLSController(const double dt)
     robot_controller_->setManipulatorJointGain(mani_joint_kp_, mani_joint_kv_);
     robot_controller_->setIKGain(task_ik_kp_);
     robot_controller_->setIDGain(task_id_kp_, task_id_kv_);
-    robot_controller_->setQPIKGain(qpik_tracking_, qpik_null_vel_gain_, qpik_acc_damping_);
-    robot_controller_->setQPIDGain(qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_, qpid_null_torque_);
+    robot_controller_->setQPIKGain(qpik_tracking_, qpik_vel_damping_, qpik_acc_damping_);
+    robot_controller_->setQPIDGain(qpid_tracking_, qpid_vel_damping_, qpid_acc_damping_);
 
 
     // Print FR3 URDF info
@@ -249,14 +248,10 @@ std::unordered_map<std::string, double> FR3XLSController::compute()
 
         Eigen::VectorXd qdot_mobile_desired(mobile_dof_), qdot_mani_desired(mani_dof_);
         qdot_mobile_desired.setZero(); qdot_mani_desired.setZero();
-        Eigen::VectorXd null_qdot_desired = Eigen::VectorXd::Zero(actuator_dof_);
-        null_qdot_desired.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_) =
-            robot_controller_->MobileVelocityCommand(base_vel_desired_);
         robot_controller_->QPIKCubic(link_ee_task_,
                                      3.0,
                                      qdot_mobile_desired,
-                                     qdot_mani_desired,
-                                     null_qdot_desired);
+                                     qdot_mani_desired);
 
         qdot_mobile_desired_ = qdot_mobile_desired;
         qdot_mani_desired_ = qdot_mani_desired;
@@ -273,11 +268,7 @@ std::unordered_map<std::string, double> FR3XLSController::compute()
         link_ee_task_[ee_link_name_].xddot_desired.setZero();
         Eigen::VectorXd qddot_mobile_desired(mobile_dof_), tau_mani_desired(mani_dof_);
         qddot_mobile_desired.setZero(); tau_mani_desired.setZero();
-        const Eigen::VectorXd qdot_mobile_null = robot_controller_->MobileVelocityCommand(base_vel_desired_);
-        Eigen::VectorXd null_qddot_desired = Eigen::VectorXd::Zero(actuator_dof_);
-        null_qddot_desired.segment(robot_data_->getActuatorIndex().mobi_start, mobile_dof_) =
-            (qdot_mobile_null - qdot_mobile_) / dt_;
-        robot_controller_->QPID(link_ee_task_, qddot_mobile_desired, tau_mani_desired, null_qddot_desired);
+        robot_controller_->QPID(link_ee_task_, qddot_mobile_desired, tau_mani_desired);
         // Integrate mobile acceleration output to wheel velocity command
         qdot_mobile_desired_ = qdot_mobile_ + qddot_mobile_desired * dt_;
         tau_mani_desired_ = tau_mani_desired;
