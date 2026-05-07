@@ -70,8 +70,7 @@ namespace drc
             si_index_.con_base_vel_start      = si_index_.con_sel_col_start    + si_index_.con_sel_col_size;
             si_index_.con_base_acc_start      = si_index_.con_base_vel_start   + si_index_.con_base_vel_size;
 
-            null_eta_desired_.setZero(actuator_dof_);
-            w_null_joint_vel_.setOnes(actuator_dof_);
+            w_vel_damping_.setZero(actuator_dof_);
             w_acc_damping_.setOnes(actuator_dof_);
         }
     
@@ -86,20 +85,20 @@ namespace drc
         }
 
         void QPIK::setWeight(const std::map<std::string, Vector6d>& link_w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_null_vel,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
                              const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
-            w_null_joint_vel_ = w_null_vel;
+            w_vel_damping_ = w_vel_damping;
             w_acc_damping_ = w_acc_damping;
         }
 
         void QPIK::setWeight(const Vector6d& w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_null_vel,
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
                              const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             setTrackingWeight(w_tracking);
-            w_null_joint_vel_ = w_null_vel;
+            w_vel_damping_ = w_vel_damping;
             w_acc_damping_ = w_acc_damping;
         }
 
@@ -144,11 +143,7 @@ namespace drc
             P_ds_.setZero(nx_, nx_);
             q_ds_.setZero(nx_);
 
-            // for task space velocity tracking; accumulate J_total_tilda for null space computation
-            MatrixXd J_total_tilda(6 * link_xdot_desired_.size(), actuator_dof_);
-            J_total_tilda.setZero();
-            int row = 0;
-
+            // for task space velocity tracking
             for(const auto& [link_name, xdot_desired] : link_xdot_desired_)
             {
                 const MatrixXd J_i_tilda = robot_data_->getJacobianActuated(link_name);
@@ -159,21 +154,13 @@ namespace drc
 
                 P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) += 2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * J_i_tilda;
                 q_ds_.segment(si_index_.eta_start,si_index_.eta_size) += -2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * xdot_desired;
-
-                J_total_tilda.block(row, 0, 6, actuator_dof_) = J_i_tilda;
-                row += 6;
             }
 
+            // for actuator velocity damping: || eta ||_W2^2
+            P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) +=
+                2.0 * w_vel_damping_.asDiagonal();
+
             const double dt_sq_inv = 1.0 / (dt_ * dt_);
-
-            // Null space projector in actuated space: N_tilda = I - J_tilda†J_tilda
-            const MatrixXd N_tilda = MatrixXd::Identity(actuator_dof_, actuator_dof_)
-                                   - DyrosMath::PinvSVD(J_total_tilda) * J_total_tilda;
-
-            // for null space tracking (mani + mobile unified): || N_tilda*(eta - null_eta_desired) ||²_{W_null}
-            const MatrixXd NWN = N_tilda.transpose() * w_null_joint_vel_.asDiagonal() * N_tilda;
-            P_ds_.block(si_index_.eta_start, si_index_.eta_start, actuator_dof_, actuator_dof_) += 2.0 * NWN;
-            q_ds_.segment(si_index_.eta_start, actuator_dof_) += -2.0 * NWN * null_eta_desired_;
 
             // for actuator acceleration damping: || (eta - eta_now) / dt ||_W3^2
             const VectorXd eta_now = robot_data_->getJointVelocityActuated();
@@ -202,11 +189,11 @@ namespace drc
             const VectorXd qdot_mani_max_raw = qdot_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
             const VectorXd qdot_mani_min =
                 (qdot_mani_min_raw.array() < 0.0)
-                    .select(qdot_mani_min_raw.array() * 0.9, qdot_mani_min_raw.array() * 1.9)
+                    .select(qdot_mani_min_raw.array() * 0.9, qdot_mani_min_raw.array() * 1.1)
                     .matrix();
             const VectorXd qdot_mani_max =
                 (qdot_mani_max_raw.array() > 0.0)
-                    .select(qdot_mani_max_raw.array() * 0.9, qdot_mani_max_raw.array() * 1.9)
+                    .select(qdot_mani_max_raw.array() * 0.9, qdot_mani_max_raw.array() * 1.1)
                     .matrix();
 
             l_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
@@ -229,7 +216,7 @@ namespace drc
             l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
             u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
 
-            const double alpha = 10.;
+            const double alpha = 100.;
     
             // Manipulator Joint Angle Limit (CBF)
             const auto q_lim = robot_data_->getJointPositionLimit();
@@ -237,11 +224,11 @@ namespace drc
             const VectorXd q_mani_max_raw = q_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
             const VectorXd q_mani_min =
                 (q_mani_min_raw.array() < 0.0)
-                    .select(q_mani_min_raw.array() * 0.9, q_mani_min_raw.array() * 1.9)
+                    .select(q_mani_min_raw.array() * 0.9, q_mani_min_raw.array() * 1.1)
                     .matrix();
             const VectorXd q_mani_max =
                 (q_mani_max_raw.array() > 0.0)
-                    .select(q_mani_max_raw.array() * 0.9, q_mani_max_raw.array() * 1.9)
+                    .select(q_mani_max_raw.array() * 0.9, q_mani_max_raw.array() * 1.1)
                     .matrix();
             // const VectorXd q_mani_min = robot_data_->getJointPositionLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
             // const VectorXd q_mani_max = robot_data_->getJointPositionLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);

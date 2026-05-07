@@ -106,8 +106,6 @@ namespace drc
 
             w_vel_damping_.setOnes(actuator_dof_);
             w_acc_damping_.setOnes(actuator_dof_);
-            w_null_torque_.setZero(actuator_dof_);
-            null_torque_.setZero(actuator_dof_);
         }
         
         void QPID::setTrackingWeight(const Vector6d w_tracking)
@@ -122,24 +120,20 @@ namespace drc
 
         void QPID::setWeight(const Vector6d w_tracking,
                              const Eigen::Ref<const VectorXd>& w_vel_damping,
-                             const Eigen::Ref<const VectorXd>& w_acc_damping,
-                             const Eigen::Ref<const VectorXd>& w_null_torque)
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             setTrackingWeight(w_tracking);
             w_vel_damping_ = w_vel_damping;
             w_acc_damping_ = w_acc_damping;
-            w_null_torque_ = w_null_torque;
         }
 
         void QPID::setWeight(const std::map<std::string, Vector6d> link_w_tracking,
                              const Eigen::Ref<const VectorXd>& w_vel_damping,
-                             const Eigen::Ref<const VectorXd>& w_acc_damping,
-                             const Eigen::Ref<const VectorXd>& w_null_torque)
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
             w_vel_damping_ = w_vel_damping;
             w_acc_damping_ = w_acc_damping;
-            w_null_torque_ = w_null_torque;
         }
 
         void QPID::setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired)
@@ -181,11 +175,8 @@ namespace drc
             q_ds_.setZero(nx_);
             
             const VectorXd eta = robot_data_->getJointVelocityActuated();
-            MatrixXd J_total(6 * link_xddot_desired_.size(), actuator_dof_);
-            J_total.setZero();
-            int row = 0;
 
-            // for task space acceleration tracking; accumulate J_total for null space computation
+            // for task space acceleration tracking
             for(const auto& [link_name, xddot_desired] : link_xddot_desired_)
             {
                 const MatrixXd J_i_tilda = robot_data_->getJacobianActuated(link_name);
@@ -197,9 +188,6 @@ namespace drc
 
                 P_ds_.block(si_index_.eta_dot_start,si_index_.eta_dot_start,si_index_.eta_dot_size,si_index_.eta_dot_size) += 2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * J_i_tilda;
                 q_ds_.segment(si_index_.eta_dot_start,si_index_.eta_dot_size) += -2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * (xddot_desired - J_i_tilda_dot * eta);
-
-                J_total.block(row, 0, 6, actuator_dof_) = J_i_tilda;
-                row += 6;
             }
             
             // for actuator velocity/acceleration damping
@@ -210,23 +198,6 @@ namespace drc
                                                   + 2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
             q_ds_.segment(si_index_.eta_dot_start, si_index_.eta_dot_size) +=
                 2.0 * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix() * eta;
-
-
-            // Null space projector N = I - J_tilda^T * Λ * J_tilda * M_tilda^-1,  Λ = (J_tilda * M_tilda^-1 * J_tilda^T)^+
-            const MatrixXd M_inv = robot_data_->getMassMatrixActuatedInv();
-            MatrixXd N = MatrixXd::Identity(actuator_dof_, actuator_dof_);
-
-            if(J_total.rows() > 0)
-            {
-                const MatrixXd J_total_T = J_total.transpose();
-                const MatrixXd M_task_total = DyrosMath::PinvCOD(J_total * M_inv * J_total_T);
-                N -= J_total_T * M_task_total * J_total * M_inv;
-            }
-
-            // for actuator-space null tracking: || N*(torque - null_torque) ||_W_null^2
-            const MatrixXd NWN = N.transpose() * w_null_torque_.asDiagonal() * N;
-            P_ds_.block(si_index_.torque_start, si_index_.torque_start, si_index_.torque_size, si_index_.torque_size) += 2.0 * NWN;
-            q_ds_.segment(si_index_.torque_start, si_index_.torque_size) += -2.0 * NWN * null_torque_;
 
             // for slack
             q_ds_.segment(si_index_.slack_q_mani_min_start,   si_index_.slack_q_mani_min_size)    = VectorXd::Constant(si_index_.slack_q_mani_min_size,    1000.0);
@@ -266,7 +237,7 @@ namespace drc
             l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
             u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
 
-            const double alpha = 10.;
+            const double alpha = 100.;
     
             // Manipulator Joint Angle Limit
             const auto q_lim = robot_data_->getJointPositionLimit();
@@ -274,11 +245,11 @@ namespace drc
             const VectorXd q_mani_max_raw = q_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
             const VectorXd q_mani_min =
                 (q_mani_min_raw.array() < 0.0)
-                    .select(q_mani_min_raw.array() * 0.9, q_mani_min_raw.array() * 1.9)
+                    .select(q_mani_min_raw.array() * 0.9, q_mani_min_raw.array() * 1.1)
                     .matrix();
             const VectorXd q_mani_max =
                 (q_mani_max_raw.array() > 0.0)
-                    .select(q_mani_max_raw.array() * 0.9, q_mani_max_raw.array() * 1.9)
+                    .select(q_mani_max_raw.array() * 0.9, q_mani_max_raw.array() * 1.1)
                     .matrix();
     
             const VectorXd q_actuated = robot_data_->getJointPositionActuated();
@@ -315,11 +286,11 @@ namespace drc
             const VectorXd qdot_mani_max_raw = qdot_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
             const VectorXd qdot_mani_min =
                 (qdot_mani_min_raw.array() < 0.0)
-                    .select(qdot_mani_min_raw.array() * 0.9, qdot_mani_min_raw.array() * 1.9)
+                    .select(qdot_mani_min_raw.array() * 0.9, qdot_mani_min_raw.array() * 1.1)
                     .matrix();
             const VectorXd qdot_mani_max =
                 (qdot_mani_max_raw.array() > 0.0)
-                    .select(qdot_mani_max_raw.array() * 0.9, qdot_mani_max_raw.array() * 1.9)
+                    .select(qdot_mani_max_raw.array() * 0.9, qdot_mani_max_raw.array() * 1.1)
                     .matrix();
     
             A_ineq_ds_.block(si_index_.con_qdot_mani_min_start, 

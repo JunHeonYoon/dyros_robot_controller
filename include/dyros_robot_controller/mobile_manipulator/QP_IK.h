@@ -54,10 +54,10 @@ namespace drc
                 void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
 
                 /**
-                 * @brief Set null space velocity tracking weights only.
-                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space velocity tracking toward null_eta_desired; its size must same as actuator_dof.
+                 * @brief Set actuator-space velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for actuator velocity damping; its size must same as actuator_dof.
                  */
-                void setNullJointVelWeight(const Eigen::Ref<const VectorXd>& w_null_joint_vel) { w_null_joint_vel_ = w_null_joint_vel; }
+                void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_vel_damping) { w_vel_damping_ = w_vel_damping; }
 
                 /**
                  * @brief Set actuator-space acceleration damping weights only.
@@ -68,21 +68,21 @@ namespace drc
                 /**
                  * @brief Set the weight vector for the cost terms.
                  * @param w_tracking (Eigen::Vector6d) Weight for task space velocity tracking for all the links in the URDF.
-                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space velocity tracking toward null_eta_desired; its size must same as actuator_dof.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for actuator velocity damping; its size must same as actuator_dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping toward eta_now; its size must same as actuator_dof.
                  */
                 void setWeight(const Vector6d& w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_null_joint_vel,
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
                                const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
                  * @brief Set the weight vector for the cost terms.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
-                 * @param w_null_joint_vel (Eigen::VectorXd) Weight for null space velocity tracking toward null_eta_desired; its size must same as actuator_dof.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for actuator velocity damping; its size must same as actuator_dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping toward eta_now; its size must same as actuator_dof.
                  */
                 void setWeight(const std::map<std::string, Vector6d>& link_w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_null_joint_vel,
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
                                const Eigen::Ref<const VectorXd>& w_acc_damping);
                 
                 /**
@@ -91,15 +91,6 @@ namespace drc
                  */
                 void setDesiredTaskVel(const std::map<std::string, Vector6d> &link_xdot_desired);
 
-                /**
-                 * @brief Set the desired actuated velocity for null space tracking.
-                 *        When set, the null space cost becomes ||N_tilda*(eta - null_eta_desired)||_W_null^2,
-                 *        where N_tilda = I - J_tilda†J_tilda is the task null space projector.
-                 * @param null_eta_desired (Eigen::VectorXd) Desired actuated velocity [qdot_mani; v_mobi]; its size must same as actuator_dof.
-                 */
-                void setDesiredNullJointVel(const Eigen::Ref<const VectorXd>& null_eta_desired) { null_eta_desired_ = null_eta_desired; }
-
-                
                 /**
                  * @brief Get the optimal joint velocity by solving QP.
                  * @param opt_qdot    (Eigen::VectorXd) Optimal joint velocity.
@@ -151,8 +142,7 @@ namespace drc
 
                 std::map<std::string, Vector6d> link_xdot_desired_; // Desired task velocity per links
                 std::map<std::string, Vector6d> link_w_tracking_;   // weight for task velocity tracking per links; || x_i_dot_des - J_i_tilda*eta ||
-                VectorXd null_eta_desired_;                         // desired actuated velocity [qdot_mani; v_mobi] for null space tracking (default: zero)
-                VectorXd w_null_joint_vel_;                         // weight for null space velocity tracking; || N_tilda*(eta - null_eta_desired) ||
+                VectorXd w_vel_damping_;                            // weight for actuator velocity damping; || eta ||
                 VectorXd w_acc_damping_;                            // weight for actuator acceleration damping; || (eta - eta_now) / dt ||
 
                 // self-collision CBF gradient exponential filter
@@ -165,42 +155,53 @@ namespace drc
                  * @brief Set the cost function which minimizes task space velocity error.
                  *        Use slack variables (s) to increase feasibility of QP.
                  *
-                 *       min     Σ_i || x_i_dot_des - J_i_tilda*eta ||_Wi^2
-                 *     [eta,s]     + || N_tilda*(eta - null_eta_des) ||_W_null^2
-                 *                 + || (eta - eta_now) / dt ||_W3^2
-                 *                 + 1000*s
-                 *
-                 *        where N_tilda = I - J_tilda†J_tilda  (actuated null space projector),  NWN = N_tilda^T * W_null * N_tilda
+                 *   ```
+                 *      min     Σ_i || x_i_dot_des - J_i_tilda*eta ||_Wi^2
+                 *    [eta,s]     + || (eta - eta_now) / dt ||_W2^2
+                 *               + 1000*s
+                 *   ```
                  */
                 void setCost() override;
                 /**
-                 * @brief Set the bound constraint which limits manipulator joint velocities and keeps all slack variables non-negative.
-                 * 
-                 *     subject to [ qdot_mani_min ] <= [ eta ] <= [ qdot_mani_max ]
-                 *                [       0       ]    [  s  ]    [      inf      ]
+                 * @brief Set the bound constraint which limits actuator velocities and keeps all slack variables non-negative.
+                 *
+                 *   ```
+                 *   subject to [ qdot_mani_min ] <= [ eta ] <= [ qdot_mani_max ]
+                 *              [      0        ]    [  s  ]    [     inf       ]
+                 *   ```
                  */
                 void setBoundConstraint() override;
                 /**
-                 * @brief Set the inequality constraints which manipulator limit joint angles and avoid singularity and self collision by 1st-order CBF.
-                 * 
+                 * @brief Set the inequality constraints which limit manipulator joint angles and avoid singularity and self collision by 1st-order CBF.
+                 *
                  * 1st-order CBF condition with slack: hdot(x) >= -a*h(x) - s
-                 * 
-                 *  1.
-                 *     Manipulator joint angle limit: h_min(q) = q_mani - q_mani_min >= 0  -> hdot_min(q) = qdot_mani
-                 *                                    h_max(q) = q_mani_max - q_mani >= 0  -> hdot_max(q) = -qdot_mani
-                 *     
-                 *     => subject to [  I_mani  I ] * [ eta ] >= [ -a*(q_mani - q_mani_min) ]
-                 *                   [ -I_mani  I ]   [  s  ]    [ -a*(q_mani_max - q_mani) ]
-                 *  2.
-                 *     Singluarity avoidance: h_sing(q_mani) = manipulability(q_mani) - eps_sing_min >= 0 -> hdot_sing = ∇_(q_mani) manipulability.T * qdot_mani
-                 * 
-                 *     => subject to [ ∇_(q_mani) manipulability.T  I ] * [ eta ] >= [ -a*(manipulability - eps_sing_min) ]
-                 *                                                        [  s  ]
-                 *  3. 
-                 *      Self collision avoidance: h_selcol(q_mani) = self_dist(q_mani) - eps_selcol_min >= 0 -> hdot_col = ∇_q self_dist^T * qdot_mani
-                 *      
-                 *     => subject to [ ∇_(q_mani) self_dist.T  I ] * [ eta ] >= [ -a*(self_dist - eps_selcol_min) ]
-                 *                                                   [  s  ]
+                 *
+                 *  1. Manipulator joint angle limit:
+                 *     h_min(q_mani) = q_mani - q_mani_min >= 0  ->  hdot_min(q_mani) = qdot_mani
+                 *     h_max(q_mani) = q_mani_max - q_mani >= 0  ->  hdot_max(q_mani) = -qdot_mani
+                 *
+                 *   ```
+                 *   => subject to [  I_mani  I ] * [ eta ] >= [ -a*(q_mani - q_mani_min) ]
+                 *                 [ -I_mani  I ]   [  s  ]    [ -a*(q_mani_max - q_mani) ]
+                 *   ```
+                 *
+                 *  2. Singularity avoidance:
+                 *     h_sing(q_mani) = manipulability(q_mani) - eps_sing_min >= 0
+                 *     hdot_sing = ∇_(q_mani) manipulability.T * qdot_mani
+                 *
+                 *   ```
+                 *   => subject to [ ∇_(q_mani) manipulability.T  I ] * [ eta ] >= [ -a*(manipulability - eps_sing_min) ]
+                 *                                                      [  s  ]
+                 *   ```
+                 *
+                 *  3. Self collision avoidance (active only when a valid distance gradient is available):
+                 *     h_selcol(q_mani) = self_dist(q_mani) - eps_selcol_min >= 0
+                 *     hdot_col = ∇_(q_mani) self_dist^T * qdot_mani
+                 *
+                 *   ```
+                 *   => subject to [ ∇_(q_mani) self_dist.T  I ] * [ eta ] >= [ -a*(self_dist - eps_selcol_min) ]
+                 *                                                 [  s  ]
+                 *   ```
                  */
                 void setIneqConstraint() override;
                 /**
