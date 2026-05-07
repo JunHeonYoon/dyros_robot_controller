@@ -22,7 +22,7 @@ from .robot_data import RobotData
 
 class RobotController(drc_cpp.MobileRobotController):
     """
-    A Python wrapper for the C++ RobotController::Mobile::MobileBase class.
+    Controller-side base class for mobile robot controller.
     
     This class computes wheel velocities based on desired base velocity
     using inverse kinematics Jacobians. Supports Differential, Mecanum, and Caster drive types.
@@ -32,13 +32,13 @@ class RobotController(drc_cpp.MobileRobotController):
         Constructor.
 
         Parameters:
-            robot_data : (DataMobileBase) An instance of the Python MobileBase wrapper which contains the robot's kinematic model.
+            robot_data : (RobotData) Shared RobotData object.
 
         Raises:
-            TypeError: If the robot_data is not an instance of the Python MobileBase wrapper.
+            TypeError: If robot_data is not an instance of RobotData.
         """
         if not isinstance(robot_data, RobotData):
-            raise TypeError("robot_data must be an instance of the Python MobileBase wrapper")
+            raise TypeError("robot_data must be an instance of RobotData")
         self._robot_data = robot_data
         self._dt = float(self._robot_data.get_dt())
         super().__init__(self._robot_data)

@@ -22,7 +22,7 @@ from drc import KinematicParam
 
 class RobotData(drc_cpp.MobileRobotData):
     """
-    A Python wrapper for the C++ RobotData::Mobile::MobileBase class.
+    Abstract base class for mobile robot data.
     
     This class provides a general interface and shared logic for various mobile robot types
     (e.g., Differential, Mecanum, Caster). It supports state update, forward velocity computation,
@@ -30,11 +30,11 @@ class RobotData(drc_cpp.MobileRobotData):
     """
     def __init__(self, dt: float, param: KinematicParam):
         """
-        Constructor.
+        Constructor with kinematic parameters.
 
         Parameters:
             dt : (float) Control loop time step in seconds.
-            param : (KinematicParam) Kinematic parameter instance containing drive type and geometry.
+            param : (KinematicParam) Kinematic parameter object containing drive type and geometry.
         """
         self._dt = float(dt)
         if not isinstance(param, KinematicParam):

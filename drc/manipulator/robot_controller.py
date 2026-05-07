@@ -20,9 +20,28 @@ import dyros_robot_controller_cpp_wrapper as drc_cpp
 from .robot_data import RobotData
 from drc import TaskSpaceData
 
+
+def _as_vector(value, name: str, size: int) -> np.ndarray:
+    value = np.asarray(value, dtype=float).reshape(-1)
+    assert value.size == size, f"Size of {name} {value.size} is not equal to {size}"
+    return value
+
+
+def _as_gain_map(gain_map: dict[str, np.ndarray], name: str) -> dict[str, np.ndarray]:
+    return {link: _as_vector(gain, f"{name} at link {link}", 6) for link, gain in gain_map.items()}
+
+
+def _as_task_map(link_task_data: dict[str, TaskSpaceData]) -> dict:
+    return {link: task.cpp() if hasattr(task, "cpp") else task for link, task in link_task_data.items()}
+
+
+def _as_task_hierarchy(task_hierarchy: list[dict[str, TaskSpaceData]]) -> list[dict]:
+    return [_as_task_map(level) for level in task_hierarchy]
+
+
 class RobotController(drc_cpp.ManipulatorRobotController):
     """
-    A Python wrapper for the C++ RobotController::Manipulator::ManipulatorBase class.
+    Controller-side base class for single manipulator controller.
     
     This class consists of functions that compute manipulator control inputs and helpers that generate smooth trajectories.
     Joint space functions compute control inputs to track desired joint positions, velocities, or accelerations.
@@ -33,13 +52,13 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Constructor.
 
         Parameters:
-            robot_data : (DataManipulatorBase) An instance of the Python ManipulatorBase wrapper which contains the robot's kinematic and dynamic parameters.
+            robot_data : (RobotData) Shared RobotData object.
 
         Raises:
-            TypeError: If the robot_data is not an instance of the Python ManipulatorBase wrapper.
+            TypeError: If robot_data is not an instance of RobotData.
         """
         if not isinstance(robot_data, RobotData):
-            raise TypeError("robot_data must be an instance of the Python ManipulatorBase wrapper")
+            raise TypeError("robot_data must be an instance of RobotData")
 
         self._robot_data = robot_data
         self._dt = float(self._robot_data.get_dt())
@@ -66,74 +85,73 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             assert kv.size == self._robot_data.dof, f"Size of kv {kv.size} is not equal to dof {self._robot_data.dof}"
             super().setJointKvGain(kv)
 
-    def set_IK_gain(self, link_kp: dict[str, np.ndarray]):
+    def set_IK_gain(self,
+                    kp: np.ndarray | dict[str, np.ndarray] | None = None,
+                    *,
+                    link_kp: dict[str, np.ndarray] | None = None):
         """
-        Set IK task-space proportional gains for specified links.
-        Invalid link names are ignored with a warning.
+        Set IK task-space proportional gains.
 
         Parameters:
-            link_kp : (dict[str, np.ndarray]) Link-name to 6D task gain map.
+            kp      : (np.ndarray | None) 6D task-space proportional gain applied to every link frame.
+            link_kp : (dict[str, np.ndarray] | None) Link-name to 6D task gain map for specified links.
         """
-        for k, v in link_kp.items():
-            link_kp[k] = v.reshape(-1)
-            assert link_kp[k].size == 6, f"Size of kp {link_kp[k].size} at link {k} is not equal to 6"
-        super().setIKGain(link_kp)
-        
-    def set_IK_gain(self, kp: np.ndarray):
-        """
-        Set the same IK task-space proportional gain for all link frames.
+        if isinstance(kp, dict):
+            if link_kp is not None:
+                raise ValueError("Only one of kp dict or link_kp can be set")
+            link_kp = kp
+            kp = None
 
-        Parameters:
-            kp : (np.ndarray) 6D task-space proportional gain applied to every link.
-        """
-        kp = kp.reshape(-1)
-        assert kp.size == 6, f"Size of kp {kp.size} is not equal to 6"
-        super().setIKGain(kp)
+        if kp is not None and link_kp is not None:
+            raise ValueError("Only one of kp or link_kp can be set")
+        if kp is not None:
+            super().setIKGain(_as_vector(kp, "kp", 6))
+        if link_kp is not None:
+            super().setIKGain(_as_gain_map(link_kp, "kp"))
 
     def set_ID_gain(self,
+                    kp: np.ndarray | dict[str, np.ndarray] | None = None,
+                    kv: np.ndarray | dict[str, np.ndarray] | None = None,
+                    *,
                     link_kp: dict[str, np.ndarray] | None = None,
                     link_kv: dict[str, np.ndarray] | None = None):
         """
-        Set ID task-space proportional/derivative gains for specified links.
+        Set ID task-space proportional/derivative gains.
 
         Parameters:
-            link_kp : (dict[str, np.ndarray]) Link-name to 6D proportional gain map.
-            link_kv : (dict[str, np.ndarray]) Link-name to 6D derivative gain map.
+            kp      : (np.ndarray | None) 6D proportional gain applied to every link frame.
+            kv      : (np.ndarray | None) 6D derivative gain applied to every link frame.
+            link_kp : (dict[str, np.ndarray] | None) Link-name to 6D proportional gain map for specified links.
+            link_kv : (dict[str, np.ndarray] | None) Link-name to 6D derivative gain map for specified links.
         """
-        if link_kp is not None:
-            for k, v in link_kp.items():
-                link_kp[k] = v.reshape(-1)
-                assert link_kp[k].size == 6, f"Size of kp {link_kp[k].size} at link {k} is not equal to 6"
-            super().setIDKpGain(link_kp)
+        if isinstance(kp, dict):
+            if link_kp is not None:
+                raise ValueError("Only one of kp dict or link_kp can be set")
+            link_kp = kp
+            kp = None
+        if isinstance(kv, dict):
+            if link_kv is not None:
+                raise ValueError("Only one of kv dict or link_kv can be set")
+            link_kv = kv
+            kv = None
 
-        if link_kv is not None:
-            for k, v in link_kv.items():
-                link_kv[k] = v.reshape(-1)
-                assert link_kv[k].size == 6, f"Size of kv {link_kv[k].size} at link {k} is not equal to 6"
-            super().setIDKvGain(link_kv)
-            
-    def set_ID_gain(self, 
-                    kp: np.ndarray | None = None, 
-                    kv: np.ndarray | None = None):
-        """
-         Set the same ID task-space proportional/derivative gains for all link frames.
+        if kp is not None and link_kp is not None:
+            raise ValueError("Only one of kp or link_kp can be set")
+        if kv is not None and link_kv is not None:
+            raise ValueError("Only one of kv or link_kv can be set")
 
-        Parameters:
-            kp : (np.ndarray) 6D proportional gain applied to every link.
-            kv : (np.ndarray) 6D derivative gain applied to every link.
-        """
         if kp is not None:
-            kp = kp.reshape(-1)
-            assert kp.size == 6, f"Size of kp {kp.size} is not equal to 6"
-            super().setIDKpGain(kp)
-            
+            super().setIDKpGain(_as_vector(kp, "kp", 6))
         if kv is not None:
-            kv = kv.reshape(-1)
-            assert kv.size == 6, f"Size of kv {kv.size} is not equal to 6"
-            super().setIDKvGain(kv)
-        
+            super().setIDKvGain(_as_vector(kv, "kv", 6))
+        if link_kp is not None:
+            super().setIDKpGain(_as_gain_map(link_kp, "kp"))
+        if link_kv is not None:
+            super().setIDKvGain(_as_gain_map(link_kv, "kv"))
         
     def set_QPIK_gain(self,
+                      *,
+                      w_tracking: np.ndarray | None = None,
                       link_w_tracking: dict[str, np.ndarray] | None = None,
                       w_vel_damping: np.ndarray | None = None,
                       w_acc_damping: np.ndarray | None = None,
@@ -142,53 +160,25 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Set the weight vector for the cost terms of the QPIK.
 
         Parameters:
-            link_w_tracking : (dict[str, np.ndarray]) Weight for task velocity tracking per links.
-            w_vel_damping   : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
-            w_acc_damping   : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
+            w_tracking      : (np.ndarray | None) Weight for task velocity tracking for every link.
+            link_w_tracking : (dict[str, np.ndarray] | None) Weight for task velocity tracking per links.
+            w_vel_damping   : (np.ndarray | None) Weight for joint velocity damping; its size must same as dof.
+            w_acc_damping   : (np.ndarray | None) Weight for joint acceleration damping; its size must same as dof.
         """
-        if link_w_tracking is not None:
-            for k,v in link_w_tracking.items():
-                link_w_tracking[k] = v.reshape(-1)
-                assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-                super.setQPIKTrackingGain(link_w_tracking)
-                
-        if w_vel_damping is not None:
-            w_vel_damping = w_vel_damping.reshape(-1)
-            assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
-            super().setQPIKJointVelGain(w_vel_damping)
-        
-        if w_acc_damping is not None:
-            w_acc_damping = w_acc_damping.reshape(-1)
-            assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
-            super().setQPIKJointAccGain(w_acc_damping)
-        
-    def set_QPIK_gain(self,
-                      w_tracking: np.ndarray,
-                      w_vel_damping: np.ndarray,
-                      w_acc_damping: np.ndarray,
-                      ):
-        """
-        Set the weight vector for the cost terms of the QPIK.
+        if w_tracking is not None and link_w_tracking is not None:
+            raise ValueError("Only one of w_tracking or link_w_tracking can be set")
 
-        Parameters:
-            w_tracking : (np.ndarray) Weight for task velocity tracking for every link.
-            w_vel_damping   : (np.ndarray) Weight for joint velocity damping; its size must same as dof.
-            w_acc_damping   : (np.ndarray) Weight for joint acceleration damping; its size must same as dof.
-        """
         if w_tracking is not None:
-            w_tracking = w_tracking.reshape(-1)
-            assert w_tracking.size == 6, f"Size of w_vel_damping {w_tracking.size} is not equal to 6"
-            super().setQPIKTrackingGain(w_tracking)
-            
+            super().setQPIKTrackingGain(_as_vector(w_tracking, "w_tracking", 6))
+
+        if link_w_tracking is not None:
+            super().setQPIKTrackingGain(_as_gain_map(link_w_tracking, "link_w_tracking"))
+
         if w_vel_damping is not None:
-            w_vel_damping = w_vel_damping.reshape(-1)
-            assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
-            super().setQPIKJointVelGain(w_vel_damping)
+            super().setQPIKJointVelGain(_as_vector(w_vel_damping, "w_vel_damping", self._robot_data.dof))
         
         if w_acc_damping is not None:
-            w_acc_damping = w_acc_damping.reshape(-1)
-            assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
-            super().setQPIKJointAccGain(w_acc_damping)
+            super().setQPIKJointAccGain(_as_vector(w_acc_damping, "w_acc_damping", self._robot_data.dof))
         
     def set_QPID_gain(self,
                       *,
@@ -196,7 +186,6 @@ class RobotController(drc_cpp.ManipulatorRobotController):
                       link_w_tracking: dict[str, np.ndarray] | None = None,
                       w_vel_damping: np.ndarray | None = None,
                       w_acc_damping: np.ndarray | None = None,
-                      w_null_torque: np.ndarray,
                       ):
         """
         Set the weight vector for the cost terms of the QPID.
@@ -206,45 +195,75 @@ class RobotController(drc_cpp.ManipulatorRobotController):
             link_w_tracking: (dict[str, np.ndarray] | None) Weight for task acceleration tracking per links.
             w_vel_damping  : (np.ndarray | None) Weight for joint velocity damping; its size must same as dof.
             w_acc_damping  : (np.ndarray | None) Weight for joint acceleration damping; its size must same as dof.
-            w_null_torque  : (np.ndarray) Diagonal weight for null space torque tracking; its size must same as dof.
         """
         if w_tracking is not None and link_w_tracking is not None:
             raise ValueError("Only one of w_tracking or link_w_tracking can be set")
 
         if w_tracking is not None:
-            w_tracking = w_tracking.reshape(-1)
-            assert w_tracking.size == 6, f"Size of w_tracking {w_tracking.size} is not equal to 6"
-            super().setQPIDTrackingGain(w_tracking)
+            super().setQPIDTrackingGain(_as_vector(w_tracking, "w_tracking", 6))
 
         if link_w_tracking is not None:
-            for k,v in link_w_tracking.items():
-                link_w_tracking[k] = v.reshape(-1)
-                assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-            super().setQPIDTrackingGain(link_w_tracking)
+            super().setQPIDTrackingGain(_as_gain_map(link_w_tracking, "link_w_tracking"))
 
         if w_vel_damping is not None:
-            w_vel_damping = w_vel_damping.reshape(-1)
-            assert w_vel_damping.size == self._robot_data.dof, f"Size of w_vel_damping {w_vel_damping.size} is not equal to dof {self._robot_data.dof}"
-            super().setQPIDJointVelGain(w_vel_damping)
+            super().setQPIDJointVelGain(_as_vector(w_vel_damping, "w_vel_damping", self._robot_data.dof))
 
         if w_acc_damping is not None:
-            w_acc_damping = w_acc_damping.reshape(-1)
-            assert w_acc_damping.size == self._robot_data.dof, f"Size of w_acc_damping {w_acc_damping.size} is not equal to dof {self._robot_data.dof}"
-            super().setQPIDJointAccGain(w_acc_damping)
+            super().setQPIDJointAccGain(_as_vector(w_acc_damping, "w_acc_damping", self._robot_data.dof))
 
-        self.set_QPID_null_torque_gain(w_null_torque)
-
-    def set_QPID_null_torque_gain(self, w_null_torque: np.ndarray):
+    def set_HQPIK_gain(self,
+                       *,
+                       w_tracking: np.ndarray | None = None,
+                       link_w_tracking: dict[str, np.ndarray] | None = None,
+                       w_vel_damping: np.ndarray | None = None,
+                       w_acc_damping: np.ndarray | None = None,
+                       ):
         """
-        Set the vector weight for QPID null torque tracking.
+        Set the weight vector for the cost terms of the HQPIK.
 
         Parameters:
-            w_null_torque : (np.ndarray) Diagonal weight for the OSF-style null torque cost; size must be dof.
+            w_tracking      : (np.ndarray | None) Weight for task velocity tracking for every link.
+            link_w_tracking : (dict[str, np.ndarray] | None) Weight for task velocity tracking per links.
+            w_vel_damping   : (np.ndarray | None) Weight for joint velocity damping; its size must same as dof.
+            w_acc_damping   : (np.ndarray | None) Weight for joint acceleration damping; its size must same as dof.
         """
-        w_null_torque = np.asarray(w_null_torque).reshape(-1)
-        assert w_null_torque.size == self._robot_data.dof, \
-            f"Size of w_null_torque {w_null_torque.size} is not equal to dof {self._robot_data.dof}"
-        super().setQPIDNullTorqueGain(w_null_torque)
+        if w_tracking is not None and link_w_tracking is not None:
+            raise ValueError("Only one of w_tracking or link_w_tracking can be set")
+        if w_tracking is not None:
+            super().setHQPIKTrackingGain(_as_vector(w_tracking, "w_tracking", 6))
+        if link_w_tracking is not None:
+            super().setHQPIKTrackingGain(_as_gain_map(link_w_tracking, "link_w_tracking"))
+        if w_vel_damping is not None:
+            super().setHQPIKJointVelGain(_as_vector(w_vel_damping, "w_vel_damping", self._robot_data.dof))
+        if w_acc_damping is not None:
+            super().setHQPIKJointAccGain(_as_vector(w_acc_damping, "w_acc_damping", self._robot_data.dof))
+
+    def set_HQPID_gain(self,
+                       *,
+                       w_tracking: np.ndarray | None = None,
+                       link_w_tracking: dict[str, np.ndarray] | None = None,
+                       w_vel_damping: np.ndarray | None = None,
+                       w_acc_damping: np.ndarray | None = None,
+                       ):
+        """
+        Set the weight vector for the cost terms of the HQPID.
+
+        Parameters:
+            w_tracking      : (np.ndarray | None) Weight for task acceleration tracking for every link.
+            link_w_tracking : (dict[str, np.ndarray] | None) Weight for task acceleration tracking per links.
+            w_vel_damping   : (np.ndarray | None) Weight for joint velocity damping; its size must same as dof.
+            w_acc_damping   : (np.ndarray | None) Weight for joint acceleration damping; its size must same as dof.
+        """
+        if w_tracking is not None and link_w_tracking is not None:
+            raise ValueError("Only one of w_tracking or link_w_tracking can be set")
+        if w_tracking is not None:
+            super().setHQPIDTrackingGain(_as_vector(w_tracking, "w_tracking", 6))
+        if link_w_tracking is not None:
+            super().setHQPIDTrackingGain(_as_gain_map(link_w_tracking, "link_w_tracking"))
+        if w_vel_damping is not None:
+            super().setHQPIDJointVelGain(_as_vector(w_vel_damping, "w_vel_damping", self._robot_data.dof))
+        if w_acc_damping is not None:
+            super().setHQPIDJointAccGain(_as_vector(w_acc_damping, "w_acc_damping", self._robot_data.dof))
 
     # ================================ Joint space Functions ================================
     def move_joint_position_cubic(self,
@@ -422,15 +441,11 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_qdot is None:
             return super().CLIK(link_task_data_cpp)
         else:
-            null_qdot = null_qdot.reshape(-1)
-            assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
+            null_qdot = _as_vector(null_qdot, "null_qdot", self._robot_data.dof)
             return super().CLIK(link_task_data_cpp, null_qdot)
 
     def CLIK_step(self,
@@ -447,15 +462,11 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_qdot is None:
             return super().CLIKStep(link_task_data_cpp)
         else:
-            null_qdot = null_qdot.reshape(-1)
-            assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
+            null_qdot = _as_vector(null_qdot, "null_qdot", self._robot_data.dof)
             return super().CLIKStep(link_task_data_cpp, null_qdot)
 
     def CLIK_cubic(self,
@@ -474,15 +485,11 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_qdot is None:
             return super().CLIKCubic(link_task_data_cpp, duration)
         else:
-            null_qdot = null_qdot.reshape(-1)
-            assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
+            null_qdot = _as_vector(null_qdot, "null_qdot", self._robot_data.dof)
             return super().CLIKCubic(link_task_data_cpp, duration, null_qdot)
 
 
@@ -500,15 +507,11 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_torque is None:
             return super().OSF(link_task_data_cpp)
         else:
-            null_torque = null_torque.reshape(-1)
-            assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
+            null_torque = _as_vector(null_torque, "null_torque", self._robot_data.dof)
             return super().OSF(link_task_data_cpp, null_torque)
 
     def OSF_step(self,
@@ -525,15 +528,11 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_torque is None:
             return super().OSFStep(link_task_data_cpp)
         else:
-            null_torque = null_torque.reshape(-1)
-            assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
+            null_torque = _as_vector(null_torque, "null_torque", self._robot_data.dof)
             return super().OSFStep(link_task_data_cpp, null_torque)
 
     def OSF_cubic(self,
@@ -552,71 +551,46 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_torque is None:
             return super().OSFCubic(link_task_data_cpp, duration)
         else:
-            null_torque = null_torque.reshape(-1)
-            assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
+            null_torque = _as_vector(null_torque, "null_torque", self._robot_data.dof)
             return super().OSFCubic(link_task_data_cpp, duration, null_torque)
         
     def QPIK(self,
              link_task_data: dict[str, TaskSpaceData],
-             null_qdot: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray]:
         """
         Computes joint velocities to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xdot_desired.
-            null_qdot      : (np.ndarray | None) Desired joint velocity for null space tracking (w_joint_vel weighted).
-                             If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_qdot is not None:
-            null_qdot = np.asarray(null_qdot).reshape(-1)
-            assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
-            return super().QPIK(link_task_data_cpp, null_qdot)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPIK(link_task_data_cpp)
 
     def QPIK_step(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  null_qdot: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray]:
         """
         Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_qdot      : (np.ndarray | None) Desired joint velocity for null space tracking (w_joint_vel weighted).
-                             If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_qdot is not None:
-            null_qdot = np.asarray(null_qdot).reshape(-1)
-            assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
-            return super().QPIKStep(link_task_data_cpp, null_qdot)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPIKStep(link_task_data_cpp)
 
     def QPIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    duration: float,
-                   null_qdot: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint velocities using QP to follow the resulting trajectory.
@@ -624,74 +598,46 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration       : (float) Time duration.
-            null_qdot      : (np.ndarray | None) Desired joint velocity for null space tracking (w_joint_vel weighted).
-                             If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_qdot is not None:
-            null_qdot = np.asarray(null_qdot).reshape(-1)
-            assert null_qdot.size == self._robot_data.dof, f"Size of null_qdot {null_qdot.size} is not equal to dof {self._robot_data.dof}"
-            return super().QPIKCubic(link_task_data_cpp, duration, null_qdot)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPIKCubic(link_task_data_cpp, duration)
 
     def QPID(self,
              link_task_data: dict[str, TaskSpaceData],
-             null_torque: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray]:
         """
         Computes joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            null_torque    : (np.ndarray | None) Desired total null-space torque; size must equal dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_torque is not None:
-            null_torque = np.asarray(null_torque).reshape(-1)
-            assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
-            return super().QPID(link_task_data_cpp, null_torque)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPID(link_task_data_cpp)
 
     def QPID_step(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  null_torque: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray]:
         """
         Computes joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse dynamics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_torque    : (np.ndarray | None) Desired total null-space torque; size must equal dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_torque is not None:
-            null_torque = np.asarray(null_torque).reshape(-1)
-            assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
-            return super().QPIDStep(link_task_data_cpp, null_torque)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPIDStep(link_task_data_cpp)
 
     def QPID_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
                    duration: float,
-                   null_torque: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint torques using QP to follow the resulting trajectory.
@@ -699,17 +645,97 @@ class RobotController(drc_cpp.ManipulatorRobotController):
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration     : (float) Time duration.
-            null_torque  : (np.ndarray | None) Desired total null-space torque; size must equal dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray]) Success flag, desired joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_torque is not None:
-            null_torque = np.asarray(null_torque).reshape(-1)
-            assert null_torque.size == self._robot_data.dof, f"Size of null_torque {null_torque.size} is not equal to dof {self._robot_data.dof}"
-            return super().QPIDCubic(link_task_data_cpp, duration, null_torque)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPIDCubic(link_task_data_cpp, duration)
+
+    def HQPIK(self,
+              task_hierarchy: list[dict[str, TaskSpaceData]],
+              ) -> tuple[bool, np.ndarray]:
+        """
+        Computes joint velocities to achieve desired velocity (xdot_desired) of a link hierarchy by solving hierarchical inverse kinematics QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include xdot_desired.
+
+        Returns:
+            (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
+        """
+        return super().HQPIK(_as_task_hierarchy(task_hierarchy))
+
+    def HQPIK_step(self,
+                   task_hierarchy: list[dict[str, TaskSpaceData]],
+                   ) -> tuple[bool, np.ndarray]:
+        """
+        Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link hierarchy by solving hierarchical inverse kinematics QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include (x_desired, xdot_desired).
+
+        Returns:
+            (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
+        """
+        return super().HQPIKStep(_as_task_hierarchy(task_hierarchy))
+
+    def HQPIK_cubic(self,
+                    task_hierarchy: list[dict[str, TaskSpaceData]],
+                    duration: float,
+                    ) -> tuple[bool, np.ndarray]:
+        """
+        Perform cubic interpolation then compute joint velocities using hierarchical QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+            duration       : (float) Time duration.
+
+        Returns:
+            (tuple[bool, np.ndarray]) Success flag, desired joint velocities.
+        """
+        return super().HQPIKCubic(_as_task_hierarchy(task_hierarchy), duration)
+
+    def HQPID(self,
+              task_hierarchy: list[dict[str, TaskSpaceData]],
+              ) -> tuple[bool, np.ndarray]:
+        """
+        Computes joint torques to achieve desired acceleration (xddot_desired) of a link hierarchy by solving hierarchical inverse dynamics QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include xddot_desired.
+
+        Returns:
+            (tuple[bool, np.ndarray]) Success flag, desired joint torques.
+        """
+        return super().HQPID(_as_task_hierarchy(task_hierarchy))
+
+    def HQPID_step(self,
+                   task_hierarchy: list[dict[str, TaskSpaceData]],
+                   ) -> tuple[bool, np.ndarray]:
+        """
+        Computes joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link hierarchy by solving hierarchical inverse dynamics QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include (x_desired, xdot_desired).
+
+        Returns:
+            (tuple[bool, np.ndarray]) Success flag, desired joint torques.
+        """
+        return super().HQPIDStep(_as_task_hierarchy(task_hierarchy))
+
+    def HQPID_cubic(self,
+                    task_hierarchy: list[dict[str, TaskSpaceData]],
+                    duration: float,
+                    ) -> tuple[bool, np.ndarray]:
+        """
+        Perform cubic interpolation then compute joint torques using hierarchical QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+            duration       : (float) Time duration.
+
+        Returns:
+            (tuple[bool, np.ndarray]) Success flag, desired joint torques.
+        """
+        return super().HQPIDCubic(_as_task_hierarchy(task_hierarchy), duration)
