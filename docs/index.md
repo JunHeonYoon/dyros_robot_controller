@@ -25,7 +25,24 @@ It provides a unified controller API backed by [Pinocchio](https://stack-of-task
 
 </div>
 
-![FR3 example](assets/images/fr3.gif)
+<div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin: 1.5rem 0;">
+
+<figure style="flex:1; min-width:200px; text-align:center; margin:0;">
+  <img src="assets/images/fr3.gif" alt="Franka FR3" style="width:100%;">
+  <figcaption>Franka FR3 — manipulator</figcaption>
+</figure>
+
+<figure style="flex:1; min-width:200px; text-align:center; margin:0;">
+  <img src="assets/images/xls.gif" alt="Summit XLS" style="width:100%;">
+  <figcaption>Summit XLS — mobile base</figcaption>
+</figure>
+
+<figure style="flex:1; min-width:200px; text-align:center; margin:0;">
+  <img src="assets/images/fr3_xls.gif" alt="FR3 on Summit XLS" style="width:100%;">
+  <figcaption>FR3 on Summit XLS — mobile manipulator</figcaption>
+</figure>
+
+</div>
 
 ## Package Layout
 

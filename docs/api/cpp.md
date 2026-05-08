@@ -299,17 +299,20 @@ mobile_data->updateState(wheel_pos, wheel_vel);
 !!! warning "Differential drive — wheel count is always 2"
     `DriveType::Differential` **hard-codes `wheel_num_ = 2`**.
     The joint/wheel vector is expected in the order **`[left_wheel, right_wheel]`**.
-    The Jacobian is:
-    \[
-    J_{\text{diff}} =
-    \begin{bmatrix}
-    r/2 & r/2 \\
-    0   & 0   \\
-    -r/L & r/L
-    \end{bmatrix}
-    \]
-    where \(r\) = `wheel_radius` and \(L\) = `base_width`.
     A positive wheel velocity on the left corresponds to the wheel spinning forward.
+
+The differential drive Jacobian \(J_{\text{diff}} \in \mathbb{R}^{3 \times 2}\) maps wheel velocities to base twist \([\dot{x},\, \dot{y},\, \dot{\theta}]^T\):
+
+\[
+J_{\text{diff}} =
+\begin{bmatrix}
+r/2 & r/2 \\
+0   & 0   \\
+-r/L & r/L
+\end{bmatrix}
+\]
+
+where \(r\) = `wheel_radius` and \(L\) = `base_width`.
 
 !!! warning "Mecanum drive — roller-angle vector length determines wheel count"
     `DriveType::Mecanum` sets `wheel_num_` equal to `roller_angles.size()`.

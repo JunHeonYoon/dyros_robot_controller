@@ -2,7 +2,7 @@
 
 **Dyros Robot Controller** is a versatile ROS2-based control package that implements control algorithms for various types of robots, including mobile robots, manipulators, and mobile manipulators.  
 It is designed to work seamlessly in both simulation and real-robot environments, enabling rapid development and testing of advanced control strategies.
-Documentation of the **Dyros Robot Controller** is available [here](https://www.notion.so/dyros_robot_controller-28c454d594108063817bc141f5668e0f#28c454d5941080999042f30fb446355a).
+Documentation of the **Dyros Robot Controller** is available [here](https://junheonyoon.github.io/dyros_robot_controller/).
 
 ---
 
