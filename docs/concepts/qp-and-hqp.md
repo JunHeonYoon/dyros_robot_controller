@@ -198,7 +198,7 @@ Let \(\dot{h} = \nabla_q d_{\min}^T \dot{q}\) and \(\ddot{h} = (\dot{\nabla}_q d
 
 !!! warning "Use primitive collision geometries — mesh shapes cause real-time deadline misses"
     The same Pinocchio + FCL `computeMinimumDistance()` call used in QPIK is also performed every step in QPID.
-    See the [identical warning in the QPIK section](#qpik-cbf-constraints) — the recommendation to replace `<collision>` meshes with primitive shapes applies equally here.
+    See the [identical warning in the QPIK section](#3-self-collision-avoidance-1st-order-cbf) — the recommendation to replace `<collision>` meshes with primitive shapes applies equally here.
 
 ---
 
