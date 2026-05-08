@@ -19,6 +19,7 @@ from typing import Tuple
 import numpy as np
 from drc import KinematicParam, JointIndex, ActuatorIndex
 import dyros_robot_controller_cpp_wrapper as drc_cpp
+from ._proxy import _ManiDataProxy, _MobiDataProxy
 
 
 class RobotData(drc_cpp.MobileManipulatorRobotData):
@@ -70,7 +71,26 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         self.mobi_dof     = int(super().getMobileDof())
         self.virtual_dof  = 3
         self.actuated_dof = int(super().getActuatorDof())
-        
+
+        # Backing stores for sub-object proxies
+        self._mani_proxy = _ManiDataProxy(super().mani, self)
+        self._mobi_proxy = _MobiDataProxy(super().mobi, self)
+
+    @property
+    def moma(self):
+        """Return self as the mobile manipulator sub-object."""
+        return self
+
+    @property
+    def mani(self):
+        """Return the manipulator sub-object proxy."""
+        return self._mani_proxy
+
+    @property
+    def mobi(self):
+        """Return the mobile base sub-object proxy."""
+        return self._mobi_proxy
+
     def get_verbose(self) -> str:
         """
         Print current mobile manipulator state and parameters in formatted text.

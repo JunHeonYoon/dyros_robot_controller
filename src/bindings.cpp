@@ -1051,6 +1051,9 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("getManipulability",                              &MM_RD::getManipulability)
         .def("getMobileFKJacobian",                            &MM_RD::getMobileFKJacobian)
         .def("getMobileBaseVel",                               &MM_RD::getMobileBaseVel)
+        .add_property("mani", bp::make_function(+[](MM_RD& self) -> MN_RD& { return self.mani; }, bp::return_internal_reference<>()))
+        .add_property("mobi", bp::make_function(+[](MM_RD& self) -> MO_RD& { return self.mobi; }, bp::return_internal_reference<>()))
+        .add_property("moma", bp::make_function(+[](MM_RD& self) -> MM_RD& { return self.moma; }, bp::return_internal_reference<>()))
         ;
 
     bp::class_<MO_RC, boost::noncopyable >("MobileRobotController", bp::init<std::shared_ptr<MO_RD>>())
@@ -1195,5 +1198,8 @@ BOOST_PYTHON_MODULE(dyros_robot_controller_cpp_wrapper)
         .def("HQPID",                                                                                                        &MM_RC_HQPID_tuple)
         .def("HQPIDStep",                                                                                                    &MM_RC_HQPIDStep_tuple)
         .def("HQPIDCubic",                                                                                                   &MM_RC_HQPIDCubic_tuple)
+        .add_property("mani", bp::make_function(+[](MM_RC& self) -> MN_RC& { return self.mani; }, bp::return_internal_reference<>()))
+        .add_property("mobi", bp::make_function(+[](MM_RC& self) -> MO_RC& { return self.mobi; }, bp::return_internal_reference<>()))
+        .add_property("moma", bp::make_function(+[](MM_RC& self) -> MM_RC& { return self.moma; }, bp::return_internal_reference<>()))
         ;
 }

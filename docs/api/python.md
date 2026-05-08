@@ -260,20 +260,110 @@ mobi_dof = moma_data.mobi_dof   # number of wheel joints
 act_dof  = moma_data.get_actuator_dof()  # mani_dof + mobi_dof
 ```
 
-!!! warning "No `.mani` / `.mobi` / `.moma` sub-object proxies in Python"
-    The C++ API exposes `data.mani`, `data.mobi`, and `data.moma` as sub-object references that
-    give scoped access to arm-only or mobile-only kinematics.
-    **These proxy references are not available in the Python bindings.**
-    Use the flat methods directly on `moma_data` instead:
+### Sub-object accessors — `RobotData`
 
-    ```python
-    # C++ sub-object pattern (NOT available in Python):
-    #   J_arm = moma_data.mani.compute_jacobian("panda_hand")   ← does not exist
+`RobotData` exposes three Python properties that mirror the C++ sub-object API:
 
-    # Python equivalent — use the full MobileManipulator methods:
-    J_full = moma_data.compute_jacobian_actuated("panda_hand")  # (6 × act_dof)
-    J_mobi = moma_data.compute_mobile_fk_jacobian()             # mobile Jacobian
-    ```
+| Property | Type | Description |
+| --- | --- | --- |
+| `moma_data.moma` | `RobotData` | Returns `self` — whole-body view |
+| `moma_data.mani` | `_ManiDataProxy` | Arm-only kinematics/dynamics in the mobile-base frame |
+| `moma_data.mobi` | `_MobiDataProxy` | Mobile-base kinematics |
+
+#### `mani` — arm-only data proxy
+
+All `compute_*` methods take **arm-only** joint vectors (`q_mani`, `qdot_mani`) and return results expressed in the **mobile-base frame**.  
+The `get_*` cached accessors are valid after `moma_data.update_state(...)`.
+
+```python
+mani = moma_data.mani
+
+# DOF
+n = mani.dof        # int, equivalent to moma_data.mani_dof
+
+# Cached (after update_state)
+q    = mani.get_joint_position()            # (mani_dof,)
+qdot = mani.get_joint_velocity()            # (mani_dof,)
+J    = mani.get_jacobian("panda_hand")      # (6, mani_dof) — mobile-base frame
+T    = mani.get_pose("panda_hand")          # 4×4 SE(3)
+v    = mani.get_velocity("panda_hand")      # (6,)
+M    = mani.get_mass_matrix()               # (mani_dof, mani_dof)
+g    = mani.get_gravity()                   # (mani_dof,)
+
+# Explicit compute (supply q_mani)
+J    = mani.compute_jacobian(q_mani, "panda_hand")   # (6, mani_dof)
+T    = mani.compute_pose(q_mani, "panda_hand")        # 4×4
+M    = mani.compute_mass_matrix(q_mani)              # (mani_dof, mani_dof)
+g    = mani.compute_gravity(q_mani)                  # (mani_dof,)
+```
+
+#### `mobi` — mobile-base data proxy
+
+```python
+mobi = moma_data.mobi
+
+n     = mobi.wheel_num             # int
+
+# Cached (after update_state)
+pos   = mobi.get_wheel_pos()       # (mobi_dof,) wheel positions
+vel   = mobi.get_wheel_vel()       # (mobi_dof,) wheel velocities
+v_b   = mobi.get_base_vel()        # (3,) [vx, vy, wz]
+J_fk  = mobi.get_fk_jacobian()    # forward-kinematics Jacobian
+
+# Explicit compute
+v_b   = mobi.compute_base_vel(wheel_pos, wheel_vel)  # (3,)
+J_fk  = mobi.compute_fk_jacobian(wheel_pos)          # FK Jacobian
+```
+
+### Sub-object accessors — `RobotController`
+
+`RobotController` exposes matching controller proxies:
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `moma_ctrl.moma` | `RobotController` | Returns `self` — whole-body controller |
+| `moma_ctrl.mani` | `_ManiCtrlProxy` | Arm-only controller (arm-frame Jacobians, arm-sized outputs) |
+| `moma_ctrl.mobi` | `_MobiCtrlProxy` | Mobile-base controller |
+
+#### `mani` — arm-only controller proxy
+
+Gain setters delegate to `moma_ctrl` (they affect the shared controller state). Task-space methods use arm-only Jacobians in the mobile-base frame and return *arm-only* velocity or torque vectors.
+
+```python
+mani_ctrl = moma_ctrl.mani
+
+# Gain setters (same effect as calling on moma_ctrl)
+mani_ctrl.set_joint_gain(Kp_arm, Kv_arm)
+mani_ctrl.set_IK_gain({"panda_hand": np.ones(6) * 5.0})
+mani_ctrl.set_QPIK_gain(w_tracking=np.ones(6)*100, w_vel_damping=np.ones(act_dof)*0.01)
+
+# Joint-space (arm only)
+q_ref = mani_ctrl.move_joint_position_cubic(q_target, qdot_target, q_init, qdot_init,
+                                             current_time, init_time, duration)
+tau   = mani_ctrl.move_joint_torque_step(q_target, qdot_target, use_mass=True)
+
+# Task-space: returns (ok, qdot_arm) or (ok, tau_arm) — mani_dof-sized output
+ok, qdot_arm = mani_ctrl.CLIK({"panda_hand": task})
+ok, qdot_arm = mani_ctrl.CLIK_step({"panda_hand": task})
+ok, qdot_arm = mani_ctrl.CLIK_cubic({"panda_hand": task}, duration=3.0)
+
+ok, tau_arm  = mani_ctrl.OSF({"panda_hand": task})
+ok, tau_arm  = mani_ctrl.QPIK({"panda_hand": task})
+ok, tau_arm  = mani_ctrl.QPID({"panda_hand": task})
+
+ok, qdot_arm = mani_ctrl.HQPIK_step([{"panda_hand": task0}, {"panda_link4": task1}])
+ok, tau_arm  = mani_ctrl.HQPID_step([{"panda_hand": task0}, {"panda_link4": task1}])
+```
+
+#### `mobi` — mobile controller proxy
+
+```python
+mobi_ctrl = moma_ctrl.mobi
+
+wheel_vel = mobi_ctrl.compute_wheel_vel(cmd_base_vel)        # (mobi_dof,)
+wheel_vel = mobi_ctrl.velocity_command(desired_base_vel)     # (mobi_dof,)
+J_ik      = mobi_ctrl.compute_IK_jacobian()                  # IK Jacobian
+```
 
 ### State update
 

@@ -19,6 +19,7 @@ import numpy as np
 import dyros_robot_controller_cpp_wrapper as drc_cpp
 from .robot_data import RobotData
 from drc import TaskSpaceData
+from ._proxy import _ManiCtrlProxy, _MobiCtrlProxy
 
 
 def _as_vector(value, name: str, size: int) -> np.ndarray:
@@ -68,6 +69,25 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         self._robot_data = robot_data
         self._dt = float(self._robot_data.get_dt())
         super().__init__(self._robot_data)
+
+        # Backing stores for sub-object proxies
+        self._mani_ctrl_proxy = _ManiCtrlProxy(super().mani, self)
+        self._mobi_ctrl_proxy = _MobiCtrlProxy(super().mobi, self)
+
+    @property
+    def moma(self):
+        """Return self as the mobile manipulator sub-object."""
+        return self
+
+    @property
+    def mani(self):
+        """Return the manipulator controller sub-object proxy."""
+        return self._mani_ctrl_proxy
+
+    @property
+    def mobi(self):
+        """Return the mobile base controller sub-object proxy."""
+        return self._mobi_ctrl_proxy
 
     def set_manipulator_joint_gain(self, 
                                    kp: np.ndarray | None = None, 
