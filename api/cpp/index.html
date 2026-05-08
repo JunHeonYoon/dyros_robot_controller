@@ -2420,18 +2420,18 @@ On QP failure <code>opt_torque</code> is set to gravity compensation (<code>g(q)
 <p class="admonition-title">Differential drive — wheel count is always 2</p>
 <p><code>DriveType::Differential</code> <strong>hard-codes <code>wheel_num_ = 2</code></strong>.
 The joint/wheel vector is expected in the order <strong><code>[left_wheel, right_wheel]</code></strong>.
-The Jacobian is:
-[
-J_{\text{diff}} =
-\begin{bmatrix}
-r/2 &amp; r/2 \
-0   &amp; 0   \
--r/L &amp; r/L
-\end{bmatrix}
-]
-where <span class="arithmatex">\(r\)</span> = <code>wheel_radius</code> and <span class="arithmatex">\(L\)</span> = <code>base_width</code>.
 A positive wheel velocity on the left corresponds to the wheel spinning forward.</p>
 </div>
+<p>The differential drive Jacobian <span class="arithmatex">\(J_{\text{diff}} \in \mathbb{R}^{3 \times 2}\)</span> maps wheel velocities to base twist <span class="arithmatex">\([\dot{x},\, \dot{y},\, \dot{\theta}]^T\)</span>:</p>
+<div class="arithmatex">\[
+J_{\text{diff}} =
+\begin{bmatrix}
+r/2 &amp; r/2 \\
+0   &amp; 0   \\
+-r/L &amp; r/L
+\end{bmatrix}
+\]</div>
+<p>where <span class="arithmatex">\(r\)</span> = <code>wheel_radius</code> and <span class="arithmatex">\(L\)</span> = <code>base_width</code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Mecanum drive — roller-angle vector length determines wheel count</p>
 <p><code>DriveType::Mecanum</code> sets <code>wheel_num_</code> equal to <code>roller_angles.size()</code>.
