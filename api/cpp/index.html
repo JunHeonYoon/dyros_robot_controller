@@ -1180,10 +1180,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sub-object-accessors" class="md-nav__link">
+  <a href="#sub-object-accessors-robotdata" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sub-object accessors
+        Sub-object accessors — RobotData
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sub-object-accessors-robotcontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sub-object accessors — RobotController
       
     </span>
   </a>
@@ -2020,10 +2031,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sub-object-accessors" class="md-nav__link">
+  <a href="#sub-object-accessors-robotdata" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sub-object accessors
+        Sub-object accessors — RobotData
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sub-object-accessors-robotcontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sub-object accessors — RobotController
       
     </span>
   </a>
@@ -2522,8 +2544,8 @@ The joint order in the input vector must follow the caster-module order given in
 <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">moma_data</span><span class="o">-&gt;</span><span class="n">updateState</span><span class="p">(</span><span class="n">q_virtual</span><span class="p">,</span><span class="w"> </span><span class="n">q_mobile</span><span class="p">,</span><span class="w"> </span><span class="n">q_mani</span><span class="p">,</span>
 <a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">                        </span><span class="n">qdot_virtual</span><span class="p">,</span><span class="w"> </span><span class="n">qdot_mobile</span><span class="p">,</span><span class="w"> </span><span class="n">qdot_mani</span><span class="p">);</span>
 </code></pre></div>
-<h3 id="sub-object-accessors">Sub-object accessors<a class="headerlink" href="#sub-object-accessors" title="Permanent link">&para;</a></h3>
-<p>After construction, three named sub-references provide scoped access:</p>
+<h3 id="sub-object-accessors-robotdata">Sub-object accessors — <code>RobotData</code><a class="headerlink" href="#sub-object-accessors-robotdata" title="Permanent link">&para;</a></h3>
+<p>After construction, three named references on <code>RobotData</code> provide scoped access to kinematics and dynamics:</p>
 <table>
 <thead>
 <tr>
@@ -2536,29 +2558,98 @@ The joint order in the input vector must follow the caster-module order given in
 <tr>
 <td><code>moma_data-&gt;moma</code></td>
 <td><code>MobileManipulator::RobotData&amp;</code></td>
-<td>Whole-body (world frame, full DOF)</td>
+<td>Whole-body (world frame, full DOF) — alias for <code>*this</code></td>
 </tr>
 <tr>
 <td><code>moma_data-&gt;mani</code></td>
 <td><code>Manipulator::RobotData&amp;</code></td>
-<td>Arm-only quantities in the mobile-base frame</td>
+<td>Arm-only quantities expressed in the <strong>mobile-base frame</strong></td>
 </tr>
 <tr>
 <td><code>moma_data-&gt;mobi</code></td>
 <td><code>Mobile::RobotData&amp;</code></td>
-<td>Mobile-base quantities only</td>
+<td>Mobile-base kinematic quantities only</td>
 </tr>
 </tbody>
 </table>
-<p>Use <code>mani</code> when passing a manipulator-only proxy to a standalone <code>Manipulator::RobotController</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1">// Whole-body Jacobian of a link (world frame, actuated DOF)</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">MatrixXd</span><span class="w"> </span><span class="n">J</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">moma_data</span><span class="o">-&gt;</span><span class="n">moma</span><span class="p">.</span><span class="n">computeJacobianActuated</span><span class="p">(</span><span class="s">&quot;panda_hand&quot;</span><span class="p">);</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1">// Arm-only Jacobian expressed in the mobile-base frame (mani_dof columns)</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">MatrixXd</span><span class="w"> </span><span class="n">J_arm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">moma_data</span><span class="o">-&gt;</span><span class="n">mani</span><span class="p">.</span><span class="n">computeJacobian</span><span class="p">(</span><span class="s">&quot;panda_hand&quot;</span><span class="p">);</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1">// Mobile-base forward-kinematics Jacobian (wheel → base twist)</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">MatrixXd</span><span class="w"> </span><span class="n">J_mobi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">moma_data</span><span class="o">-&gt;</span><span class="n">mobi</span><span class="p">.</span><span class="n">computeMobileFKJacobian</span><span class="p">();</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="c1">// DOF queries</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="kt">int</span><span class="w"> </span><span class="n">mani_dof</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">moma_data</span><span class="o">-&gt;</span><span class="n">getManipulatorDof</span><span class="p">();</span><span class="w">  </span><span class="c1">// arm joints only</span>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="kt">int</span><span class="w"> </span><span class="n">mobi_dof</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">moma_data</span><span class="o">-&gt;</span><span class="n">getMobileDof</span><span class="p">();</span><span class="w">        </span><span class="c1">// wheel joints only</span>
+</code></pre></div>
+<h3 id="sub-object-accessors-robotcontroller">Sub-object accessors — <code>RobotController</code><a class="headerlink" href="#sub-object-accessors-robotcontroller" title="Permanent link">&para;</a></h3>
+<p><code>RobotController</code> exposes the same three references on the <strong>controller</strong> side:</p>
+<table>
+<thead>
+<tr>
+<th>Reference</th>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ctrl-&gt;moma</code></td>
+<td><code>MobileManipulator::RobotController&amp;</code></td>
+<td>Whole-body QP/HQP control — alias for <code>*this</code></td>
+</tr>
+<tr>
+<td><code>ctrl-&gt;mani</code></td>
+<td><code>Manipulator::RobotController&amp;</code></td>
+<td>Arm-only control (treats mobile base as fixed)</td>
+</tr>
+<tr>
+<td><code>ctrl-&gt;mobi</code></td>
+<td><code>Mobile::RobotController&amp;</code></td>
+<td>Mobile-base velocity commands only</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">auto</span><span class="w"> </span><span class="n">ctrl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">drc</span><span class="o">::</span><span class="n">MobileManipulator</span><span class="o">::</span><span class="n">RobotController</span><span class="o">&gt;</span><span class="p">(</span><span class="n">moma_data</span><span class="p">);</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="c1">// ── Gain setup ────────────────────────────────────────────────────</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c1">// Arm PD gains (mani_dof-length vectors)</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="n">ctrl</span><span class="o">-&gt;</span><span class="n">mani</span><span class="p">.</span><span class="n">setJointGain</span><span class="p">(</span><span class="n">Kp_arm</span><span class="p">,</span><span class="w"> </span><span class="n">Kv_arm</span><span class="p">);</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="c1">// Whole-body QP-IK weights</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="n">ctrl</span><span class="o">-&gt;</span><span class="n">moma</span><span class="p">.</span><span class="n">setQPIKGain</span><span class="p">(</span><span class="n">w_tracking</span><span class="p">,</span><span class="w"> </span><span class="n">w_vel</span><span class="p">,</span><span class="w"> </span><span class="n">w_acc</span><span class="p">);</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="c1">// ── Control outputs ───────────────────────────────────────────────</span>
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="c1">// Whole-body QP-IK: returns separate mobile and manipulator qdot</span>
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">VectorXd</span><span class="w"> </span><span class="n">qdot_mobi</span><span class="p">,</span><span class="w"> </span><span class="n">qdot_mani</span><span class="p">;</span>
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="kt">bool</span><span class="w"> </span><span class="n">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctrl</span><span class="o">-&gt;</span><span class="n">moma</span><span class="p">.</span><span class="n">QPIKCubic</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span><span class="w"> </span><span class="n">duration</span><span class="p">,</span><span class="w"> </span><span class="n">qdot_mobi</span><span class="p">,</span><span class="w"> </span><span class="n">qdot_mani</span><span class="p">);</span>
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>
+<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a><span class="c1">// Arm-only CLIK (mobile base treated as stationary):</span>
+<a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">VectorXd</span><span class="w"> </span><span class="n">qdot_arm</span><span class="p">;</span>
+<a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a><span class="n">ctrl</span><span class="o">-&gt;</span><span class="n">mani</span><span class="p">.</span><span class="n">CLIKCubic</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span><span class="w"> </span><span class="n">qdot_arm</span><span class="p">,</span><span class="w"> </span><span class="n">duration</span><span class="p">);</span>
+<a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a>
+<a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a><span class="c1">// Mobile-base velocity command only:</span>
+<a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">VectorXd</span><span class="w"> </span><span class="nf">cmd_vel</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span><span class="w">   </span><span class="c1">// [vx, vy, omega]</span>
+<a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">VectorXd</span><span class="w"> </span><span class="n">wheel_vel</span><span class="p">;</span>
+<a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a><span class="n">ctrl</span><span class="o">-&gt;</span><span class="n">mobi</span><span class="p">.</span><span class="n">VelocityCommand</span><span class="p">(</span><span class="n">cmd_vel</span><span class="p">,</span><span class="w"> </span><span class="n">wheel_vel</span><span class="p">);</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Deprecated flat methods</p>
+<p>Methods such as <code>setManipulatorJointGain()</code>, <code>setIKGain()</code> on <code>MobileManipulator::RobotController</code>
+are deprecated. Use the sub-object form <code>ctrl-&gt;mani.setJointGain()</code> / <code>ctrl-&gt;moma.setIKGain()</code> instead.
+The deprecated methods remain available for backwards compatibility.</p>
+</div>
 <h3 id="urdf-structure-requirements">URDF structure requirements<a class="headerlink" href="#urdf-structure-requirements" title="Permanent link">&para;</a></h3>
 <div class="admonition warning">
 <p class="admonition-title">URDF joint ordering must match <code>JointIndex</code></p>
 <p>The URDF joint ordering as parsed by Pinocchio <strong>must</strong> exactly match the indices given in <code>JointIndex</code>.
 The recommended URDF ordering is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>[virtual_joint_x, virtual_joint_y, virtual_joint_yaw]   ← indices 0-2
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>[arm_joint_1, ..., arm_joint_n]                          ← indices 3 to 3+n-1
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>[wheel_joint_1, ..., wheel_joint_m]                      ← indices 3+n to end
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>[virtual_joint_x, virtual_joint_y, virtual_joint_yaw]   ← indices 0-2
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>[arm_joint_1, ..., arm_joint_n]                          ← indices 3 to 3+n-1
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>[wheel_joint_1, ..., wheel_joint_m]                      ← indices 3+n to end
 </code></pre></div>
 <p>If <code>joint_idx.virtual_start</code>, <code>joint_idx.mani_start</code>, or <code>joint_idx.mobi_start</code> do not match the Pinocchio joint order, dynamics and Jacobians will be incorrect and silently corrupted.</p>
 </div>
@@ -2571,7 +2662,7 @@ Full 6-DOF floating-base robots (e.g., aerial manipulators) are not supported by
 <div class="admonition warning">
 <p class="admonition-title">Manipulator DOF is inferred, not explicit</p>
 <p><code>mani_dof_</code> is computed as:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>mani_dof_ = total_dof − virtual_dof_(3) − wheel_num_
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>mani_dof_ = total_dof − virtual_dof_(3) − wheel_num_
 </code></pre></div>
 If the URDF contains additional passive joints, gripper joints, or auxiliary joints beyond the arm and wheels, <code>mani_dof_</code> will be incorrect. 
 There is a <code>TODO</code> in the source tracking this limitation — always verify <code>moma_data-&gt;getManipulatorDof()</code> against your expected arm DOF.</p>
@@ -2584,30 +2675,30 @@ arm-only controllers, but note that the base-frame changes every timestep as the
 </div>
 <h3 id="qp-hqp-outputs-for-mobile-manipulators">QP / HQP outputs for mobile manipulators<a class="headerlink" href="#qp-hqp-outputs-for-mobile-manipulators" title="Permanent link">&para;</a></h3>
 <p><code>QPIK</code> and <code>QPID</code> methods on <code>MobileManipulator::RobotController</code> return two separate vectors:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">VectorXd</span><span class="w"> </span><span class="n">opt_qdot_mobile</span><span class="p">;</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">VectorXd</span><span class="w"> </span><span class="n">opt_qdot_mani</span><span class="p">;</span>
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="kt">bool</span><span class="w"> </span><span class="n">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">robot_ctrl</span><span class="o">-&gt;</span><span class="n">QPIKCubic</span><span class="p">(</span><span class="n">link_task_data</span><span class="p">,</span><span class="w"> </span><span class="n">duration</span><span class="p">,</span>
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">                                 </span><span class="n">opt_qdot_mobile</span><span class="p">,</span><span class="w"> </span><span class="n">opt_qdot_mani</span><span class="p">);</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">VectorXd</span><span class="w"> </span><span class="n">opt_qdot_mobile</span><span class="p">;</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="n">Eigen</span><span class="o">::</span><span class="n">VectorXd</span><span class="w"> </span><span class="n">opt_qdot_mani</span><span class="p">;</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="kt">bool</span><span class="w"> </span><span class="n">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">robot_ctrl</span><span class="o">-&gt;</span><span class="n">QPIKCubic</span><span class="p">(</span><span class="n">link_task_data</span><span class="p">,</span><span class="w"> </span><span class="n">duration</span><span class="p">,</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">                                 </span><span class="n">opt_qdot_mobile</span><span class="p">,</span><span class="w"> </span><span class="n">opt_qdot_mani</span><span class="p">);</span>
 </code></pre></div>
 <p>The whole-body Jacobian is formed internally and the solution is split at the mobile/manipulator DoF boundary defined by <code>JointIndex</code>.</p>
 <hr />
 <h2 id="utility-taskspacedata">Utility: <code>TaskSpaceData</code><a class="headerlink" href="#utility-taskspacedata" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;dyros_robot_controller/type_define.h&gt;</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="n">drc</span><span class="o">::</span><span class="n">TaskSpaceData</span><span class="w"> </span><span class="n">task</span><span class="p">;</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="n">task</span><span class="p">.</span><span class="n">setZero</span><span class="p">();</span><span class="w">                         </span><span class="c1">// reset all fields</span>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="c1">// At the start of a motion segment:</span>
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="n">task</span><span class="p">.</span><span class="n">x</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">robot_data</span><span class="o">-&gt;</span><span class="n">getPose</span><span class="p">(</span><span class="s">&quot;end_effector&quot;</span><span class="p">);</span><span class="w">  </span><span class="c1">// current pose</span>
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="n">task</span><span class="p">.</span><span class="n">xdot</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">robot_data</span><span class="o">-&gt;</span><span class="n">getVelocity</span><span class="p">(</span><span class="s">&quot;end_effector&quot;</span><span class="p">);</span>
-<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="n">task</span><span class="p">.</span><span class="n">current_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t_now</span><span class="p">;</span>
-<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="n">task</span><span class="p">.</span><span class="n">setInit</span><span class="p">();</span><span class="w">                         </span><span class="c1">// snapshot into *_init fields</span>
-<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>
-<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="c1">// Set target:</span>
-<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="n">task</span><span class="p">.</span><span class="n">x_desired</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="n">T_target</span><span class="p">;</span>
-<a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a><span class="n">task</span><span class="p">.</span><span class="n">xdot_desired</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">Vector6d</span><span class="o">::</span><span class="n">Zero</span><span class="p">();</span>
-<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="n">task</span><span class="p">.</span><span class="n">xddot_desired</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="n">Vector6d</span><span class="o">::</span><span class="n">Zero</span><span class="p">();</span>
-<a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a><span class="n">task</span><span class="p">.</span><span class="n">current_time</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">t_now</span><span class="p">;</span><span class="w">        </span><span class="c1">// updated each cycle</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;dyros_robot_controller/type_define.h&gt;</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="n">drc</span><span class="o">::</span><span class="n">TaskSpaceData</span><span class="w"> </span><span class="n">task</span><span class="p">;</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="n">task</span><span class="p">.</span><span class="n">setZero</span><span class="p">();</span><span class="w">                         </span><span class="c1">// reset all fields</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="c1">// At the start of a motion segment:</span>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="n">task</span><span class="p">.</span><span class="n">x</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">robot_data</span><span class="o">-&gt;</span><span class="n">getPose</span><span class="p">(</span><span class="s">&quot;end_effector&quot;</span><span class="p">);</span><span class="w">  </span><span class="c1">// current pose</span>
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="n">task</span><span class="p">.</span><span class="n">xdot</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">robot_data</span><span class="o">-&gt;</span><span class="n">getVelocity</span><span class="p">(</span><span class="s">&quot;end_effector&quot;</span><span class="p">);</span>
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="n">task</span><span class="p">.</span><span class="n">current_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t_now</span><span class="p">;</span>
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="n">task</span><span class="p">.</span><span class="n">setInit</span><span class="p">();</span><span class="w">                         </span><span class="c1">// snapshot into *_init fields</span>
+<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>
+<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a><span class="c1">// Set target:</span>
+<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a><span class="n">task</span><span class="p">.</span><span class="n">x_desired</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="n">T_target</span><span class="p">;</span>
+<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a><span class="n">task</span><span class="p">.</span><span class="n">xdot_desired</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">Vector6d</span><span class="o">::</span><span class="n">Zero</span><span class="p">();</span>
+<a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a><span class="n">task</span><span class="p">.</span><span class="n">xddot_desired</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="n">Vector6d</span><span class="o">::</span><span class="n">Zero</span><span class="p">();</span>
+<a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a><span class="n">task</span><span class="p">.</span><span class="n">current_time</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">t_now</span><span class="p">;</span><span class="w">        </span><span class="c1">// updated each cycle</span>
 </code></pre></div>
 <p><code>setInit()</code> copies <code>x</code>, <code>xdot</code>, <code>xddot</code>, and <code>current_time</code> into <code>x_init</code>, <code>xdot_init</code>, <code>xddot_init</code>, and <code>control_start_time</code> respectively — call it once at trajectory start.</p>
 
