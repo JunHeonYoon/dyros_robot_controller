@@ -367,17 +367,70 @@ moma_data->updateState(q_virtual, q_mobile, q_mani,
                         qdot_virtual, qdot_mobile, qdot_mani);
 ```
 
-### Sub-object accessors
+### Sub-object accessors — `RobotData`
 
-After construction, three named sub-references provide scoped access:
+After construction, three named references on `RobotData` provide scoped access to kinematics and dynamics:
 
 | Reference | Type | Scope |
 | --- | --- | --- |
-| `moma_data->moma` | `MobileManipulator::RobotData&` | Whole-body (world frame, full DOF) |
-| `moma_data->mani` | `Manipulator::RobotData&` | Arm-only quantities in the mobile-base frame |
-| `moma_data->mobi` | `Mobile::RobotData&` | Mobile-base quantities only |
+| `moma_data->moma` | `MobileManipulator::RobotData&` | Whole-body (world frame, full DOF) — alias for `*this` |
+| `moma_data->mani` | `Manipulator::RobotData&` | Arm-only quantities expressed in the **mobile-base frame** |
+| `moma_data->mobi` | `Mobile::RobotData&` | Mobile-base kinematic quantities only |
 
-Use `mani` when passing a manipulator-only proxy to a standalone `Manipulator::RobotController`.
+```cpp
+// Whole-body Jacobian of a link (world frame, actuated DOF)
+Eigen::MatrixXd J = moma_data->moma.computeJacobianActuated("panda_hand");
+
+// Arm-only Jacobian expressed in the mobile-base frame (mani_dof columns)
+Eigen::MatrixXd J_arm = moma_data->mani.computeJacobian("panda_hand");
+
+// Mobile-base forward-kinematics Jacobian (wheel → base twist)
+Eigen::MatrixXd J_mobi = moma_data->mobi.computeMobileFKJacobian();
+
+// DOF queries
+int mani_dof = moma_data->getManipulatorDof();  // arm joints only
+int mobi_dof = moma_data->getMobileDof();        // wheel joints only
+```
+
+### Sub-object accessors — `RobotController`
+
+`RobotController` exposes the same three references on the **controller** side:
+
+| Reference | Type | Purpose |
+| --- | --- | --- |
+| `ctrl->moma` | `MobileManipulator::RobotController&` | Whole-body QP/HQP control — alias for `*this` |
+| `ctrl->mani` | `Manipulator::RobotController&` | Arm-only control (treats mobile base as fixed) |
+| `ctrl->mobi` | `Mobile::RobotController&` | Mobile-base velocity commands only |
+
+```cpp
+auto ctrl = std::make_shared<drc::MobileManipulator::RobotController>(moma_data);
+
+// ── Gain setup ────────────────────────────────────────────────────
+// Arm PD gains (mani_dof-length vectors)
+ctrl->mani.setJointGain(Kp_arm, Kv_arm);
+
+// Whole-body QP-IK weights
+ctrl->moma.setQPIKGain(w_tracking, w_vel, w_acc);
+
+// ── Control outputs ───────────────────────────────────────────────
+// Whole-body QP-IK: returns separate mobile and manipulator qdot
+Eigen::VectorXd qdot_mobi, qdot_mani;
+bool ok = ctrl->moma.QPIKCubic(tasks, duration, qdot_mobi, qdot_mani);
+
+// Arm-only CLIK (mobile base treated as stationary):
+Eigen::VectorXd qdot_arm;
+ctrl->mani.CLIKCubic(tasks, qdot_arm, duration);
+
+// Mobile-base velocity command only:
+Eigen::VectorXd cmd_vel(3);   // [vx, vy, omega]
+Eigen::VectorXd wheel_vel;
+ctrl->mobi.VelocityCommand(cmd_vel, wheel_vel);
+```
+
+!!! note "Deprecated flat methods"
+    Methods such as `setManipulatorJointGain()`, `setIKGain()` on `MobileManipulator::RobotController`
+    are deprecated. Use the sub-object form `ctrl->mani.setJointGain()` / `ctrl->moma.setIKGain()` instead.
+    The deprecated methods remain available for backwards compatibility.
 
 ### URDF structure requirements
 

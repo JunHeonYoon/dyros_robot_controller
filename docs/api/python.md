@@ -216,18 +216,28 @@ See [C++ Mobile hard-coded assumptions](cpp.md#drive-type-requirements-and-hard-
 
 ## Mobile Manipulator
 
+### Initialization
+
 ```python
 from drc.type_define        import KinematicParam, DriveType, JointIndex, ActuatorIndex
 from drc.mobile_manipulator import RobotData, RobotController
 
-joint_idx              = JointIndex()
-joint_idx.virtual_start = 0
-joint_idx.mani_start    = 3
-joint_idx.mobi_start    = 10
+# Mobile-base kinematics (differential drive example)
+param = KinematicParam()
+param.type         = DriveType.Differential
+param.wheel_radius = 0.1
+param.base_width   = 0.5
 
-actuator_idx           = ActuatorIndex()
-actuator_idx.mani_start = 0
-actuator_idx.mobi_start = 7
+# Joint index: describes where each group starts in the Pinocchio joint vector
+joint_idx               = JointIndex()
+joint_idx.virtual_start = 0   # x, y, yaw (always 3 joints)
+joint_idx.mani_start    = 3   # first arm joint
+joint_idx.mobi_start    = 10  # first wheel joint
+
+# Actuator index: describes where each group starts in the actuator command vector
+actuator_idx            = ActuatorIndex()
+actuator_idx.mani_start = 0   # arm torques/velocities start here
+actuator_idx.mobi_start = 7   # wheel commands start here
 
 moma_data = RobotData(
     dt=0.001,
@@ -235,19 +245,144 @@ moma_data = RobotData(
     joint_idx=joint_idx,
     actuator_idx=actuator_idx,
     urdf_path="path/to/robot.urdf",
+    srdf_path="path/to/robot.srdf",   # optional; "" to skip
+    packages_path="path/to/packages"  # optional
 )
-
-moma_data.update_state(q_virtual, q_mobile, q_mani,
-                        qdot_virtual, qdot_mobile, qdot_mani)
-
-moma_ctrl = RobotController(moma_data)
 ```
 
-QP / HQP methods return **two** arrays:
+### DOF attributes
+
+After construction `RobotData` exposes integer attributes for convenience:
 
 ```python
-ok, qdot_mobile, qdot_mani = moma_ctrl.QPIK_cubic(link_task_data, duration=3.0)
-ok, tau_mobile, tau_mani   = moma_ctrl.QPID_cubic(link_task_data, duration=3.0)
+mani_dof = moma_data.mani_dof   # number of arm joints
+mobi_dof = moma_data.mobi_dof   # number of wheel joints
+act_dof  = moma_data.get_actuator_dof()  # mani_dof + mobi_dof
+```
+
+!!! warning "No `.mani` / `.mobi` / `.moma` sub-object proxies in Python"
+    The C++ API exposes `data.mani`, `data.mobi`, and `data.moma` as sub-object references that
+    give scoped access to arm-only or mobile-only kinematics.
+    **These proxy references are not available in the Python bindings.**
+    Use the flat methods directly on `moma_data` instead:
+
+    ```python
+    # C++ sub-object pattern (NOT available in Python):
+    #   J_arm = moma_data.mani.compute_jacobian("panda_hand")   ← does not exist
+
+    # Python equivalent — use the full MobileManipulator methods:
+    J_full = moma_data.compute_jacobian_actuated("panda_hand")  # (6 × act_dof)
+    J_mobi = moma_data.compute_mobile_fk_jacobian()             # mobile Jacobian
+    ```
+
+### State update
+
+```python
+moma_data.update_state(
+    q_virtual,    # shape (3,)       — [x, y, yaw]
+    q_mobile,     # shape (mobi_dof,) — wheel positions
+    q_mani,       # shape (mani_dof,) — arm joint positions
+    qdot_virtual, # shape (3,)
+    qdot_mobile,  # shape (mobi_dof,)
+    qdot_mani,    # shape (mani_dof,)
+)
+```
+
+### Gain setup
+
+Gains are set directly on `RobotController` using the same methods as the Manipulator API.  
+`w_tracking`, `w_vel_damping`, `w_acc_damping` sizes must match `act_dof` for the joint-damping weights and 6 (or `{link: (6,)}`) for tracking weights:
+
+```python
+moma_ctrl = RobotController(moma_data)
+act_dof   = moma_data.get_actuator_dof()
+
+# Arm PD gains (size = mani_dof)
+moma_ctrl.set_manipulator_joint_gain(Kp_arm, Kv_arm)
+
+# IK proportional gain (for CLIK / QPIK Step variants)
+moma_ctrl.set_IK_gain({"panda_hand": np.ones(6) * 5.0})
+
+# Whole-body QP-IK weights
+moma_ctrl.set_QPIK_gain(
+    w_tracking    = np.array([100.0] * 6),
+    w_vel_damping = np.ones(act_dof) * 0.01,
+    w_acc_damping = np.ones(act_dof) * 0.1,
+)
+
+# Whole-body QP-ID weights
+moma_ctrl.set_QPID_gain(
+    w_tracking    = np.array([100.0] * 6),
+    w_vel_damping = np.ones(act_dof) * 0.01,
+    w_acc_damping = np.ones(act_dof) * 0.1,
+)
+```
+
+### Control methods
+
+All task-space methods accept a `dict[str, TaskSpaceData]` mapping link names to desired states.
+
+#### CLIK / OSF
+
+```python
+ok, qdot_mobile, qdot_mani = moma_ctrl.CLIK({"panda_hand": task})
+ok, qdot_mobile, qdot_mani = moma_ctrl.CLIK_step({"panda_hand": task})
+ok, qdot_mobile, qdot_mani = moma_ctrl.CLIK_cubic({"panda_hand": task}, duration=3.0)
+
+ok, tau_mobile, tau_mani   = moma_ctrl.OSF({"panda_hand": task})
+ok, tau_mobile, tau_mani   = moma_ctrl.OSF_step({"panda_hand": task})
+ok, tau_mobile, tau_mani   = moma_ctrl.OSF_cubic({"panda_hand": task}, duration=3.0)
+```
+
+#### QP Inverse Kinematics
+
+```python
+ok, qdot_mobile, qdot_mani = moma_ctrl.QPIK({"panda_hand": task})
+ok, qdot_mobile, qdot_mani = moma_ctrl.QPIK_step({"panda_hand": task})
+ok, qdot_mobile, qdot_mani = moma_ctrl.QPIK_cubic({"panda_hand": task}, duration=3.0)
+```
+
+#### QP Inverse Dynamics
+
+```python
+ok, tau_mobile, tau_mani   = moma_ctrl.QPID({"panda_hand": task})
+ok, tau_mobile, tau_mani   = moma_ctrl.QPID_step({"panda_hand": task})
+ok, tau_mobile, tau_mani   = moma_ctrl.QPID_cubic({"panda_hand": task}, duration=3.0)
+```
+
+#### Hierarchical QP
+
+```python
+hierarchy = [
+    {"panda_hand":  high_priority_task},   # level 0
+    {"panda_link4": lower_priority_task},  # level 1
+]
+ok, qdot_mobile, qdot_mani = moma_ctrl.HQPIK_step(hierarchy)
+ok, qdot_mobile, qdot_mani = moma_ctrl.HQPIK_cubic(hierarchy, duration=3.0)
+ok, tau_mobile,  tau_mani  = moma_ctrl.HQPID_step(hierarchy)
+ok, tau_mobile,  tau_mani  = moma_ctrl.HQPID_cubic(hierarchy, duration=3.0)
+```
+
+#### Joint-space (arm only)
+
+```python
+# Cubic reference trajectory for the arm
+q_ref    = moma_ctrl.move_manipulator_joint_position_cubic(
+    q_target, qdot_target, q_init, qdot_init, current_time, init_time, duration)
+
+# PD torque for the arm: τ = M_arm(Kp*eq + Kv*eqdot) + g_arm
+tau_arm  = moma_ctrl.move_manipulator_joint_torque_step(q_target, qdot_target, use_mass=True)
+tau_arm  = moma_ctrl.move_manipulator_joint_torque_cubic(
+    q_target, qdot_target, q_init, qdot_init, current_time, init_time, duration)
+```
+
+#### Mobile-base velocity command
+
+```python
+cmd_vel  = np.array([vx, vy, omega])   # desired base twist
+wheel_vel = moma_ctrl.compute_mobile_wheel_vel(cmd_vel)  # → shape (mobi_dof,)
+# or, combined: computes wheel_vel and returns it
+moma_ctrl.mobile_velocity_command(cmd_vel, wheel_vel)
 ```
 
 All hard-coded constraints documented in [C++ Mobile Manipulator](cpp.md#mobile-manipulator) apply equally here.
