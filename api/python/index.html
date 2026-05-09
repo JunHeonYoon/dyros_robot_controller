@@ -889,6 +889,84 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sub-object-accessors-robotdata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sub-object accessors — RobotData
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sub-object accessors — RobotData">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mani-arm-only-data-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mani — arm-only data proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobi-mobile-base-data-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mobi — mobile-base data proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sub-object-accessors-robotcontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sub-object accessors — RobotController
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sub-object accessors — RobotController">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mani-arm-only-controller-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mani — arm-only controller proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobi-mobile-controller-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mobi — mobile controller proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#state-update_1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1454,6 +1532,84 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sub-object-accessors-robotdata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sub-object accessors — RobotData
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sub-object accessors — RobotData">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mani-arm-only-data-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mani — arm-only data proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobi-mobile-base-data-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mobi — mobile-base data proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sub-object-accessors-robotcontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sub-object accessors — RobotController
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sub-object accessors — RobotController">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mani-arm-only-controller-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mani — arm-only controller proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobi-mobile-controller-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mobi — mobile controller proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#state-update_1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1827,125 +1983,238 @@ See <a href="../cpp/#gain-setters">C++ Gain Setters</a> for the mathematical mea
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">mobi_dof</span> <span class="o">=</span> <span class="n">moma_data</span><span class="o">.</span><span class="n">mobi_dof</span>   <span class="c1"># number of wheel joints</span>
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">act_dof</span>  <span class="o">=</span> <span class="n">moma_data</span><span class="o">.</span><span class="n">get_actuator_dof</span><span class="p">()</span>  <span class="c1"># mani_dof + mobi_dof</span>
 </code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">No <code>.mani</code> / <code>.mobi</code> / <code>.moma</code> sub-object proxies in Python</p>
-<p>The C++ API exposes <code>data.mani</code>, <code>data.mobi</code>, and <code>data.moma</code> as sub-object references that
-give scoped access to arm-only or mobile-only kinematics.
-<strong>These proxy references are not available in the Python bindings.</strong>
-Use the flat methods directly on <code>moma_data</code> instead:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># C++ sub-object pattern (NOT available in Python):</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="c1">#   J_arm = moma_data.mani.compute_jacobian(&quot;panda_hand&quot;)   ← does not exist</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># Python equivalent — use the full MobileManipulator methods:</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">J_full</span> <span class="o">=</span> <span class="n">moma_data</span><span class="o">.</span><span class="n">compute_jacobian_actuated</span><span class="p">(</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">)</span>  <span class="c1"># (6 × act_dof)</span>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">J_mobi</span> <span class="o">=</span> <span class="n">moma_data</span><span class="o">.</span><span class="n">compute_mobile_fk_jacobian</span><span class="p">()</span>             <span class="c1"># mobile Jacobian</span>
+<h3 id="sub-object-accessors-robotdata">Sub-object accessors — <code>RobotData</code><a class="headerlink" href="#sub-object-accessors-robotdata" title="Permanent link">&para;</a></h3>
+<p><code>RobotData</code> exposes three Python properties that mirror the C++ sub-object API:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>moma_data.moma</code></td>
+<td><code>RobotData</code></td>
+<td>Returns <code>self</code> — whole-body view</td>
+</tr>
+<tr>
+<td><code>moma_data.mani</code></td>
+<td><code>_ManiDataProxy</code></td>
+<td>Arm-only kinematics/dynamics in the mobile-base frame</td>
+</tr>
+<tr>
+<td><code>moma_data.mobi</code></td>
+<td><code>_MobiDataProxy</code></td>
+<td>Mobile-base kinematics</td>
+</tr>
+</tbody>
+</table>
+<h4 id="mani-arm-only-data-proxy"><code>mani</code> — arm-only data proxy<a class="headerlink" href="#mani-arm-only-data-proxy" title="Permanent link">&para;</a></h4>
+<p>All <code>compute_*</code> methods take <strong>arm-only</strong> joint vectors (<code>q_mani</code>, <code>qdot_mani</code>) and return results expressed in the <strong>mobile-base frame</strong>.<br />
+The <code>get_*</code> cached accessors are valid after <code>moma_data.update_state(...)</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">mani</span> <span class="o">=</span> <span class="n">moma_data</span><span class="o">.</span><span class="n">mani</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="c1"># DOF</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">n</span> <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">dof</span>        <span class="c1"># int, equivalent to moma_data.mani_dof</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="c1"># Cached (after update_state)</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="n">q</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">get_joint_position</span><span class="p">()</span>            <span class="c1"># (mani_dof,)</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="n">qdot</span> <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">get_joint_velocity</span><span class="p">()</span>            <span class="c1"># (mani_dof,)</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="n">J</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">get_jacobian</span><span class="p">(</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">)</span>      <span class="c1"># (6, mani_dof) — mobile-base frame</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="n">T</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">get_pose</span><span class="p">(</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">)</span>          <span class="c1"># 4×4 SE(3)</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="n">v</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">get_velocity</span><span class="p">(</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">)</span>      <span class="c1"># (6,)</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="n">M</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">get_mass_matrix</span><span class="p">()</span>               <span class="c1"># (mani_dof, mani_dof)</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="n">g</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">get_gravity</span><span class="p">()</span>                   <span class="c1"># (mani_dof,)</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="c1"># Explicit compute (supply q_mani)</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="n">J</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">compute_jacobian</span><span class="p">(</span><span class="n">q_mani</span><span class="p">,</span> <span class="s2">&quot;panda_hand&quot;</span><span class="p">)</span>   <span class="c1"># (6, mani_dof)</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="n">T</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">compute_pose</span><span class="p">(</span><span class="n">q_mani</span><span class="p">,</span> <span class="s2">&quot;panda_hand&quot;</span><span class="p">)</span>        <span class="c1"># 4×4</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="n">M</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">compute_mass_matrix</span><span class="p">(</span><span class="n">q_mani</span><span class="p">)</span>              <span class="c1"># (mani_dof, mani_dof)</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="n">g</span>    <span class="o">=</span> <span class="n">mani</span><span class="o">.</span><span class="n">compute_gravity</span><span class="p">(</span><span class="n">q_mani</span><span class="p">)</span>                  <span class="c1"># (mani_dof,)</span>
 </code></pre></div>
-</div>
+<h4 id="mobi-mobile-base-data-proxy"><code>mobi</code> — mobile-base data proxy<a class="headerlink" href="#mobi-mobile-base-data-proxy" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">mobi</span> <span class="o">=</span> <span class="n">moma_data</span><span class="o">.</span><span class="n">mobi</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">n</span>     <span class="o">=</span> <span class="n">mobi</span><span class="o">.</span><span class="n">wheel_num</span>             <span class="c1"># int</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="c1"># Cached (after update_state)</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">pos</span>   <span class="o">=</span> <span class="n">mobi</span><span class="o">.</span><span class="n">get_wheel_pos</span><span class="p">()</span>       <span class="c1"># (mobi_dof,) wheel positions</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">vel</span>   <span class="o">=</span> <span class="n">mobi</span><span class="o">.</span><span class="n">get_wheel_vel</span><span class="p">()</span>       <span class="c1"># (mobi_dof,) wheel velocities</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="n">v_b</span>   <span class="o">=</span> <span class="n">mobi</span><span class="o">.</span><span class="n">get_base_vel</span><span class="p">()</span>        <span class="c1"># (3,) [vx, vy, wz]</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="n">J_fk</span>  <span class="o">=</span> <span class="n">mobi</span><span class="o">.</span><span class="n">get_fk_jacobian</span><span class="p">()</span>    <span class="c1"># forward-kinematics Jacobian</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="c1"># Explicit compute</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="n">v_b</span>   <span class="o">=</span> <span class="n">mobi</span><span class="o">.</span><span class="n">compute_base_vel</span><span class="p">(</span><span class="n">wheel_pos</span><span class="p">,</span> <span class="n">wheel_vel</span><span class="p">)</span>  <span class="c1"># (3,)</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="n">J_fk</span>  <span class="o">=</span> <span class="n">mobi</span><span class="o">.</span><span class="n">compute_fk_jacobian</span><span class="p">(</span><span class="n">wheel_pos</span><span class="p">)</span>          <span class="c1"># FK Jacobian</span>
+</code></pre></div>
+<h3 id="sub-object-accessors-robotcontroller">Sub-object accessors — <code>RobotController</code><a class="headerlink" href="#sub-object-accessors-robotcontroller" title="Permanent link">&para;</a></h3>
+<p><code>RobotController</code> exposes matching controller proxies:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>moma_ctrl.moma</code></td>
+<td><code>RobotController</code></td>
+<td>Returns <code>self</code> — whole-body controller</td>
+</tr>
+<tr>
+<td><code>moma_ctrl.mani</code></td>
+<td><code>_ManiCtrlProxy</code></td>
+<td>Arm-only controller (arm-frame Jacobians, arm-sized outputs)</td>
+</tr>
+<tr>
+<td><code>moma_ctrl.mobi</code></td>
+<td><code>_MobiCtrlProxy</code></td>
+<td>Mobile-base controller</td>
+</tr>
+</tbody>
+</table>
+<h4 id="mani-arm-only-controller-proxy"><code>mani</code> — arm-only controller proxy<a class="headerlink" href="#mani-arm-only-controller-proxy" title="Permanent link">&para;</a></h4>
+<p>Gain setters delegate to <code>moma_ctrl</code> (they affect the shared controller state). Task-space methods use arm-only Jacobians in the mobile-base frame and return <em>arm-only</em> velocity or torque vectors.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">mani_ctrl</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">mani</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># Gain setters (same effect as calling on moma_ctrl)</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">mani_ctrl</span><span class="o">.</span><span class="n">set_joint_gain</span><span class="p">(</span><span class="n">Kp_arm</span><span class="p">,</span> <span class="n">Kv_arm</span><span class="p">)</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="n">mani_ctrl</span><span class="o">.</span><span class="n">set_IK_gain</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.0</span><span class="p">})</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">mani_ctrl</span><span class="o">.</span><span class="n">set_QPIK_gain</span><span class="p">(</span><span class="n">w_tracking</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span> <span class="n">w_vel_damping</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dof</span><span class="p">)</span><span class="o">*</span><span class="mf">0.01</span><span class="p">)</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="c1"># Joint-space (arm only)</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="n">q_ref</span> <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">move_joint_position_cubic</span><span class="p">(</span><span class="n">q_target</span><span class="p">,</span> <span class="n">qdot_target</span><span class="p">,</span> <span class="n">q_init</span><span class="p">,</span> <span class="n">qdot_init</span><span class="p">,</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>                                             <span class="n">current_time</span><span class="p">,</span> <span class="n">init_time</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="n">tau</span>   <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">move_joint_torque_step</span><span class="p">(</span><span class="n">q_target</span><span class="p">,</span> <span class="n">qdot_target</span><span class="p">,</span> <span class="n">use_mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="c1"># Task-space: returns (ok, qdot_arm) or (ok, tau_arm) — mani_dof-sized output</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_arm</span> <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">CLIK</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_arm</span> <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">CLIK_step</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_arm</span> <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">CLIK_cubic</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">},</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>
+<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_arm</span>  <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">OSF</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_arm</span>  <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">QPIK</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_arm</span>  <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">QPID</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>
+<a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_arm</span> <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">HQPIK_step</span><span class="p">([{</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task0</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;panda_link4&quot;</span><span class="p">:</span> <span class="n">task1</span><span class="p">}])</span>
+<a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_arm</span>  <span class="o">=</span> <span class="n">mani_ctrl</span><span class="o">.</span><span class="n">HQPID_step</span><span class="p">([{</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task0</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;panda_link4&quot;</span><span class="p">:</span> <span class="n">task1</span><span class="p">}])</span>
+</code></pre></div>
+<h4 id="mobi-mobile-controller-proxy"><code>mobi</code> — mobile controller proxy<a class="headerlink" href="#mobi-mobile-controller-proxy" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">mobi_ctrl</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">mobi</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">wheel_vel</span> <span class="o">=</span> <span class="n">mobi_ctrl</span><span class="o">.</span><span class="n">compute_wheel_vel</span><span class="p">(</span><span class="n">cmd_base_vel</span><span class="p">)</span>        <span class="c1"># (mobi_dof,)</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="n">wheel_vel</span> <span class="o">=</span> <span class="n">mobi_ctrl</span><span class="o">.</span><span class="n">velocity_command</span><span class="p">(</span><span class="n">desired_base_vel</span><span class="p">)</span>     <span class="c1"># (mobi_dof,)</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="n">J_ik</span>      <span class="o">=</span> <span class="n">mobi_ctrl</span><span class="o">.</span><span class="n">compute_IK_jacobian</span><span class="p">()</span>                  <span class="c1"># IK Jacobian</span>
+</code></pre></div>
 <h3 id="state-update_1">State update<a class="headerlink" href="#state-update_1" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">moma_data</span><span class="o">.</span><span class="n">update_state</span><span class="p">(</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">q_virtual</span><span class="p">,</span>    <span class="c1"># shape (3,)       — [x, y, yaw]</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">q_mobile</span><span class="p">,</span>     <span class="c1"># shape (mobi_dof,) — wheel positions</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">q_mani</span><span class="p">,</span>       <span class="c1"># shape (mani_dof,) — arm joint positions</span>
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="n">qdot_virtual</span><span class="p">,</span> <span class="c1"># shape (3,)</span>
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">qdot_mobile</span><span class="p">,</span>  <span class="c1"># shape (mobi_dof,)</span>
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">qdot_mani</span><span class="p">,</span>    <span class="c1"># shape (mani_dof,)</span>
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">moma_data</span><span class="o">.</span><span class="n">update_state</span><span class="p">(</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="n">q_virtual</span><span class="p">,</span>    <span class="c1"># shape (3,)       — [x, y, yaw]</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    <span class="n">q_mobile</span><span class="p">,</span>     <span class="c1"># shape (mobi_dof,) — wheel positions</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">q_mani</span><span class="p">,</span>       <span class="c1"># shape (mani_dof,) — arm joint positions</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">qdot_virtual</span><span class="p">,</span> <span class="c1"># shape (3,)</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">qdot_mobile</span><span class="p">,</span>  <span class="c1"># shape (mobi_dof,)</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="n">qdot_mani</span><span class="p">,</span>    <span class="c1"># shape (mani_dof,)</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="gain-setup">Gain setup<a class="headerlink" href="#gain-setup" title="Permanent link">&para;</a></h3>
 <p>Gains are set directly on <code>RobotController</code> using the same methods as the Manipulator API.<br />
 <code>w_tracking</code>, <code>w_vel_damping</code>, <code>w_acc_damping</code> sizes must match <code>act_dof</code> for the joint-damping weights and 6 (or <code>{link: (6,)}</code>) for tracking weights:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">moma_ctrl</span> <span class="o">=</span> <span class="n">RobotController</span><span class="p">(</span><span class="n">moma_data</span><span class="p">)</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">act_dof</span>   <span class="o">=</span> <span class="n">moma_data</span><span class="o">.</span><span class="n">get_actuator_dof</span><span class="p">()</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="c1"># Arm PD gains (size = mani_dof)</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">set_manipulator_joint_gain</span><span class="p">(</span><span class="n">Kp_arm</span><span class="p">,</span> <span class="n">Kv_arm</span><span class="p">)</span>
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1"># IK proportional gain (for CLIK / QPIK Step variants)</span>
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">set_IK_gain</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.0</span><span class="p">})</span>
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="c1"># Whole-body QP-IK weights</span>
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">set_QPIK_gain</span><span class="p">(</span>
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>    <span class="n">w_tracking</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">100.0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">),</span>
-<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>    <span class="n">w_vel_damping</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dof</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.01</span><span class="p">,</span>
-<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>    <span class="n">w_acc_damping</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dof</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
-<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="p">)</span>
-<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>
-<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="c1"># Whole-body QP-ID weights</span>
-<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">set_QPID_gain</span><span class="p">(</span>
-<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a>    <span class="n">w_tracking</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">100.0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">),</span>
-<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a>    <span class="n">w_vel_damping</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dof</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.01</span><span class="p">,</span>
-<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>    <span class="n">w_acc_damping</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dof</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
-<a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">moma_ctrl</span> <span class="o">=</span> <span class="n">RobotController</span><span class="p">(</span><span class="n">moma_data</span><span class="p">)</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">act_dof</span>   <span class="o">=</span> <span class="n">moma_data</span><span class="o">.</span><span class="n">get_actuator_dof</span><span class="p">()</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># Arm PD gains (size = mani_dof)</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">set_manipulator_joint_gain</span><span class="p">(</span><span class="n">Kp_arm</span><span class="p">,</span> <span class="n">Kv_arm</span><span class="p">)</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="c1"># IK proportional gain (for CLIK / QPIK Step variants)</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">set_IK_gain</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.0</span><span class="p">})</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="c1"># Whole-body QP-IK weights</span>
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">set_QPIK_gain</span><span class="p">(</span>
+<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>    <span class="n">w_tracking</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">100.0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">),</span>
+<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>    <span class="n">w_vel_damping</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dof</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.01</span><span class="p">,</span>
+<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>    <span class="n">w_acc_damping</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dof</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
+<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="p">)</span>
+<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a>
+<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="c1"># Whole-body QP-ID weights</span>
+<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">set_QPID_gain</span><span class="p">(</span>
+<a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a>    <span class="n">w_tracking</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">100.0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">),</span>
+<a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a>    <span class="n">w_vel_damping</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dof</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.01</span><span class="p">,</span>
+<a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a>    <span class="n">w_acc_damping</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dof</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span>
+<a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="control-methods">Control methods<a class="headerlink" href="#control-methods" title="Permanent link">&para;</a></h3>
 <p>All task-space methods accept a <code>dict[str, TaskSpaceData]</code> mapping link names to desired states.</p>
 <h4 id="clik-osf">CLIK / OSF<a class="headerlink" href="#clik-osf" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">CLIK</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">CLIK_step</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">CLIK_cubic</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">},</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
-<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">OSF</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
-<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">OSF_step</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
-<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">OSF_cubic</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">},</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">CLIK</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">CLIK_step</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">CLIK_cubic</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">},</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">OSF</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">OSF_step</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">OSF_cubic</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">},</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
 </code></pre></div>
 <h4 id="qp-inverse-kinematics_1">QP Inverse Kinematics<a class="headerlink" href="#qp-inverse-kinematics_1" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPIK</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPIK_step</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPIK_cubic</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">},</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPIK</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPIK_step</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPIK_cubic</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">},</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
 </code></pre></div>
 <h4 id="qp-inverse-dynamics_1">QP Inverse Dynamics<a class="headerlink" href="#qp-inverse-dynamics_1" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPID</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPID_step</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPID_cubic</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">},</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPID</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPID_step</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span> <span class="n">tau_mani</span>   <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">QPID_cubic</span><span class="p">({</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">},</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
 </code></pre></div>
 <h4 id="hierarchical-qp_1">Hierarchical QP<a class="headerlink" href="#hierarchical-qp_1" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">hierarchy</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>    <span class="p">{</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span>  <span class="n">high_priority_task</span><span class="p">},</span>   <span class="c1"># level 0</span>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    <span class="p">{</span><span class="s2">&quot;panda_link4&quot;</span><span class="p">:</span> <span class="n">lower_priority_task</span><span class="p">},</span>  <span class="c1"># level 1</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="p">]</span>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">HQPIK_step</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">)</span>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">HQPIK_cubic</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">,</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span>  <span class="n">tau_mani</span>  <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">HQPID_step</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">)</span>
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span>  <span class="n">tau_mani</span>  <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">HQPID_cubic</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">,</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">hierarchy</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>    <span class="p">{</span><span class="s2">&quot;panda_hand&quot;</span><span class="p">:</span>  <span class="n">high_priority_task</span><span class="p">},</span>   <span class="c1"># level 0</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>    <span class="p">{</span><span class="s2">&quot;panda_link4&quot;</span><span class="p">:</span> <span class="n">lower_priority_task</span><span class="p">},</span>  <span class="c1"># level 1</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="p">]</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">HQPIK_step</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">)</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="n">ok</span><span class="p">,</span> <span class="n">qdot_mobile</span><span class="p">,</span> <span class="n">qdot_mani</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">HQPIK_cubic</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">,</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span>  <span class="n">tau_mani</span>  <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">HQPID_step</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">)</span>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="n">ok</span><span class="p">,</span> <span class="n">tau_mobile</span><span class="p">,</span>  <span class="n">tau_mani</span>  <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">HQPID_cubic</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">,</span> <span class="n">duration</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
 </code></pre></div>
 <h4 id="joint-space-arm-only">Joint-space (arm only)<a class="headerlink" href="#joint-space-arm-only" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Cubic reference trajectory for the arm</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="n">q_ref</span>    <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">move_manipulator_joint_position_cubic</span><span class="p">(</span>
-<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    <span class="n">q_target</span><span class="p">,</span> <span class="n">qdot_target</span><span class="p">,</span> <span class="n">q_init</span><span class="p">,</span> <span class="n">qdot_init</span><span class="p">,</span> <span class="n">current_time</span><span class="p">,</span> <span class="n">init_time</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
-<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>
-<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="c1"># PD torque for the arm: τ = M_arm(Kp*eq + Kv*eqdot) + g_arm</span>
-<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="n">tau_arm</span>  <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">move_manipulator_joint_torque_step</span><span class="p">(</span><span class="n">q_target</span><span class="p">,</span> <span class="n">qdot_target</span><span class="p">,</span> <span class="n">use_mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="n">tau_arm</span>  <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">move_manipulator_joint_torque_cubic</span><span class="p">(</span>
-<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>    <span class="n">q_target</span><span class="p">,</span> <span class="n">qdot_target</span><span class="p">,</span> <span class="n">q_init</span><span class="p">,</span> <span class="n">qdot_init</span><span class="p">,</span> <span class="n">current_time</span><span class="p">,</span> <span class="n">init_time</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># Cubic reference trajectory for the arm</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="n">q_ref</span>    <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">move_manipulator_joint_position_cubic</span><span class="p">(</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>    <span class="n">q_target</span><span class="p">,</span> <span class="n">qdot_target</span><span class="p">,</span> <span class="n">q_init</span><span class="p">,</span> <span class="n">qdot_init</span><span class="p">,</span> <span class="n">current_time</span><span class="p">,</span> <span class="n">init_time</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="c1"># PD torque for the arm: τ = M_arm(Kp*eq + Kv*eqdot) + g_arm</span>
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="n">tau_arm</span>  <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">move_manipulator_joint_torque_step</span><span class="p">(</span><span class="n">q_target</span><span class="p">,</span> <span class="n">qdot_target</span><span class="p">,</span> <span class="n">use_mass</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="n">tau_arm</span>  <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">move_manipulator_joint_torque_cubic</span><span class="p">(</span>
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>    <span class="n">q_target</span><span class="p">,</span> <span class="n">qdot_target</span><span class="p">,</span> <span class="n">q_init</span><span class="p">,</span> <span class="n">qdot_init</span><span class="p">,</span> <span class="n">current_time</span><span class="p">,</span> <span class="n">init_time</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
 </code></pre></div>
 <h4 id="mobile-base-velocity-command">Mobile-base velocity command<a class="headerlink" href="#mobile-base-velocity-command" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="n">cmd_vel</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vx</span><span class="p">,</span> <span class="n">vy</span><span class="p">,</span> <span class="n">omega</span><span class="p">])</span>   <span class="c1"># desired base twist</span>
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">wheel_vel</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">compute_mobile_wheel_vel</span><span class="p">(</span><span class="n">cmd_vel</span><span class="p">)</span>  <span class="c1"># → shape (mobi_dof,)</span>
-<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="c1"># or, combined: computes wheel_vel and returns it</span>
-<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">mobile_velocity_command</span><span class="p">(</span><span class="n">cmd_vel</span><span class="p">,</span> <span class="n">wheel_vel</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="n">cmd_vel</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vx</span><span class="p">,</span> <span class="n">vy</span><span class="p">,</span> <span class="n">omega</span><span class="p">])</span>   <span class="c1"># desired base twist</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">wheel_vel</span> <span class="o">=</span> <span class="n">moma_ctrl</span><span class="o">.</span><span class="n">compute_mobile_wheel_vel</span><span class="p">(</span><span class="n">cmd_vel</span><span class="p">)</span>  <span class="c1"># → shape (mobi_dof,)</span>
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="c1"># or, combined: computes wheel_vel and returns it</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="n">moma_ctrl</span><span class="o">.</span><span class="n">mobile_velocity_command</span><span class="p">(</span><span class="n">cmd_vel</span><span class="p">,</span> <span class="n">wheel_vel</span><span class="p">)</span>
 </code></pre></div>
 <p>All hard-coded constraints documented in <a href="../cpp/#mobile-manipulator">C++ Mobile Manipulator</a> apply equally here.</p>
 <hr />
 <h2 id="taskspacedata"><code>TaskSpaceData</code><a class="headerlink" href="#taskspacedata" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">drc.type_define</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpaceData</span>
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="n">task</span> <span class="o">=</span> <span class="n">TaskSpaceData</span><span class="p">()</span>
-<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="n">task</span><span class="o">.</span><span class="n">set_zero</span><span class="p">()</span>                    <span class="c1"># reset to identity / zeros</span>
-<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>
-<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="c1"># Fields (all writable from Python)</span>
-<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="n">task</span><span class="o">.</span><span class="n">x</span>                  <span class="c1"># 4×4 numpy array — current pose</span>
-<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="n">task</span><span class="o">.</span><span class="n">xdot</span>               <span class="c1"># (6,) — current velocity</span>
-<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="n">task</span><span class="o">.</span><span class="n">x_desired</span>          <span class="c1"># 4×4 — target pose</span>
-<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="n">task</span><span class="o">.</span><span class="n">xdot_desired</span>       <span class="c1"># (6,) — target velocity</span>
-<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="n">task</span><span class="o">.</span><span class="n">xddot_desired</span>      <span class="c1"># (6,) — target acceleration</span>
-<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a><span class="n">task</span><span class="o">.</span><span class="n">x_init</span>             <span class="c1"># 4×4 — initial pose (set by set_init())</span>
-<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a><span class="n">task</span><span class="o">.</span><span class="n">xdot_init</span>          <span class="c1"># (6,) — initial velocity</span>
-<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a><span class="n">task</span><span class="o">.</span><span class="n">control_start_time</span> <span class="c1"># float — trajectory start time</span>
-<a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a><span class="n">task</span><span class="o">.</span><span class="n">current_time</span>       <span class="c1"># float — must be updated each cycle</span>
-<a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a>
-<a id="__codelineno-22-18" name="__codelineno-22-18" href="#__codelineno-22-18"></a><span class="n">task</span><span class="o">.</span><span class="n">set_init</span><span class="p">()</span>         <span class="c1"># snapshots current → init fields</span>
-<a id="__codelineno-22-19" name="__codelineno-22-19" href="#__codelineno-22-19"></a><span class="n">task</span><span class="o">.</span><span class="n">set_desired</span><span class="p">()</span>      <span class="c1"># snapshots current → desired fields</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">drc.type_define</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpaceData</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="n">task</span> <span class="o">=</span> <span class="n">TaskSpaceData</span><span class="p">()</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="n">task</span><span class="o">.</span><span class="n">set_zero</span><span class="p">()</span>                    <span class="c1"># reset to identity / zeros</span>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="c1"># Fields (all writable from Python)</span>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="n">task</span><span class="o">.</span><span class="n">x</span>                  <span class="c1"># 4×4 numpy array — current pose</span>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="n">task</span><span class="o">.</span><span class="n">xdot</span>               <span class="c1"># (6,) — current velocity</span>
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="n">task</span><span class="o">.</span><span class="n">x_desired</span>          <span class="c1"># 4×4 — target pose</span>
+<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="n">task</span><span class="o">.</span><span class="n">xdot_desired</span>       <span class="c1"># (6,) — target velocity</span>
+<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="n">task</span><span class="o">.</span><span class="n">xddot_desired</span>      <span class="c1"># (6,) — target acceleration</span>
+<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a><span class="n">task</span><span class="o">.</span><span class="n">x_init</span>             <span class="c1"># 4×4 — initial pose (set by set_init())</span>
+<a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a><span class="n">task</span><span class="o">.</span><span class="n">xdot_init</span>          <span class="c1"># (6,) — initial velocity</span>
+<a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a><span class="n">task</span><span class="o">.</span><span class="n">control_start_time</span> <span class="c1"># float — trajectory start time</span>
+<a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a><span class="n">task</span><span class="o">.</span><span class="n">current_time</span>       <span class="c1"># float — must be updated each cycle</span>
+<a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a>
+<a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a><span class="n">task</span><span class="o">.</span><span class="n">set_init</span><span class="p">()</span>         <span class="c1"># snapshots current → init fields</span>
+<a id="__codelineno-25-19" name="__codelineno-25-19" href="#__codelineno-25-19"></a><span class="n">task</span><span class="o">.</span><span class="n">set_desired</span><span class="p">()</span>      <span class="c1"># snapshots current → desired fields</span>
 </code></pre></div>
 <p><code>set_init()</code> must be called once at the start of each motion segment before using any <code>*Cubic</code> variant.</p>
 
