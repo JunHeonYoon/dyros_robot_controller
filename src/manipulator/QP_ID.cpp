@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include "dyros_robot_controller/manipulator/QP_ID.h"
+#include <cmath>
 
 namespace drc
 {
@@ -79,8 +80,6 @@ namespace drc
     
             w_vel_damping_.setOnes(joint_dof_);
             w_acc_damping_.setOnes(joint_dof_);
-            null_torque_.setZero(joint_dof_);
-            w_null_torque_ = 0.0;
         }
 
         void QPID::setTrackingWeight(const Vector6d w_tracking)
@@ -146,8 +145,9 @@ namespace drc
             P_ds_.setZero(nx_, nx_);
             q_ds_.setZero(nx_);
             
-            // for task space acceleration tracking
             const VectorXd qdot = robot_data_->getJointVelocity();
+
+            // for task space acceleration tracking
             for(const auto& [link_name, xddot_desired] : link_xddot_desired_)
             {
                 const MatrixXd J_i = robot_data_->getJacobian(link_name);
@@ -165,16 +165,6 @@ namespace drc
             P_ds_.block(si_index_.qddot_start,si_index_.qddot_start,si_index_.qddot_size,si_index_.qddot_size) += 2.0 * w_acc_damping_.asDiagonal().toDenseMatrix() + 
                                                                                                                   2.0 * dt_ * dt_ * w_vel_damping_.asDiagonal().toDenseMatrix();
             q_ds_.segment(si_index_.qddot_start,si_index_.qddot_size) += 2.0 * dt_ * w_vel_damping_.asDiagonal() * qdot;
-
-            // for null torque tracking (Method 3: M-weighted qddot cost, equivalent to OSF null projection)
-            // min w_null * || qddot - M^{-1}*null_torque ||_M^2
-            // => P qddot: += 2*w_null*M,  q qddot: += -2*w_null*null_torque
-            if(w_null_torque_ > 0.0)
-            {
-                const MatrixXd M = robot_data_->getMassMatrix();
-                P_ds_.block(si_index_.qddot_start, si_index_.qddot_start, si_index_.qddot_size, si_index_.qddot_size) += 2.0 * w_null_torque_ * M;
-                q_ds_.segment(si_index_.qddot_start, si_index_.qddot_size) += -2.0 * w_null_torque_ * null_torque_;
-            }
 
             // for slack
             q_ds_.segment(si_index_.slack_q_min_start,si_index_.slack_q_min_size) = VectorXd::Constant(si_index_.slack_q_min_size, 100.0); 
@@ -212,7 +202,7 @@ namespace drc
             l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
             u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
     
-            const double alpha = 10.;
+            const double alpha = 100.;
     
             // Manipulator Joint Angle Limit (CBF)
             const auto q_lim = robot_data_->getJointPositionLimit();
@@ -220,11 +210,11 @@ namespace drc
             const VectorXd q_max_raw = q_lim.second;
             const VectorXd q_min =
                 (q_min_raw.array() < 0.0)
-                    .select(q_min_raw.array() * 0.9, q_min_raw.array() * 1.9)
+                    .select(q_min_raw.array() * 0.9, q_min_raw.array() * 1.1)
                     .matrix();
             const VectorXd q_max =
                 (q_max_raw.array() > 0.0)
-                    .select(q_max_raw.array() * 0.9, q_max_raw.array() * 1.9)
+                    .select(q_max_raw.array() * 0.9, q_max_raw.array() * 1.1)
                     .matrix();
             // const auto q_lim = robot_data_->getJointPositionLimit();
             // const VectorXd q_min = q_lim.first;
@@ -247,11 +237,11 @@ namespace drc
             const VectorXd qdot_max_raw = qdot_lim.second;
             const VectorXd qdot_min =
                 (qdot_min_raw.array() < 0.0)
-                    .select(qdot_min_raw.array() * 0.9, qdot_min_raw.array() * 1.9)
+                    .select(qdot_min_raw.array() * 0.9, qdot_min_raw.array() * 1.1)
                     .matrix();
             const VectorXd qdot_max =
                 (qdot_max_raw.array() > 0.0)
-                    .select(qdot_max_raw.array() * 0.9, qdot_max_raw.array() * 1.9)
+                    .select(qdot_max_raw.array() * 0.9, qdot_max_raw.array() * 1.1)
                     .matrix();
 
             // const auto qdot_lim = robot_data_->getJointVelocityLimit();
@@ -275,23 +265,36 @@ namespace drc
             
             // self collision avoidance (CBF)
             const Manipulator::MinDistResult min_dist_data = robot_data_->getMinDistance(true, true, false);
+            const bool valid_col_grad =
+                std::isfinite(min_dist_data.distance) &&
+                min_dist_data.grad.size() == joint_dof_ &&
+                min_dist_data.grad_dot.size() == joint_dof_ &&
+                min_dist_data.grad.allFinite() &&
+                min_dist_data.grad_dot.allFinite() &&
+                min_dist_data.grad.squaredNorm() > 1e-12;
 
-            // exponential low-pass filter on grad and grad_dot to smooth discontinuous jumps
-            // when the closest collision pair switches (argmin is non-smooth)
-            if (!col_grad_initialized_) {
-                col_grad_filtered_     = min_dist_data.grad;
-                col_grad_dot_filtered_ = min_dist_data.grad_dot;
-                col_grad_initialized_  = true;
-            } else {
-                col_grad_filtered_     = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
-                                       + col_grad_filter_alpha_ * min_dist_data.grad;
-                col_grad_dot_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_dot_filtered_
-                                       + col_grad_filter_alpha_ * min_dist_data.grad_dot;
+            if (valid_col_grad)
+            {
+                // Skip the CBF row when the distance Jacobian becomes undefined.
+                if (!col_grad_initialized_) {
+                    col_grad_filtered_     = min_dist_data.grad;
+                    col_grad_dot_filtered_ = min_dist_data.grad_dot;
+                    col_grad_initialized_  = true;
+                } else {
+                    col_grad_filtered_     = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                           + col_grad_filter_alpha_ * min_dist_data.grad;
+                    col_grad_dot_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_dot_filtered_
+                                           + col_grad_filter_alpha_ * min_dist_data.grad_dot;
+                }
+
+                A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qddot_start, si_index_.con_sel_col_size, si_index_.qddot_size) = col_grad_filtered_.transpose();
+                A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.slack_sel_col_start, si_index_.con_sel_col_size, si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
+                l_ineq_ds_(si_index_.con_sel_col_start) = -col_grad_dot_filtered_.dot(qdot) - (alpha + alpha)*col_grad_filtered_.dot(qdot) - alpha*alpha*(min_dist_data.distance - 0.01);
             }
-
-            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.qddot_start, si_index_.con_sel_col_size, si_index_.qddot_size) = col_grad_filtered_.transpose();
-            A_ineq_ds_.block(si_index_.con_sel_col_start, si_index_.slack_sel_col_start, si_index_.con_sel_col_size, si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = -col_grad_dot_filtered_.dot(qdot) - (alpha + alpha)*col_grad_filtered_.dot(qdot) - alpha*alpha*(min_dist_data.distance - 0.01);
+            else
+            {
+                col_grad_initialized_ = false;
+            }
         }
     
         void QPID::setEqConstraint()    

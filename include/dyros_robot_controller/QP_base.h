@@ -156,6 +156,22 @@ namespace drc
                     l dense (nc x 1)
                     u dense (nc x 1)
                     */
+                    P_ds_ = 0.5 * (P_ds_ + P_ds_.transpose()).eval();
+                    if (!P_ds_.allFinite() || !q_ds_.allFinite() ||
+                        !A_ds_.allFinite() || !l_ds_.allFinite() || !u_ds_.allFinite())
+                    {
+                        std::cerr << "[QP] FAILED: NaN/Inf in QP matrices"
+                                  << " P=" << !P_ds_.allFinite()
+                                  << " q=" << !q_ds_.allFinite()
+                                  << " A=" << !A_ds_.allFinite()
+                                  << " l=" << !l_ds_.allFinite()
+                                  << " u=" << !u_ds_.allFinite() << std::endl;
+                        last_primal_.setZero(nx_);
+                        last_dual_.setZero(nc_);
+                        warm_start_ready_ = false;
+                        return false;
+                    }
+
                     SparseMatrix<double> P = P_ds_.sparseView();
                     SparseMatrix<double> A = A_ds_.sparseView();
 
@@ -171,27 +187,35 @@ namespace drc
                         // set the initial data of the QP solver
                         solver_.data()->setNumberOfVariables(nx_);
                         solver_.data()->setNumberOfConstraints(nc_);
-                        if (!solver_.data()->setHessianMatrix(P))           return false;
-                        if (!solver_.data()->setGradient(q_ds_))            return false;
-                        if (!solver_.data()->setLinearConstraintsMatrix(A)) return false;
-                        if (!solver_.data()->setLowerBound(l_ds_))          return false;
-                        if (!solver_.data()->setUpperBound(u_ds_))          return false;
+                        if (!solver_.data()->setHessianMatrix(P))           { std::cerr << "[QP] FAILED: setHessianMatrix" << std::endl; return false; }
+                        if (!solver_.data()->setGradient(q_ds_))            { std::cerr << "[QP] FAILED: setGradient" << std::endl; return false; }
+                        if (!solver_.data()->setLinearConstraintsMatrix(A)) { std::cerr << "[QP] FAILED: setLinearConstraintsMatrix" << std::endl; return false; }
+                        if (!solver_.data()->setLowerBound(l_ds_))          { std::cerr << "[QP] FAILED: setLowerBound" << std::endl; return false; }
+                        if (!solver_.data()->setUpperBound(u_ds_))          { std::cerr << "[QP] FAILED: setUpperBound" << std::endl; return false; }
 
                         // instantiate the solver
-                        if (!solver_.initSolver()) return false;
+                        if (!solver_.initSolver()) { std::cerr << "[QP] FAILED: initSolver" << std::endl; return false; }
                         solver_initialized_ = true;
                     }
                     else
                     {
-                        if (!solver_.updateHessianMatrix(P))           return false;
-                        if (!solver_.updateGradient(q_ds_))            return false;
-                        if (!solver_.updateLinearConstraintsMatrix(A)) return false;
-                        if (!solver_.updateBounds(l_ds_, u_ds_))        return false;
+                        if (!solver_.updateHessianMatrix(P))           { std::cerr << "[QP] FAILED: updateHessianMatrix" << std::endl; return false; }
+                        if (!solver_.updateGradient(q_ds_))            { std::cerr << "[QP] FAILED: updateGradient" << std::endl; return false; }
+                        if (!solver_.updateLinearConstraintsMatrix(A)) { std::cerr << "[QP] FAILED: updateLinearConstraintsMatrix" << std::endl; return false; }
+                        if (!solver_.updateBounds(l_ds_, u_ds_))       { std::cerr << "[QP] FAILED: updateBounds" << std::endl; return false; }
                     }
 
-                    if (warm_start_ready_)
+                    if (warm_start_ready_ &&
+                        last_primal_.size() == nx_ &&
+                        last_dual_.size() == nc_ &&
+                        last_primal_.allFinite() &&
+                        last_dual_.allFinite())
                     {
                         solver_.setWarmStart(last_primal_, last_dual_);
+                    }
+                    else
+                    {
+                        warm_start_ready_ = false;
                     }
 
                     time_status.set_solver = timer_.elapsedAndReset();
@@ -199,33 +223,66 @@ namespace drc
                     // solve the QP problem
                     if (solver_.solveProblem() != OsqpEigen::ErrorExitFlag::NoError)
                     {
+                        std::cerr << "[QP] FAILED: solveProblem returned error" << std::endl;
                         last_primal_.setZero(nx_);
                         last_dual_.setZero(nc_);
                         return false;
                     }
                     qp_status_ = solver_.getStatus();
-                    // if (solver_.getStatus() != OsqpEigen::Status::Solved) return false;
-                    // if (solver.getStatus() != OsqpStatus::Solved && solver.getStatus() != OsqpStatus::SolvedInaccurate) return false;
-                    // TODO: near constraints, QP failed witihin timelimit
-                     if (solver_.getStatus() != OsqpEigen::Status::Solved && solver_.getStatus() != OsqpEigen::Status::TimeLimitReached)
-                     {
-                         last_primal_.setZero(nx_);
-                         last_dual_.setZero(nc_);
-                         return false;
-                     }
+                    if (qp_status_ != OsqpEigen::Status::Solved &&
+                        qp_status_ != OsqpEigen::Status::SolvedInaccurate &&
+                        qp_status_ != OsqpEigen::Status::TimeLimitReached)
+                    {
+                        std::cerr << "[QP] FAILED: status=" << statusToString(qp_status_) << std::endl;
+                        last_primal_.setZero(nx_);
+                        last_dual_.setZero(nc_);
+                        warm_start_ready_ = false;
+                        return false;
+                    }
+                    if (qp_status_ == OsqpEigen::Status::TimeLimitReached)
+                        std::cerr << "[QP] WARNING: TimeLimitReached, using best-effort solution" << std::endl;
 
                     time_status.solve_qp = timer_.elapsedAndReset();
 
                     sol = solver_.getSolution();
+                    const VectorXd dual_sol = solver_.getDualSolution();
+
+                    if (sol.rows() != nx_ || sol.cols() != 1 || !sol.allFinite() ||
+                        dual_sol.size() != nc_ || !dual_sol.allFinite())
+                    {
+                        std::cerr << "[QP] FAILED: solution is non-finite or wrong size"
+                                  << " sol_finite=" << sol.allFinite()
+                                  << " dual_finite=" << dual_sol.allFinite() << std::endl;
+                        last_primal_.setZero(nx_);
+                        last_dual_.setZero(nc_);
+                        warm_start_ready_ = false;
+                        return false;
+                    }
 
                     last_primal_ = sol;
-                    last_dual_ = solver_.getDualSolution();
+                    last_dual_ = dual_sol;
                     warm_start_ready_ = true;
             
                     return true;
                 }
             
             private:
+                static const char* statusToString(OsqpEigen::Status s)
+                {
+                    switch(s)
+                    {
+                        case OsqpEigen::Status::Solved:                      return "Solved";
+                        case OsqpEigen::Status::SolvedInaccurate:            return "SolvedInaccurate";
+                        case OsqpEigen::Status::PrimalInfeasible:            return "PrimalInfeasible";
+                        case OsqpEigen::Status::PrimalInfeasibleInaccurate:  return "PrimalInfeasibleInaccurate";
+                        case OsqpEigen::Status::DualInfeasible:              return "DualInfeasible";
+                        case OsqpEigen::Status::DualInfeasibleInaccurate:    return "DualInfeasibleInaccurate";
+                        case OsqpEigen::Status::MaxIterReached:              return "MaxIterReached";
+                        case OsqpEigen::Status::TimeLimitReached:            return "TimeLimitReached";
+                        case OsqpEigen::Status::NonCvx:                      return "NonCvx";
+                        default:                                              return "Unknown";
+                    }
+                }
                 /**
                  * @brief Set the cost function for the QP problem.
                  */

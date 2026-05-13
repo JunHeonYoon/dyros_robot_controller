@@ -140,29 +140,33 @@ class FR3XLSController:
         self.task_id_kp = np.array([600.0, 600.0, 600.0, 1000.0, 1000.0, 1000.0])
         self.task_id_kv = np.array([20.0, 20.0, 20.0, 30.0, 30.0, 30.0])
         self.qpik_tracking = np.array([10.0, 10.0, 10.0, 40.0, 40.0, 40.0])
-        self.qpik_mani_vel_damping = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
-        self.qpik_mani_acc_damping = np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001])
-        self.qpik_base_vel_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
-        self.qpik_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpik_vel_damping = np.zeros(self.actuated_dof)
+        self.qpik_vel_damping[actuator_idx.mani_start:actuator_idx.mani_start + self.mani_dof] = \
+            np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        self.qpik_vel_damping[actuator_idx.mobi_start:actuator_idx.mobi_start + self.mobi_dof] = 0.1
+        self.qpik_acc_damping = np.zeros(self.actuated_dof)
+        self.qpik_acc_damping[actuator_idx.mani_start:actuator_idx.mani_start + self.mani_dof] = \
+            np.array([0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001])
+        self.qpik_acc_damping[actuator_idx.mobi_start:actuator_idx.mobi_start + self.mobi_dof] = 0.1
         self.qpid_tracking = np.array([10.0, 10.0, 10.0, 1.0, 1.0, 1.0])
-        self.qpid_mani_vel_damping = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-        self.qpid_mani_acc_damping = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
-        self.qpid_base_vel_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
-        self.qpid_base_acc_damping = np.array([0.1, 0.1, 0.1])  # [vx, vy, wz]
+        self.qpid_vel_damping = np.zeros(self.actuated_dof)
+        self.qpid_vel_damping[actuator_idx.mani_start:actuator_idx.mani_start + self.mani_dof] = \
+            np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        self.qpid_vel_damping[actuator_idx.mobi_start:actuator_idx.mobi_start + self.mobi_dof] = 0.1
+        self.qpid_acc_damping = np.zeros(self.actuated_dof)
+        self.qpid_acc_damping[actuator_idx.mani_start:actuator_idx.mani_start + self.mani_dof] = \
+            np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
+        self.qpid_acc_damping[actuator_idx.mobi_start:actuator_idx.mobi_start + self.mobi_dof] = 0.1
 
         self.robot_controller.set_manipulator_joint_gain(kp=self.mani_joint_kp, kv=self.mani_joint_kv)
         self.robot_controller.set_IK_gain(kp=self.task_ik_kp)
         self.robot_controller.set_ID_gain(kp=self.task_id_kp, kv=self.task_id_kv)
         self.robot_controller.set_QPIK_gain(w_tracking=self.qpik_tracking,
-                                            w_mani_vel_damping=self.qpik_mani_vel_damping,
-                                            w_mani_acc_damping=self.qpik_mani_acc_damping,
-                                            w_base_vel_damping=self.qpik_base_vel_damping,
-                                            w_base_acc_damping=self.qpik_base_acc_damping)
+                                            w_vel_damping=self.qpik_vel_damping,
+                                            w_acc_damping=self.qpik_acc_damping)
         self.robot_controller.set_QPID_gain(w_tracking=self.qpid_tracking,
-                                            w_mani_vel_damping=self.qpid_mani_vel_damping,
-                                            w_mani_acc_damping=self.qpid_mani_acc_damping,
-                                            w_base_vel_damping=self.qpid_base_vel_damping,
-                                            w_base_acc_damping=self.qpid_base_acc_damping)
+                                            w_vel_damping=self.qpid_vel_damping,
+                                            w_acc_damping=self.qpid_acc_damping)
         
         # Print FR3XLS URDF info
         print("info:")
@@ -240,6 +244,7 @@ class FR3XLSController:
                                      qdot_mani=self.qdot_mani)
         self.link_ee_task[self.ee_link_name].x = self.robot_data.get_pose(self.ee_link_name).copy()
         self.link_ee_task[self.ee_link_name].xdot = self.robot_data.get_velocity(self.ee_link_name).copy()
+        self.link_ee_task[self.ee_link_name].current_time = self.sim_time
         
 
     def compute(self) -> Dict[str, float]:
@@ -300,8 +305,6 @@ class FR3XLSController:
 
             _, self.qdot_mobile_desired, self.qdot_mani_desired = self.robot_controller.QPIK_cubic(
                 link_task_data=self.link_ee_task,
-                init_time=self.control_start_time,
-                current_time=self.sim_time,
                 duration=2.0,
             )
             # Simple Euler integration for generating a joint-position target from qdot_desired (one-step lookahead)
@@ -314,7 +317,7 @@ class FR3XLSController:
             
         # --- Mode: Gravity Compensation W QPID (task-space QPID with zero desired acceleration) ---
         elif self.control_mode == "Gravity Compensation W QPID":
-            self.link_ee_task[self.ee_link_name].xddot = np.zeros(6)
+            self.link_ee_task[self.ee_link_name].xddot_desired = np.zeros(6)
             _, qddot_mobile_desired, self.tau_mani_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
             # Integrate mobile acceleration output to wheel velocity command
             self.qdot_mobile_desired = self.qdot_mobile + qddot_mobile_desired * self.dt

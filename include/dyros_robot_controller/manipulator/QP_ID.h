@@ -61,19 +61,6 @@ namespace drc
                  */
                 void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
                 /**
-                 * @brief Set the scalar scale for the null torque tracking cost (Method 3: M-weighted qddot cost).
-                 *        The cost term added is: w_null_torque * || qddot - M^{-1}*null_torque ||_M^2
-                 *        which is equivalent to OSF's null space projection when w_null_torque > 0.
-                 * @param w_null_torque (double) Scale factor for null torque cost; set 0 to disable (default).
-                 */
-                void setNullTorqueWeight(const double w_null_torque) { w_null_torque_ = w_null_torque; }
-                /**
-                 * @brief Set the desired null space torque.
-                 *        Equivalent to OSF's null_torque argument (without gravity; gravity is handled separately by the dynamics constraint).
-                 * @param null_torque (Eigen::VectorXd) Desired joint torque to track in the null space; its size must same as dof.
-                 */
-                void setNullTorque(const Eigen::Ref<const VectorXd>& null_torque) { null_torque_ = null_torque; }
-                /**
                  * @brief Set the weight vector for the cost terms.
                  * @param w_tracking (Eigen::Vector6d) Weight for task space acceleration tracking for all the links in the URDF.
                  * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
@@ -160,8 +147,6 @@ namespace drc
                 std::map<std::string, Vector6d> link_w_tracking_;    // weight for task acceleration tracking per links; || x_i_ddot_des - J_i*qddot - J_i_dot*qdot ||
                 VectorXd w_vel_damping_;                             // weight for joint velocity damping;               || q_ddot*dt + qdot ||
                 VectorXd w_acc_damping_;                             // weight for joint acceleration damping;           || q_ddot ||
-                VectorXd null_torque_;                               // desired null space torque (OSF convention: without gravity)
-                double   w_null_torque_;                             // scale for null torque cost; w_null * || qddot - M^{-1}*null_torque ||_M^2
 
                 // self-collision CBF gradient exponential filter
                 // smooths discontinuous jumps when the closest collision pair changes
@@ -174,66 +159,83 @@ namespace drc
                  * @brief Set the cost function which minimizes task space acceleration error.
                  *        Use slack variables (s) to increase feasibility of QP.
                  *
-                 *         min       || x_i_ddot_des - J_i*qddot - J_i_dot*qdot ||_Wi^2 + || q_ddot ||_W2^2 + || q_ddot*dt + qdot ||_W3^2 + w_null * || qddot - M^{-1}*null_torque ||_M^2 + 1000*s
-                 *  [qddot, torque, s]
+                 *   ```
+                 *      min      Σ_i || x_i_ddot_des - J_i*qddot - J_i_dot*qdot ||_W1_i^2
+                 * [qddot,tau,s]   + || qddot ||_W2^2
+                 *                 + || dt*qddot + qdot ||_W3^2
+                 *                 + 100*s
                  *
-                 * =>      min         1/2 * [ qddot  ].T * [ 2*J_i.T*Wi_i*J + 2*W2 + 2*dt*dt*W3 + 2*w_null*M  0  0 ] * [ qddot  ] + [ -2*J_i.T*Wi*(x_i_ddot_des - J_i_dot*qdot) + 2*dt*qdot - 2*w_null*null_torque ].T * [ qddot  ]
-                 *  [qddot, torque, s]       [ torque ]     [                          0                         0  0 ]   [ torque ]   [                                  0                                           ]     [ torque ]
-                 *                           [   s    ]     [                          0                         0  0 ]   [   s    ]   [                                1000                                          ]     [   s    ]
+                 *   =>    min       1/2 [ qddot ]^T * [ 2*Σ(J_i.T*W1_i*J_i) + 2*W2 + 2*dt^2*W3   0   0 ] * [ qddot ]
+                 *   [qddot,tau,s]       [  tau  ]     [                        0                   0   0 ]   [  tau  ]
+                 *                       [   s   ]     [                        0                   0   0 ]   [   s   ]
+                 *
+                 *                     + [ -2*Σ(J_i.T*W1_i*(x_i_ddot_des - J_i_dot*qdot)) + 2*dt*W3*qdot ].T * [ qddot ]
+                 *                       [                                0                                 ]     [  tau  ]
+                 *                       [                               100                                ]     [   s   ]
+                 *   ```
                  */
                 void setCost() override;
                 /**
-                 * @brief Set the bound constraint to keep all slack variables non-negative.
-                 * 
-                 *      subject to [ -inf ] <= [ qddot  ] <= [ inf ]
-                 *                 [ -inf ]    [ torque ]    [ inf ]
-                 *                 [   0  ]    [    s   ]    [ inf ]
+                 * @brief Set variable bounds.
+                 *
+                 *   ```
+                 *   subject to [ -inf    ] <= [ qddot  ] <= [ inf     ]
+                 *              [ tau_min ]    [ torque ]    [ tau_max ]
+                 *              [   0     ]    [    s   ]    [ inf     ]
+                 *   ```
                  */
                 void setBoundConstraint() override;
                 /**
-                 * @brief Set the inequality constraints which limit manipulator joint angles and velocities, avoid singularity and self collision by 1st or 2nd-order CBF.
-                 * 
+                 * @brief Set inequality constraints for joint limits, singularity and self collision.
+                 *
                  * 1st-order CBF condition with slack: hdot(x) >= -a*h(x) - s
-                 * 2nd-order CBF condition with slack: hddot(x) >= -2*a*hdot(x) -a*a*h(x) - s
-                 * 
-                 *  1. (2nd-order CBF)
-                 *     Manipulator joint angle limit: h_p_min(q) = q - q_min >= 0  -> hdot_p_min(q) = qdot   -> hddot_p_min(q) = qddot
-                 *                                    h_p_max(q) = q_max - q >= 0  -> hdot_p_max(q) = -qdot  -> hddot_p_max(q) = -qddot
-                 *     
-                 *     => subject to [  I  0  I ] * [ qddot  ] >= [ -2*a*qdot -a*a*(q - q_min) ]
-                 *                   [ -I  0  I ]   [ torque ]    [  2*a*qdot -a*a*(q_max - q) ]
-                 *                                  [    s   ]
-                 * 
-                 *  2.(1st-order CBF)
-                 *     Manipulator joint velocity limit: h_v_min(qdot) = qdot - qdot_min >= 0  -> hdot_v_min(qdot) = qddot 
-                 *                                       h_v_max(qdot) = qdot_max - qdot >= 0  -> hdot_v_max(qdot) = -qddot
-                 *     
-                 *     => subject to [  I  0  I ] * [ qddot  ] >= [ -a*(qdot - qdot_min) ]
-                 *                   [ -I  0  I ]   [ torque ]    [ -a*(qdot_max - qdot) ]
-                 *                                  [    s   ]
-                 * 
-                 *  3. (2nd-order CBF)
-                 *     Singluarity avoidance: h_sing(q) = manipulability(q) - eps_sing_min >= 0 -> hdot_sing = ∇_(q) manipulability.T * qdot  -> hddot_sing = (∇_(q) manipulability.T)dot * qdot +  ∇_(q) manipulability.T * qddot
-                 * 
-                 *     => subject to [ ∇_(q) manipulability.T  0  I ] * [ qddot  ] >= [ -(∇_(q) manipulability.T)dot*qdot - 2*a*∇_(q) manipulability.T * qdot -a*a*(manipulability - eps_sing_min) ]
-                 *                                                      [ torque ]
-                 *                                                      [    s   ]
-                 *  4. (2nd-order CBF)
-                 *      Self collision avoidance: h_selcol(q) = self_dist(q) - eps_selcol_min >= 0 -> hdot_selcol = ∇_q self_dist^T * qdot  -> hddot_selcol = (∇_(q) self_dist.T)dot * qdot +  ∇_(q) self_dist.T * qddot
-                 *      
-                 *     => subject to [ ∇_(q) self_dist.T  0  I ] * [ qddot  ] >= [ -(∇_(q) self_dist.T)dot*qdot - 2*a*∇_(q) self_dist.T * qdot -a*a*(self_dist - eps_selcol_min) ]
-                 *                                                 [ torque ]
-                 *                                                 [    s   ]
+                 * 2nd-order CBF condition with slack: hddot(x) >= -2*a*hdot(x) - a^2*h(x) - s
+                 *
+                 *  1. (2nd-order CBF) Manipulator joint angle limit:
+                 *     h_p_min(q) = q - q_min >= 0  ->  hdot_p_min(q) = qdot   ->  hddot_p_min(q) = qddot
+                 *     h_p_max(q) = q_max - q >= 0  ->  hdot_p_max(q) = -qdot  ->  hddot_p_max(q) = -qddot
+                 *
+                 *   ```
+                 *   => subject to [  I  0  I ] * [ qddot  ] >= [ -2*a*qdot - a^2*(q - q_min) ]
+                 *                 [ -I  0  I ]   [ torque ]    [  2*a*qdot - a^2*(q_max - q) ]
+                 *                               [    s   ]
+                 *   ```
+                 *
+                 *  2. (1st-order CBF) Manipulator joint velocity limit:
+                 *     h_v_min(qdot) = qdot - qdot_min >= 0  ->  hdot_v_min(qdot) = qddot
+                 *     h_v_max(qdot) = qdot_max - qdot >= 0  ->  hdot_v_max(qdot) = -qddot
+                 *
+                 *   ```
+                 *   => subject to [  I  0  I ] * [ qddot  ] >= [ -a*(qdot - qdot_min) ]
+                 *                 [ -I  0  I ]   [ torque ]    [ -a*(qdot_max - qdot) ]
+                 *                               [    s   ]
+                 *   ```
+                 *
+                 *  3. Singularity avoidance:
+                 *     A CBF row is allocated for this term, but it is currently inactive in the implementation.
+                 *
+                 *  4. (2nd-order CBF) Self collision avoidance (active only when a valid distance gradient is available):
+                 *     h_selcol(q) = self_dist(q) - eps_selcol_min >= 0
+                 *     hdot_selcol = ∇_q self_dist^T * qdot
+                 *     hddot_selcol = (∇_q self_dist.T)dot * qdot + ∇_q self_dist.T * qddot
+                 *
+                 *   ```
+                 *   => subject to [ ∇_(q) self_dist.T  0  I ] * [ qddot  ] >= [ -(∇_q self_dist.T)dot*qdot - 2*a*∇_q self_dist.T*qdot - a^2*(self_dist - eps_selcol_min) ]
+                 *                                               [ torque ]
+                 *                                               [    s   ]
+                 *   ```
                  */
                 void setIneqConstraint() override;
                 /**
                  * @brief Set the equality constraint which forces joint accelerations and torques to match the equations of dynamics.
                  *
-                 * subject to M * qddot + g = torque
+                 *   ```
+                 *   subject to M * qddot + nle = torque
                  *
-                 * => subject to [ M -I 0 ][ qddot  ] = [ -g ]
-                 *                         [ torque ]
-                 *                         [   s    ]
+                 *   => subject to [ M  -I  0 ] * [ qddot  ] = [ -nle ]
+                 *                               [ torque ]
+                 *                               [    s   ]
+                 *   ```
                  */
                 void setEqConstraint() override;
         };

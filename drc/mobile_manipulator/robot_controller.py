@@ -19,11 +19,36 @@ import numpy as np
 import dyros_robot_controller_cpp_wrapper as drc_cpp
 from .robot_data import RobotData
 from drc import TaskSpaceData
+from ._proxy import _ManiCtrlProxy, _MobiCtrlProxy
+
+
+def _as_vector(value, name: str, size: int) -> np.ndarray:
+    value = np.asarray(value, dtype=float).reshape(-1)
+    assert value.size == size, f"Size of {name} {value.size} is not equal to {size}"
+    return value
+
+
+def _as_vector_one_of(value, name: str, sizes: tuple[int, ...]) -> np.ndarray:
+    value = np.asarray(value, dtype=float).reshape(-1)
+    assert value.size in sizes, f"Size of {name} {value.size} is not one of {sizes}"
+    return value
+
+
+def _as_gain_map(gain_map: dict[str, np.ndarray], name: str) -> dict[str, np.ndarray]:
+    return {link: _as_vector(gain, f"{name} at link {link}", 6) for link, gain in gain_map.items()}
+
+
+def _as_task_map(link_task_data: dict[str, TaskSpaceData]) -> dict:
+    return {link: task.cpp() if hasattr(task, "cpp") else task for link, task in link_task_data.items()}
+
+
+def _as_task_hierarchy(task_hierarchy: list[dict[str, TaskSpaceData]]) -> list[dict]:
+    return [_as_task_map(level) for level in task_hierarchy]
 
 
 class RobotController(drc_cpp.MobileManipulatorRobotController):
     """
-    A Python wrapper for the C++ RobotController::MobileManipulator::MobileManipulatorBase class.
+    Controller-side base class for mobile manipulator controller.
     
     This class consists of functions that compute control inputs for mobile manipulator and helpers that generate smooth trajectories.
     Joint space functions compute control inputs of the manipulator to track desired joint positions, velocities, or accelerations.
@@ -34,16 +59,35 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Constructor.
 
         Parameters:
-            robot_data : (DataMomaBase) An instance of the Python MobileManipulatorBase wrapper which contains the robot's kinematic and dynamic parameters.
+            robot_data : (RobotData) Shared RobotData object.
 
         Raises:
-            TypeError: If the robot_data is not an instance of the Python MobileManipulatorBase wrapper.
+            TypeError: If robot_data is not an instance of RobotData.
         """
         if not isinstance(robot_data, RobotData):
-            raise TypeError("robot_data must be an instance of the Python MobileManipulatorBase")
+            raise TypeError("robot_data must be an instance of RobotData")
         self._robot_data = robot_data
         self._dt = float(self._robot_data.get_dt())
         super().__init__(self._robot_data)
+
+        # Backing stores for sub-object proxies
+        self._mani_ctrl_proxy = _ManiCtrlProxy(super().mani, self)
+        self._mobi_ctrl_proxy = _MobiCtrlProxy(super().mobi, self)
+
+    @property
+    def moma(self):
+        """Return self as the mobile manipulator sub-object."""
+        return self
+
+    @property
+    def mani(self):
+        """Return the manipulator controller sub-object proxy."""
+        return self._mani_ctrl_proxy
+
+    @property
+    def mobi(self):
+        """Return the mobile base controller sub-object proxy."""
+        return self._mobi_ctrl_proxy
 
     def set_manipulator_joint_gain(self, 
                                    kp: np.ndarray | None = None, 
@@ -66,241 +110,187 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
             assert kv.size == self._robot_data.mani_dof, f"Size of kv {kv.size} is not equal to mani_dof {self._robot_data.mani_dof}"
             super().setManipulatorJointKvGain(kv)
 
-    def set_IK_gain(self, link_kp: dict[str, np.ndarray]):
+    def set_IK_gain(self,
+                    kp: np.ndarray | dict[str, np.ndarray] | None = None,
+                    *,
+                    link_kp: dict[str, np.ndarray] | None = None):
         """
-        Set IK task-space proportional gains for specified links.
-        Invalid link names are ignored with a warning.
+        Set IK task-space proportional gains.
 
         Parameters:
-            link_kp : (dict[str, np.ndarray]) Link-name to 6D task gain map.
+            kp      : (np.ndarray | None) 6D task-space proportional gain applied to every link frame.
+            link_kp : (dict[str, np.ndarray] | None) Link-name to 6D task gain map for specified links.
         """
-        for k, v in link_kp.items():
-            link_kp[k] = v.reshape(-1)
-            assert link_kp[k].size == 6, f"Size of kp {link_kp[k].size} at link {k} is not equal to 6"
-        super().setIKGain(link_kp)
-        
-    def set_IK_gain(self, kp: np.ndarray):
-        """
-        Set the same IK task-space proportional gain for all link frames.
+        if isinstance(kp, dict):
+            if link_kp is not None:
+                raise ValueError("Only one of kp dict or link_kp can be set")
+            link_kp = kp
+            kp = None
 
-        Parameters:
-            kp : (np.ndarray) 6D task-space proportional gain applied to every link.
-        """
-        kp = kp.reshape(-1)
-        assert kp.size == 6, f"Size of kp {kp.size} is not equal to 6"
-        super().setIKGain(kp)
+        if kp is not None and link_kp is not None:
+            raise ValueError("Only one of kp or link_kp can be set")
+        if kp is not None:
+            super().setIKGain(_as_vector(kp, "kp", 6))
+        if link_kp is not None:
+            super().setIKGain(_as_gain_map(link_kp, "kp"))
 
     def set_ID_gain(self,
+                    kp: np.ndarray | dict[str, np.ndarray] | None = None,
+                    kv: np.ndarray | dict[str, np.ndarray] | None = None,
+                    *,
                     link_kp: dict[str, np.ndarray] | None = None,
                     link_kv: dict[str, np.ndarray] | None = None):
         """
-        Set ID task-space proportional/derivative gains for specified links.
+        Set ID task-space proportional/derivative gains.
 
         Parameters:
-            link_kp : (dict[str, np.ndarray]) Link-name to 6D proportional gain map.
-            link_kv : (dict[str, np.ndarray]) Link-name to 6D derivative gain map.
+            kp      : (np.ndarray | None) 6D proportional gain applied to every link frame.
+            kv      : (np.ndarray | None) 6D derivative gain applied to every link frame.
+            link_kp : (dict[str, np.ndarray] | None) Link-name to 6D proportional gain map for specified links.
+            link_kv : (dict[str, np.ndarray] | None) Link-name to 6D derivative gain map for specified links.
         """
-        if link_kp is not None:
-            for k, v in link_kp.items():
-                link_kp[k] = v.reshape(-1)
-                assert link_kp[k].size == 6, f"Size of kp {link_kp[k].size} at link {k} is not equal to 6"
-            super().setIDKpGain(link_kp)
+        if isinstance(kp, dict):
+            if link_kp is not None:
+                raise ValueError("Only one of kp dict or link_kp can be set")
+            link_kp = kp
+            kp = None
+        if isinstance(kv, dict):
+            if link_kv is not None:
+                raise ValueError("Only one of kv dict or link_kv can be set")
+            link_kv = kv
+            kv = None
 
-        if link_kv is not None:
-            for k, v in link_kv.items():
-                link_kv[k] = v.reshape(-1)
-                assert link_kv[k].size == 6, f"Size of kv {link_kv[k].size} at link {k} is not equal to 6"
-            super().setIDKvGain(link_kv)
-            
-    def set_ID_gain(self, 
-                    kp: np.ndarray | None = None, 
-                    kv: np.ndarray | None = None):
-        """
-        Set the same ID task-space proportional/derivative gains for all link frames.
+        if kp is not None and link_kp is not None:
+            raise ValueError("Only one of kp or link_kp can be set")
+        if kv is not None and link_kv is not None:
+            raise ValueError("Only one of kv or link_kv can be set")
 
-        Parameters:
-            kp : (np.ndarray) 6D proportional gain applied to every link.
-            kv : (np.ndarray) 6D derivative gain applied to every link.
-        """
         if kp is not None:
-            kp = kp.reshape(-1)
-            assert kp.size == 6, f"Size of kp {kp.size} is not equal to 6"
+            super().setIDKpGain(_as_vector(kp, "kp", 6))
         if kv is not None:
-            kv = kv.reshape(-1)
-            assert kv.size == 6, f"Size of kv {kv.size} is not equal to 6"
-        super().setIDGain(kp, kv)
+            super().setIDKvGain(_as_vector(kv, "kv", 6))
+        if link_kp is not None:
+            super().setIDKpGain(_as_gain_map(link_kp, "kp"))
+        if link_kv is not None:
+            super().setIDKvGain(_as_gain_map(link_kv, "kv"))
     
     def set_QPIK_gain(self,
-                      link_w_tracking: dict[str, np.ndarray] | None = None,
-                      w_mani_vel_damping: np.ndarray | None = None,
-                      w_mani_acc_damping: np.ndarray | None = None,
-                      w_base_vel_damping: np.ndarray | None = None,
-                      w_base_acc_damping: np.ndarray | None = None,
-                      ):
-        """
-        Set the weight vector for the cost terms of the QPIK.
-
-        Parameters:
-            link_w_tracking    : (dict[str, np.ndarray]) Weight for task velocity tracking per links.
-            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-            w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
-            w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
-        """
-        if link_w_tracking is not None:
-            for k,v in link_w_tracking.items():
-                link_w_tracking[k] = v.reshape(-1)
-                assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-            super().setQPIKTrackingGain(link_w_tracking)
-
-        if w_mani_vel_damping is not None:
-            w_mani_vel_damping = w_mani_vel_damping.reshape(-1)
-            assert w_mani_vel_damping.size == self._robot_data.mani_dof, f"Size of w_mani_vel_damping {w_mani_vel_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIKManiJointVelGain(w_mani_vel_damping)
-
-        if w_mani_acc_damping is not None:
-            w_mani_acc_damping = w_mani_acc_damping.reshape(-1)
-            assert w_mani_acc_damping.size == self._robot_data.mani_dof, f"Size of w_mani_acc_damping {w_mani_acc_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIKManiJointAccGain(w_mani_acc_damping)
-
-        if w_base_vel_damping is not None:
-            w_base_vel_damping = np.asarray(w_base_vel_damping).reshape(-1)
-            assert w_base_vel_damping.size == 3, f"Size of w_base_vel_damping {w_base_vel_damping.size} is not equal to 3"
-            super().setQPIKBaseVelGain(w_base_vel_damping)
-
-        if w_base_acc_damping is not None:
-            w_base_acc_damping = np.asarray(w_base_acc_damping).reshape(-1)
-            assert w_base_acc_damping.size == 3, f"Size of w_base_acc_damping {w_base_acc_damping.size} is not equal to 3"
-            super().setQPIKBaseAccGain(w_base_acc_damping)
-
-    def set_QPIK_gain(self,
+                      *,
                       w_tracking: np.ndarray | None = None,
-                      w_mani_vel_damping: np.ndarray | None = None,
-                      w_mani_acc_damping: np.ndarray | None = None,
-                      w_base_vel_damping: np.ndarray | None = None,
-                      w_base_acc_damping: np.ndarray | None = None,
+                      link_w_tracking: dict[str, np.ndarray] | None = None,
+                      w_vel_damping: np.ndarray | None = None,
+                      w_acc_damping: np.ndarray | None = None,
                       ):
         """
         Set the weight vector for the cost terms of the QPIK.
 
         Parameters:
-            w_tracking         : (np.ndarray) Weight for task velocity tracking for every link.
-            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-            w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
-            w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
+            w_tracking      : (np.ndarray | None) Weight for task velocity tracking for every link.
+            link_w_tracking : (dict[str, np.ndarray] | None) Weight for task velocity tracking per links.
+            w_vel_damping   : (np.ndarray | None) Weight for actuator velocity damping; its size must same as actuator_dof.
+            w_acc_damping   : (np.ndarray | None) Weight for actuator acceleration damping; its size must same as actuator_dof.
         """
-        if w_tracking is not None:
-            w_tracking = w_tracking.reshape(-1)
-            assert w_tracking.size == 6, f"Size of w_tracking {w_tracking.size} is not equal to 6"
-            super().setQPIKTrackingGain(w_tracking)
+        if w_tracking is not None and link_w_tracking is not None:
+            raise ValueError("Only one of w_tracking or link_w_tracking can be set")
 
-        if w_mani_vel_damping is not None:
-            w_mani_vel_damping = w_mani_vel_damping.reshape(-1)
-            assert w_mani_vel_damping.size == self._robot_data.mani_dof, f"Size of w_mani_vel_damping {w_mani_vel_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIKManiJointVelGain(w_mani_vel_damping)
-
-        if w_mani_acc_damping is not None:
-            w_mani_acc_damping = w_mani_acc_damping.reshape(-1)
-            assert w_mani_acc_damping.size == self._robot_data.mani_dof, f"Size of w_mani_acc_damping {w_mani_acc_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIKManiJointAccGain(w_mani_acc_damping)
-
-        if w_base_vel_damping is not None:
-            w_base_vel_damping = np.asarray(w_base_vel_damping).reshape(-1)
-            assert w_base_vel_damping.size == 3, f"Size of w_base_vel_damping {w_base_vel_damping.size} is not equal to 3"
-            super().setQPIKBaseVelGain(w_base_vel_damping)
-
-        if w_base_acc_damping is not None:
-            w_base_acc_damping = np.asarray(w_base_acc_damping).reshape(-1)
-            assert w_base_acc_damping.size == 3, f"Size of w_base_acc_damping {w_base_acc_damping.size} is not equal to 3"
-            super().setQPIKBaseAccGain(w_base_acc_damping)
-
-    def set_QPID_gain(self,
-                      link_w_tracking: dict[str, np.ndarray] | None = None,
-                      w_mani_vel_damping: np.ndarray | None = None,
-                      w_mani_acc_damping: np.ndarray | None = None,
-                      w_base_vel_damping: np.ndarray | None = None,
-                      w_base_acc_damping: np.ndarray | None = None,
-                      ):
-        """
-        Set the weight vector for the cost terms of the QPID.
-
-        Parameters:
-            link_w_tracking    : (dict[str, np.ndarray]) Weight for task acceleration tracking per links.
-            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-            w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
-            w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
-        """
         if link_w_tracking is not None:
-            for k,v in link_w_tracking.items():
-                link_w_tracking[k] = v.reshape(-1)
-                assert link_w_tracking[k].size == 6, f"Size of link_w_tracking {link_w_tracking[k].size} at link {k} is not equal to 6"
-            super().setQPIDTrackingGain(link_w_tracking)
+            super().setQPIKTrackingGain(_as_gain_map(link_w_tracking, "link_w_tracking"))
 
-        if w_mani_vel_damping is not None:
-            w_mani_vel_damping = w_mani_vel_damping.reshape(-1)
-            assert w_mani_vel_damping.size == self._robot_data.mani_dof, f"Size of w_mani_vel_damping {w_mani_vel_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIDManiJointVelGain(w_mani_vel_damping)
+        if w_tracking is not None:
+            super().setQPIKTrackingGain(_as_vector(w_tracking, "w_tracking", 6))
 
-        if w_mani_acc_damping is not None:
-            w_mani_acc_damping = w_mani_acc_damping.reshape(-1)
-            assert w_mani_acc_damping.size == self._robot_data.mani_dof, f"Size of w_mani_acc_damping {w_mani_acc_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIDManiJointAccGain(w_mani_acc_damping)
+        if w_vel_damping is not None:
+            super().setQPIKJointVelGain(_as_vector(w_vel_damping, "w_vel_damping", self._robot_data.actuated_dof))
 
-        if w_base_vel_damping is not None:
-            w_base_vel_damping = np.asarray(w_base_vel_damping).reshape(-1)
-            assert w_base_vel_damping.size == 3, f"Size of w_base_vel_damping {w_base_vel_damping.size} is not equal to 3"
-            super().setQPIDBaseVelGain(w_base_vel_damping)
-
-        if w_base_acc_damping is not None:
-            w_base_acc_damping = np.asarray(w_base_acc_damping).reshape(-1)
-            assert w_base_acc_damping.size == 3, f"Size of w_base_acc_damping {w_base_acc_damping.size} is not equal to 3"
-            super().setQPIDBaseAccGain(w_base_acc_damping)
+        if w_acc_damping is not None:
+            super().setQPIKJointAccGain(_as_vector(w_acc_damping, "w_acc_damping", self._robot_data.actuated_dof))
 
     def set_QPID_gain(self,
-                      w_tracking: np.ndarray | None = None, 
-                      w_mani_vel_damping: np.ndarray | None = None, 
-                      w_mani_acc_damping: np.ndarray | None = None, 
-                      w_base_vel_damping: np.ndarray | None = None, 
-                      w_base_acc_damping: np.ndarray | None = None, 
+                      *,
+                      w_tracking: np.ndarray | None = None,
+                      link_w_tracking: dict[str, np.ndarray] | None = None,
+                      w_vel_damping: np.ndarray | None = None,
+                      w_acc_damping: np.ndarray | None = None,
                       ):
         """
         Set the weight vector for the cost terms of the QPID.
 
-        Parameters:
-            w_tracking         : (np.ndarray) Weight for task acceleration tracking for every link.
-            w_mani_vel_damping : (np.ndarray) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-            w_mani_acc_damping : (np.ndarray) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-            w_base_vel_damping : (np.ndarray) Weight for mobile base velocity damping; size must be 3 ([vx, vy, wz]).
-            w_base_acc_damping : (np.ndarray) Weight for mobile base acceleration damping; size must be 3 ([vx, vy, wz]).
+            Parameters:
+            w_tracking          : (np.ndarray | None) Weight for task acceleration tracking for every link.
+            link_w_tracking     : (dict[str, np.ndarray] | None) Weight for task acceleration tracking per links.
+            w_vel_damping       : (np.ndarray | None) Weight for actuator velocity damping; its size must same as actuator_dof.
+            w_acc_damping       : (np.ndarray | None) Weight for actuator acceleration damping; its size must same as actuator_dof.
         """
+        if w_tracking is not None and link_w_tracking is not None:
+            raise ValueError("Only one of w_tracking or link_w_tracking can be set")
+
         if w_tracking is not None:
-            w_tracking = w_tracking.reshape(-1)
-            assert w_tracking.size == 6, f"Size of w_tracking {w_tracking.size} is not equal to 6"
-            super().setQPIDTrackingGain(w_tracking)
+            super().setQPIDTrackingGain(_as_vector(w_tracking, "w_tracking", 6))
 
-        if w_mani_vel_damping is not None:
-            w_mani_vel_damping = w_mani_vel_damping.reshape(-1)
-            assert w_mani_vel_damping.size == self._robot_data.mani_dof, f"Size of w_mani_vel_damping {w_mani_vel_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIDManiJointVelGain(w_mani_vel_damping)
+        if link_w_tracking is not None:
+            super().setQPIDTrackingGain(_as_gain_map(link_w_tracking, "link_w_tracking"))
 
-        if w_mani_acc_damping is not None:
-            w_mani_acc_damping = w_mani_acc_damping.reshape(-1)
-            assert w_mani_acc_damping.size == self._robot_data.mani_dof, f"Size of w_mani_acc_damping {w_mani_acc_damping.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            super().setQPIDManiJointAccGain(w_mani_acc_damping)
+        if w_vel_damping is not None:
+            super().setQPIDJointVelGain(_as_vector(w_vel_damping, "w_vel_damping", self._robot_data.actuated_dof))
 
-        if w_base_vel_damping is not None:
-            w_base_vel_damping = np.asarray(w_base_vel_damping).reshape(-1)
-            assert w_base_vel_damping.size == 3, f"Size of w_base_vel_damping {w_base_vel_damping.size} is not equal to 3"
-            super().setQPIDBaseVelGain(w_base_vel_damping)
+        if w_acc_damping is not None:
+            super().setQPIDJointAccGain(_as_vector(w_acc_damping, "w_acc_damping", self._robot_data.actuated_dof))
 
-        if w_base_acc_damping is not None:
-            w_base_acc_damping = np.asarray(w_base_acc_damping).reshape(-1)
-            assert w_base_acc_damping.size == 3, f"Size of w_base_acc_damping {w_base_acc_damping.size} is not equal to 3"
-            super().setQPIDBaseAccGain(w_base_acc_damping)
+    def set_HQPIK_gain(self,
+                       *,
+                       w_tracking: np.ndarray | None = None,
+                       link_w_tracking: dict[str, np.ndarray] | None = None,
+                       w_vel_damping: np.ndarray | None = None,
+                       w_acc_damping: np.ndarray | None = None,
+                       ):
+        """
+        Set the weight vector for the cost terms of the HQPIK.
 
-    # ================================ Joint space Functions ================================        
+        Parameters:
+            w_tracking      : (np.ndarray | None) Weight for task velocity tracking for every link.
+            link_w_tracking : (dict[str, np.ndarray] | None) Weight for task velocity tracking per links.
+            w_vel_damping   : (np.ndarray | None) Weight for actuator velocity damping; its size must same as actuator_dof.
+            w_acc_damping   : (np.ndarray | None) Weight for actuator acceleration damping; its size must same as actuator_dof.
+        """
+        if w_tracking is not None and link_w_tracking is not None:
+            raise ValueError("Only one of w_tracking or link_w_tracking can be set")
+        if w_tracking is not None:
+            super().setHQPIKTrackingGain(_as_vector(w_tracking, "w_tracking", 6))
+        if link_w_tracking is not None:
+            super().setHQPIKTrackingGain(_as_gain_map(link_w_tracking, "link_w_tracking"))
+        if w_vel_damping is not None:
+            super().setHQPIKJointVelGain(_as_vector(w_vel_damping, "w_vel_damping", self._robot_data.actuated_dof))
+        if w_acc_damping is not None:
+            super().setHQPIKJointAccGain(_as_vector(w_acc_damping, "w_acc_damping", self._robot_data.actuated_dof))
+
+    def set_HQPID_gain(self,
+                       *,
+                       w_tracking: np.ndarray | None = None,
+                       link_w_tracking: dict[str, np.ndarray] | None = None,
+                       w_vel_damping: np.ndarray | None = None,
+                       w_acc_damping: np.ndarray | None = None,
+                       ):
+        """
+        Set the weight vector for the cost terms of the HQPID.
+
+        Parameters:
+            w_tracking      : (np.ndarray | None) Weight for task acceleration tracking for every link.
+            link_w_tracking : (dict[str, np.ndarray] | None) Weight for task acceleration tracking per links.
+            w_vel_damping   : (np.ndarray | None) Weight for actuator velocity damping; its size must same as actuator_dof.
+            w_acc_damping   : (np.ndarray | None) Weight for actuator acceleration damping; its size must same as actuator_dof.
+        """
+        if w_tracking is not None and link_w_tracking is not None:
+            raise ValueError("Only one of w_tracking or link_w_tracking can be set")
+        if w_tracking is not None:
+            super().setHQPIDTrackingGain(_as_vector(w_tracking, "w_tracking", 6))
+        if link_w_tracking is not None:
+            super().setHQPIDTrackingGain(_as_gain_map(link_w_tracking, "link_w_tracking"))
+        if w_vel_damping is not None:
+            super().setHQPIDJointVelGain(_as_vector(w_vel_damping, "w_vel_damping", self._robot_data.actuated_dof))
+        if w_acc_damping is not None:
+            super().setHQPIDJointAccGain(_as_vector(w_acc_damping, "w_acc_damping", self._robot_data.actuated_dof))
+
+    # ================================ Joint space Functions ================================
 
     def move_manipulator_joint_position_cubic(self,
                                               q_mani_target: np.ndarray,
@@ -467,79 +457,68 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
              null_qdot: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
-        Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics, projecting null_qdot into null space to exploit redundancy if provided.
+        Computes mobile base and manipulator joint velocities to achieve desired velocity of a link using closed-loop inverse kinematics, projecting a single null space velocity input if provided.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xdot_desired.
-            null_qdot      : (np.ndarray) [Optional] Desired actuated joint velocity to be projected on null space.
+            null_qdot      : (np.ndarray | None) Desired null space velocity. Size may be mani_dof, mobi_dof, or actuator_dof.
+                             mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_qdot is None:
             return super().CLIK(link_task_data_cpp)
-        else:
-            null_qdot = null_qdot.reshape(-1)
-            assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().CLIK(link_task_data_cpp, null_qdot)
+        null_qdot = _as_vector_one_of(null_qdot, "null_qdot",
+                                      (self._robot_data.mani_dof, self._robot_data.mobi_dof, self._robot_data.actuated_dof))
+        return super().CLIK(link_task_data_cpp, null_qdot)
 
     def CLIK_step(self,
                   link_task_data: dict[str, TaskSpaceData],
                   null_qdot: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
-        Computes mobile base and manipulator joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics, projecting null_qdot into null space if provided.
+        Computes mobile base and manipulator joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link using closed-loop inverse kinematics, projecting a single null space velocity input if provided.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_qdot      : (np.ndarray) [Optional] Desired actuated joint velocity to be projected on null space.
+            null_qdot      : (np.ndarray | None) Desired null space velocity. Size may be mani_dof, mobi_dof, or actuator_dof.
+                             mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_qdot is None:
             return super().CLIKStep(link_task_data_cpp)
-        else:
-            null_qdot = null_qdot.reshape(-1)
-            assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().CLIKStep(link_task_data_cpp, null_qdot)
+        null_qdot = _as_vector_one_of(null_qdot, "null_qdot",
+                                      (self._robot_data.mani_dof, self._robot_data.mobi_dof, self._robot_data.actuated_dof))
+        return super().CLIKStep(link_task_data_cpp, null_qdot)
 
     def CLIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
-                   current_time: float,
                    duration: float,
                    null_qdot: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
-        Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK with null_qdot if provided.
+        Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base and manipulator joint velocities using CLIK with a single null space velocity input if provided.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
-            current_time : (float) Current time.
-            duration     : (float) Time duration.
-            null_qdot    : (np.ndarray) [Optional] Desired actuated joint velocity to be projected on null space.
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+            duration       : (float) Time duration.
+            null_qdot      : (np.ndarray | None) Desired null space velocity. Size may be mani_dof, mobi_dof, or actuator_dof.
+                             mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_qdot is None:
-            return super().CLIKCubic(link_task_data_cpp, current_time, 0.0, duration)
-        else:
-            null_qdot = null_qdot.reshape(-1)
-            assert null_qdot.size == self._robot_data.actuated_dof, f"Size of null_qdot {null_qdot.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().CLIKCubic(link_task_data_cpp, current_time, 0.0, duration, null_qdot)
+            return super().CLIKCubic(link_task_data_cpp, duration)
+        null_qdot = _as_vector_one_of(null_qdot, "null_qdot",
+                                      (self._robot_data.mani_dof, self._robot_data.mobi_dof, self._robot_data.actuated_dof))
+        return super().CLIKCubic(link_task_data_cpp, duration, null_qdot)
 
     def OSF(self,
             link_task_data: dict[str, TaskSpaceData],
@@ -550,21 +529,18 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            null_torque    : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
+            null_torque    : (np.ndarray | None) Desired null input. Size may be mani_dof, mobi_dof, or actuator_dof.
+                             mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_torque is None:
             return super().OSF(link_task_data_cpp)
-        else:
-            null_torque = null_torque.reshape(-1)
-            assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().OSF(link_task_data_cpp, null_torque)
+        null_torque = _as_vector_one_of(null_torque, "null_torque",
+                                        (self._robot_data.mani_dof, self._robot_data.mobi_dof, self._robot_data.actuated_dof))
+        return super().OSF(link_task_data_cpp, null_torque)
 
     def OSF_step(self,
                  link_task_data: dict[str, TaskSpaceData],
@@ -575,25 +551,21 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_torque    : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
+            null_torque    : (np.ndarray | None) Desired null input. Size may be mani_dof, mobi_dof, or actuator_dof.
+                             mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_torque is None:
             return super().OSFStep(link_task_data_cpp)
-        else:
-            null_torque = null_torque.reshape(-1)
-            assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().OSFStep(link_task_data_cpp, null_torque)
+        null_torque = _as_vector_one_of(null_torque, "null_torque",
+                                        (self._robot_data.mani_dof, self._robot_data.mobi_dof, self._robot_data.actuated_dof))
+        return super().OSFStep(link_task_data_cpp, null_torque)
 
     def OSF_cubic(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  current_time: float,
                   duration: float,
                   null_torque: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray, np.ndarray]:
@@ -601,176 +573,199 @@ class RobotController(drc_cpp.MobileManipulatorRobotController):
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using OSF with null_torque if provided.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
-            current_time : (float) Current time.
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration     : (float) Time duration.
-            null_torque  : (np.ndarray) [Optional] Desired actuated joint torque to be projected on null space.
+            null_torque  : (np.ndarray | None) Desired null input. Size may be mani_dof, mobi_dof, or actuator_dof.
+                           mani_dof applies to manipulator only, mobi_dof applies to mobile only, actuator_dof uses [mobile; manipulator].
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
+        link_task_data_cpp = _as_task_map(link_task_data)
         if null_torque is None:
-            return super().OSFCubic(link_task_data_cpp, current_time, 0.0, duration)
-        else:
-            null_torque = null_torque.reshape(-1)
-            assert null_torque.size == self._robot_data.actuated_dof, f"Size of null_torque {null_torque.size} is not equal to actuated_dof {self._robot_data.actuated_dof}"
-            return super().OSFCubic(link_task_data_cpp, current_time, 0.0, duration, null_torque)
+            return super().OSFCubic(link_task_data_cpp, duration)
+        null_torque = _as_vector_one_of(null_torque, "null_torque",
+                                        (self._robot_data.mani_dof, self._robot_data.mobi_dof, self._robot_data.actuated_dof))
+        return super().OSFCubic(link_task_data_cpp, duration, null_torque)
 
     def QPIK(self,
              link_task_data: dict[str, TaskSpaceData],
-             null_qdot: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Computes velocities for mobile base and manipulator joints to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xdot_desired.
-            null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
-                             Size must be mani_dof. If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_qdot is not None:
-            null_qdot = np.asarray(null_qdot).reshape(-1)
-            assert null_qdot.size == self._robot_data.mani_dof, f"Size of null_qdot {null_qdot.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIK(link_task_data_cpp, null_qdot)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPIK(link_task_data_cpp)
 
     def QPIK_step(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  null_qdot: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Computes velocities for mobile base and manipulator joints to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
-                             Size must be mani_dof. If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_qdot is not None:
-            null_qdot = np.asarray(null_qdot).reshape(-1)
-            assert null_qdot.size == self._robot_data.mani_dof, f"Size of null_qdot {null_qdot.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIKStep(link_task_data_cpp, null_qdot)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPIKStep(link_task_data_cpp)
 
     def QPIK_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
-                   current_time: float,
                    duration: float,
-                   null_qdot: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute velocities for mobile base and manipulator joints using QP to follow the resulting trajectory.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
-            current_time   : (float) Current time.
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration       : (float) Time duration.
-            null_qdot      : (np.ndarray | None) Desired manipulator joint velocity for null space tracking (w_mani_joint_vel weighted).
-                             Size must be mani_dof. If None, defaults to zero (no null space tracking).
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base velocities, output optimal manipulator joint velocities.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_qdot is not None:
-            null_qdot = np.asarray(null_qdot).reshape(-1)
-            assert null_qdot.size == self._robot_data.mani_dof, f"Size of null_qdot {null_qdot.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIKCubic(link_task_data_cpp, current_time, 0.0, duration, null_qdot)
-        return super().QPIKCubic(link_task_data_cpp, current_time, 0.0, duration)
+        link_task_data_cpp = _as_task_map(link_task_data)
+        return super().QPIKCubic(link_task_data_cpp, duration)
 
     def QPID(self,
              link_task_data: dict[str, TaskSpaceData],
-             null_torque: np.ndarray | None = None,
              ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include xddot_desired.
-            null_torque    : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_torque is not None:
-            null_torque = np.asarray(null_torque).reshape(-1)
-            assert null_torque.size == self._robot_data.mani_dof, f"Size of null_torque {null_torque.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPID(link_task_data_cpp, null_torque)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPID(link_task_data_cpp)
 
     def QPID_step(self,
                   link_task_data: dict[str, TaskSpaceData],
-                  null_torque: np.ndarray | None = None,
                   ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Computes mobile base accelerations and manipulator joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse dynamics QP.
 
         Parameters:
             link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_desired, xdot_desired).
-            null_torque    : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_torque is not None:
-            null_torque = np.asarray(null_torque).reshape(-1)
-            assert null_torque.size == self._robot_data.mani_dof, f"Size of null_torque {null_torque.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIDStep(link_task_data_cpp, null_torque)
+        link_task_data_cpp = _as_task_map(link_task_data)
         return super().QPIDStep(link_task_data_cpp)
 
     def QPID_cubic(self,
                    link_task_data: dict[str, TaskSpaceData],
-                   current_time: float,
                    duration: float,
-                   null_torque: np.ndarray | None = None,
                    ) -> tuple[bool, np.ndarray, np.ndarray]:
         """
         Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute mobile base accelerations and manipulator joint torques using QP to follow the resulting trajectory.
 
         Parameters:
-            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired). Each entry's control_start_time is used as the segment start time.
-            current_time : (float) Current time.
+            link_task_data : (dict[str, TaskSpaceData]) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
             duration     : (float) Time duration.
-            null_torque  : (np.ndarray | None) Desired manipulator null space torque (OSF convention: without gravity); size must equal mani_dof. If None, uses zero.
 
         Returns:
             (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
         """
-        link_task_data_cpp = {}
-        for k, v in link_task_data.items():
-            if hasattr(v, "cpp"):
-                link_task_data_cpp[k] = v.cpp()
-        if null_torque is not None:
-            null_torque = np.asarray(null_torque).reshape(-1)
-            assert null_torque.size == self._robot_data.mani_dof, f"Size of null_torque {null_torque.size} is not equal to mani_dof {self._robot_data.mani_dof}"
-            return super().QPIDCubic(link_task_data_cpp, current_time, 0.0, duration, null_torque)
-        return super().QPIDCubic(link_task_data_cpp, current_time, 0.0, duration)
+        link_task_data_cpp = _as_task_map(link_task_data)
+        return super().QPIDCubic(link_task_data_cpp, duration)
+
+    def HQPIK(self,
+              task_hierarchy: list[dict[str, TaskSpaceData]],
+              ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Computes velocities for mobile base and manipulator joints to achieve desired velocity (xdot_desired) of a link hierarchy by solving hierarchical inverse kinematics QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include xdot_desired.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile wheel velocities, output optimal manipulator joint velocities.
+        """
+        return super().HQPIK(_as_task_hierarchy(task_hierarchy))
+
+    def HQPIK_step(self,
+                   task_hierarchy: list[dict[str, TaskSpaceData]],
+                   ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Computes velocities for mobile base and manipulator joints to achieve desired position (x_desired) & velocity (xdot_desired) of a link hierarchy by solving hierarchical inverse kinematics QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include (x_desired, xdot_desired).
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile wheel velocities, output optimal manipulator joint velocities.
+        """
+        return super().HQPIKStep(_as_task_hierarchy(task_hierarchy))
+
+    def HQPIK_cubic(self,
+                    task_hierarchy: list[dict[str, TaskSpaceData]],
+                    duration: float,
+                    ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Perform cubic interpolation then compute velocities for mobile base and manipulator joints using hierarchical QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+            duration       : (float) Time duration.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile wheel velocities, output optimal manipulator joint velocities.
+        """
+        return super().HQPIKCubic(_as_task_hierarchy(task_hierarchy), duration)
+
+    def HQPID(self,
+              task_hierarchy: list[dict[str, TaskSpaceData]],
+              ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Computes mobile base accelerations and manipulator joint torques to achieve desired acceleration (xddot_desired) of a link hierarchy by solving hierarchical inverse dynamics QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include xddot_desired.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile wheel accelerations, output optimal manipulator joint torques.
+        """
+        return super().HQPID(_as_task_hierarchy(task_hierarchy))
+
+    def HQPID_step(self,
+                   task_hierarchy: list[dict[str, TaskSpaceData]],
+                   ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Computes mobile base accelerations and manipulator joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link hierarchy by solving hierarchical inverse dynamics QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include (x_desired, xdot_desired).
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
+        """
+        return super().HQPIDStep(_as_task_hierarchy(task_hierarchy))
+
+    def HQPID_cubic(self,
+                    task_hierarchy: list[dict[str, TaskSpaceData]],
+                    duration: float,
+                    ) -> tuple[bool, np.ndarray, np.ndarray]:
+        """
+        Perform cubic interpolation then compute mobile base accelerations and manipulator joint torques using hierarchical QP.
+
+        Parameters:
+            task_hierarchy : (list[dict[str, TaskSpaceData]]) Priority-ordered task hierarchy; each level must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+            duration       : (float) Time duration.
+
+        Returns:
+            (tuple[bool, np.ndarray, np.ndarray]) Success flag, output optimal mobile base accelerations, output optimal manipulator joint torques.
+        """
+        return super().HQPIDCubic(_as_task_hierarchy(task_hierarchy), duration)

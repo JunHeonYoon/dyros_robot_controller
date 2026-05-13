@@ -54,75 +54,42 @@ namespace drc
                 void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
 
                 /**
-                 * @brief Set manipulator joint velocity damping weights only.
-                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
+                 * @brief Set actuator-space velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for actuator velocity damping; its size must same as actuator_dof.
                  */
-                void setManiJointVelWeight(const Eigen::Ref<const VectorXd>& w_mani_vel_damping) { w_mani_vel_damping_ = w_mani_vel_damping; }
+                void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_vel_damping) { w_vel_damping_ = w_vel_damping; }
 
                 /**
-                 * @brief Set manipulator joint acceleration damping weights only.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
+                 * @brief Set actuator-space acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping; its size must same as actuator_dof.
                  */
-                void setManiJointAccWeight(const Eigen::Ref<const VectorXd>& w_mani_acc_damping) { w_mani_acc_damping_ = w_mani_acc_damping; }
-                /**
-                 * @brief Set the scalar scale for the manipulator null torque tracking cost (Method 3: M-weighted qddot cost).
-                 *        The cost term added is: w_mani_null_torque * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2
-                 *        which is equivalent to OSF's null space projection for the manipulator when w_mani_null_torque > 0.
-                 * @param w_mani_null_torque (double) Scale factor for null torque cost; set 0 to disable (default).
-                 */
-                void setNullTorqueWeight(const double w_mani_null_torque) { w_mani_null_torque_ = w_mani_null_torque; }
-                /**
-                 * @brief Set the desired manipulator null space torque.
-                 *        Equivalent to OSF's null_torque argument (without gravity; gravity is handled separately by the dynamics constraint).
-                 * @param null_torque (Eigen::VectorXd) Desired manipulator joint torque to track in the null space; its size must same as mani_dof.
-                 */
-                void setNullTorque(const Eigen::Ref<const VectorXd>& null_torque) { mani_null_torque_ = null_torque; }
-
-                /**
-                 * @brief Set mobile base velocity damping weights only.
-                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
-                 */
-                void setBaseVelWeight(const Eigen::Vector3d& w_base_vel_damping) { w_base_vel_damping_ = w_base_vel_damping; }
-
-                /**
-                 * @brief Set mobile base acceleration damping weights only.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
-                 */
-                void setBaseAccWeight(const Eigen::Vector3d& w_base_acc_damping) { w_base_acc_damping_ = w_base_acc_damping; }
-
+                void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
                 /**
                  * @brief Set the weight vectors for the cost terms.
                  * @param w_tracking (Vector6d) Weight for task space acceleration tracking for all the links in the URDF.
-                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for actuator velocity damping; its size must same as actuator_dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping; its size must same as actuator_dof.
                  */
                 void setWeight(const Vector6d w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
-                               const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                               const Eigen::Vector3d& w_base_vel_damping,
-                               const Eigen::Vector3d& w_base_acc_damping);
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
+                               const Eigen::Ref<const VectorXd>& w_acc_damping);
                 
                 /**
                  * @brief Set the weight vectors for the cost terms.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space acceleration tracking per links.
-                 * @param w_mani_vel_damping (Eigen::VectorXd) Weight for manipulator joint velocity damping; its size must same as mani_dof.
-                 * @param w_mani_acc_damping (Eigen::VectorXd) Weight for manipulator joint acceleration damping; its size must same as mani_dof.
-                 * @param w_base_vel_damping (Eigen::Vector3d) Weight for mobile base velocity damping.
-                 * @param w_base_acc_damping (Eigen::Vector3d) Weight for mobile base acceleration damping.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for actuator velocity damping; its size must same as actuator_dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for actuator acceleration damping; its size must same as actuator_dof.
                  */
                 void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_mani_vel_damping, 
-                               const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                               const Eigen::Vector3d& w_base_vel_damping,
-                               const Eigen::Vector3d& w_base_acc_damping);
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
+                               const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
                  * @brief Set the desired task space acceleration for each link.
                  * @param link_xddot_desired (std::map<std::string, Vector6d>) Desired task space acceleration (6D twist) per links.
                  */
                 void setDesiredTaskAcc(const std::map<std::string, Vector6d> &link_xddot_desired);
+
                 /**
                  * @brief Get the optimal joint acceleration and torque by solving QP.
                  * @param opt_etadot   (Eigen::VectorXd) Optimal joint acceleration.
@@ -202,12 +169,8 @@ namespace drc
                 
                 std::map<std::string, Vector6d> link_xddot_desired_; // Desired task acceleration per links
                 std::map<std::string, Vector6d> link_w_tracking_; // weight for task acceleration tracking per links; || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||
-                VectorXd w_mani_vel_damping_;                     // weight for manipulator velocity damping;                     || eta_dot*dt + eta ||
-                VectorXd w_mani_acc_damping_;                     // weight for manipulator acceleration damping;                 || eta_ddot ||
-                Vector3d w_base_vel_damping_;                     // weight for mobile base velocity damping;                     || eta_dot*dt + eta ||
-                Vector3d w_base_acc_damping_;                     // weight for mobile base acceleration damping;                 || eta_ddot ||
-                VectorXd mani_null_torque_;                       // desired manipulator null space torque (OSF convention: without gravity)
-                double   w_mani_null_torque_;                     // scale for manipulator null torque cost; w_null * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2
+                VectorXd w_vel_damping_;                          // weight for actuator velocity damping;            || eta_dot*dt + eta ||
+                VectorXd w_acc_damping_;                          // weight for actuator acceleration damping;        || eta_dot ||
 
                 // self-collision CBF gradient exponential filter
                 // smooths discontinuous jumps when the closest collision pair changes
@@ -220,66 +183,91 @@ namespace drc
                  * @brief Set the cost function which minimizes task space acceleration error.
                  *        Use slack variables (s) to increase feasibility of QP.
                  *
-                 *         min       || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||_Wi^2 + || q_ddot ||_W2^2 + || q_ddot*dt + eta ||_W3^2 + w_null * || qddot_mani - M_mani^{-1}*null_torque ||_{M_mani}^2 + 1000*s
-                 *  [eta_dot, torque, s]
+                 *   ```
+                 *         min      Σ_i || x_i_ddot_des - J_i_tilda*eta_dot - J_i_tilda_dot*eta ||_W1_i^2
+                 *   [eta_dot,tau,s]  + || eta_dot ||_W2^2
+                 *                    + || dt*eta_dot + eta ||_W3^2
+                 *                    + 1000*s
                  *
-                 * =>      min         1/2 * [ eta_dot ].T * [ 2*J_i_tilda.T*Wi_i*J + 2*W2 + 2*dt*dt*W3 + 2*w_null*M_mani (mani block)  0  0 ] * [ eta_dot  ] + [ -2*J_i_tilda.T*Wi*(x_i_ddot_des - J_i_tilda_dot*eta) + 2*dt*eta - 2*w_null*null_torque (mani block) ].T * [ eta_dot  ]
-                 *  [eta_dot, torque, s]     [  torque ]     [                                         0                                  0  0 ]   [ torque ]     [                                           0                                                         ]     [   torque ]
-                 *                           [    s    ]     [                                         0                                  0  0 ]   [   s    ]     [                                          1000                                                        ]     [    s     ]
+                 *   =>    min        1/2 [ eta_dot ]^T * [ 2*Σ(J_i_tilda.T*W1_i*J_i_tilda) + damping   0   0 ] * [ eta_dot ]
+                 *   [eta_dot,tau,s]      [   tau   ]     [                  0                           0   0 ]   [   tau   ]
+                 *                        [    s    ]     [                  0                           0   0 ]   [    s    ]
+                 *
+                 *                      + [ -2*Σ(J_i_tilda.T*W1_i*(x_i_ddot_des - J_i_tilda_dot*eta)) + damping ].T * [ eta_dot ]
+                 *                        [                                  0                                     ]     [   tau   ]
+                 *                        [                                 1000                                   ]     [    s    ]
+                 *   ```
                  */
                 void setCost() override;
                 /**
                  * @brief Set the bound constraint to keep all slack variables non-negative.
-                 * 
-                 *      subject to [ -inf ] <= [ eta_dot ] <= [ inf ]
-                 *                 [ -inf ]    [  torque ]    [ inf ]
-                 *                 [   0  ]    [    s    ]    [ inf ]
+                 *
+                 *   ```
+                 *   subject to [ -inf ] <= [ eta_dot ] <= [ inf ]
+                 *              [ -inf ]    [  torque ]    [ inf ]
+                 *              [   0  ]    [    s    ]    [ inf ]
+                 *   ```
                  */
                 void setBoundConstraint() override;
                 /**
                  * @brief Set the inequality constraints which limit manipulator joint angles and velocities, avoid singularity and self collision by 1st or 2nd-order CBF.
-                 * 
+                 *
                  * 1st-order CBF condition with slack: hdot(x) >= -a*h(x) - s
-                 * 2nd-order CBF condition with slack: hddot(x) >= -2*a*hdot(x) -a*a*h(x) - s
-                 * 
-                 *  1. (2nd-order CBF)
-                 *     Manipulator joint angle limit: h_p_min(q_mani) = q_mani - q_mani_min >= 0  -> hdot_p_min(q_mani) = qdot_mani   -> hddot_p_min(q_mani) = qddot_mani
-                 *                                    h_p_max(q_mani) = q_mani_max - q_mani >= 0  -> hdot_p_max(q_mani) = -qdot_mani  -> hddot_p_max(q_mani) = -qddot_mani
-                 *     
-                 *     => subject to [  I_mani  0  I ] * [ eta_dot ] >= [ -2*a*qdot_mani -a*a*(q_mani - q_mani_min) ]
-                 *                   [ -I_mani  0  I ]   [  torque ]    [  2*a*qdot_mani -a*a*(q_mani_max - q_mani) ]
-                 *                                       [    s    ]
-                 * 
-                 *  2.(1st-order CBF)
-                 *     Manipulator joint velocity limit: h_v_min(qdot_mani) = qdot_mani - qdot_mani_min >= 0  -> hdot_v_min(qdot_mani) = qddot_mani 
-                 *                                       h_v_max(qdot_mani) = qdot_mani_max - qdot_mani >= 0  -> hdot_v_max(qdot_mani) = -qddot_mani
-                 *     
-                 *     => subject to [  I_mani  0  I ] * [ eta_dot ] >= [ -a*(qdot_mani - qdot_mani_min) ]
-                 *                   [ -I_mani  0  I ]   [  torque ]    [ -a*(qdot_mani_max - qdot_mani) ]
-                 *                                       [    s    ]
-                 * 
-                 *  3. (2nd-order CBF)
-                 *     Singluarity avoidance: h_sing(q_mani) = manipulability(q_mani) - eps_sing_min >= 0 -> hdot_sing = ∇_(q_mani) manipulability.T * qdot_mani  -> hddot_sing = (∇_(q_mani) manipulability.T)dot * qdot_mani +  ∇_(q) manipulability.T * qddot_mani
-                 * 
-                 *     => subject to [ ∇_(q_mani) manipulability.T  0  I ] * [ eta_dot ] >= [ -(∇_(q_mani) manipulability.T)dot*qdot_mani - 2*a*∇_(q_mani) manipulability.T * qdot_mani -a*a*(manipulability - eps_sing_min) ]
-                 *                                                           [  torque ]
-                 *                                                           [    s    ]
-                 *  4. (2nd-order CBF)
-                 *      Self collision avoidance: h_selcol(q_mani) = self_dist(q_mani) - eps_selcol_min >= 0 -> hdot_selcol = ∇_(q_mani) self_dist^T * qdot_mani  -> hddot_selcol = (∇_(q_mani) self_dist.T)dot * qdot_mani +  ∇_(q) self_dist.T * qddot_mani
-                 *      
-                 *     => subject to [ ∇_(q_mani) self_dist.T  0  I ] * [ eta_dot ] >= [ -(∇_(q_mani) self_dist.T)dot*qdot_mani - 2*a*∇_(q_mani) self_dist.T * qdot_mani -a*a*(self_dist - eps_selcol_min) ]
-                 *                                                      [  torque ]
-                 *                                                      [    s    ]
+                 * 2nd-order CBF condition with slack: hddot(x) >= -2*a*hdot(x) - a^2*h(x) - s
+                 *
+                 *  1. (2nd-order CBF) Manipulator joint angle limit:
+                 *     h_p_min(q_mani) = q_mani - q_mani_min >= 0  ->  hdot_p_min = qdot_mani   ->  hddot_p_min = qddot_mani
+                 *     h_p_max(q_mani) = q_mani_max - q_mani >= 0  ->  hdot_p_max = -qdot_mani  ->  hddot_p_max = -qddot_mani
+                 *
+                 *   ```
+                 *   => subject to [  I_mani  0  I ] * [ eta_dot ] >= [ -2*a*qdot_mani - a^2*(q_mani - q_mani_min) ]
+                 *                 [ -I_mani  0  I ]   [  torque ]    [  2*a*qdot_mani - a^2*(q_mani_max - q_mani) ]
+                 *                                 [    s    ]
+                 *   ```
+                 *
+                 *  2. (1st-order CBF) Manipulator joint velocity limit:
+                 *     h_v_min(qdot_mani) = qdot_mani - qdot_mani_min >= 0  ->  hdot_v_min = qddot_mani
+                 *     h_v_max(qdot_mani) = qdot_mani_max - qdot_mani >= 0  ->  hdot_v_max = -qddot_mani
+                 *
+                 *   ```
+                 *   => subject to [  I_mani  0  I ] * [ eta_dot ] >= [ -a*(qdot_mani - qdot_mani_min) ]
+                 *                 [ -I_mani  0  I ]   [  torque ]    [ -a*(qdot_mani_max - qdot_mani) ]
+                 *                                 [    s    ]
+                 *   ```
+                 *
+                 *  3. (2nd-order CBF) Singularity avoidance:
+                 *     h_sing(q_mani) = manipulability(q_mani) - eps_sing_min >= 0
+                 *     hdot_sing = ∇_(q_mani) manipulability.T * qdot_mani
+                 *     hddot_sing = (∇_(q_mani) manipulability.T)dot * qdot_mani + ∇_(q_mani) manipulability.T * qddot_mani
+                 *
+                 *   ```
+                 *   => subject to [ ∇_(q_mani) manipulability.T  0  I ] * [ eta_dot ] >= [ -(∇_(q_mani) manipulability.T)dot*qdot_mani - 2*a*∇_(q_mani) manipulability.T*qdot_mani - a^2*(manipulability - eps_sing_min) ]
+                 *                                                         [  torque ]
+                 *                                                         [    s    ]
+                 *   ```
+                 *
+                 *  4. (2nd-order CBF) Self collision avoidance (active only when a valid distance gradient is available):
+                 *     h_selcol(q_mani) = self_dist(q_mani) - eps_selcol_min >= 0
+                 *     hdot_selcol = ∇_(q_mani) self_dist^T * qdot_mani
+                 *     hddot_selcol = (∇_(q_mani) self_dist.T)dot * qdot_mani + ∇_(q_mani) self_dist.T * qddot_mani
+                 *
+                 *   ```
+                 *   => subject to [ ∇_(q_mani) self_dist.T  0  I ] * [ eta_dot ] >= [ -(∇_(q_mani) self_dist.T)dot*qdot_mani - 2*a*∇_(q_mani) self_dist.T*qdot_mani - a^2*(self_dist - eps_selcol_min) ]
+                 *                                                    [  torque ]
+                 *                                                    [    s    ]
+                 *   ```
                  */
                 void setIneqConstraint() override;
                 /**
-                 * @brief Set the equality constraints which forces joint accelerations and torques to match the equations of motion.
-                 * 
-                 * subject to M_tilda * eta_dot + g_tilda = torque
+                 * @brief Set the equality constraint which forces actuator accelerations and torques to match the equations of motion.
                  *
-                 * => subject to [ M_tilda -I 0 ][ eta_dot ] = [ -g_tilda ]
-                 *                               [ torque  ]
-                 *                               [    s    ]
+                 *   ```
+                 *   subject to M_tilda * eta_dot + g_tilda = torque
+                 *
+                 *   => subject to [ M_tilda  -I  0 ] * [ eta_dot ] = [ -g_tilda ]
+                 *                                      [  torque ]
+                 *                                      [    s    ]
+                 *   ```
                  */
                 void setEqConstraint() override;
         };

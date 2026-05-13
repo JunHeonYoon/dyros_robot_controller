@@ -52,10 +52,11 @@ namespace drc
                  */
                 void setTrackingWeight(const std::map<std::string, Vector6d> link_w_tracking) { link_w_tracking_ = link_w_tracking; }
                 /**
-                 * @brief Set joint velocity tracking weights only.
-                 * @param w_joint_vel (Eigen::VectorXd) Weight for joint velocity tracking toward qdot_desired; its size must same as dof.
+                 * @brief Set joint velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  */
-                void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_joint_vel) { w_joint_vel_ = w_joint_vel; }
+                void setJointVelWeight(const Eigen::Ref<const VectorXd>& w_vel_damping) { w_vel_damping_ = w_vel_damping; }
+
                 /**
                  * @brief Set joint acceleration damping weights only.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping toward qdot_now; its size must same as dof.
@@ -63,28 +64,22 @@ namespace drc
                 void setJointAccWeight(const Eigen::Ref<const VectorXd>& w_acc_damping) { w_acc_damping_ = w_acc_damping; }
 
                 /**
-                 * @brief Set the desired joint velocity for null space tracking.
-                 *        When set, the joint velocity cost becomes ||q_dot - qdot_desired||_W^2 instead of ||q_dot||_W^2.
-                 * @param qdot_desired (Eigen::VectorXd) Desired joint velocity; its size must same as dof.
-                 */
-                void setDesiredJointVel(const Eigen::Ref<const VectorXd>& qdot_desired) { qdot_desired_ = qdot_desired; }
-                /**
                  * @brief Set the weight vector for the cost terms.
                  * @param w_tracking (Eigen::Vector6d) Weight for task space velocity tracking for all the links in the URDF.
-                 * @param w_joint_vel (Eigen::VectorXd) Weight for joint velocity tracking toward qdot_desired; its size must same as dof.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping toward qdot_now; its size must same as dof.
                  */
                 void setWeight(const Vector6d w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_joint_vel,
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
                                const Eigen::Ref<const VectorXd>& w_acc_damping);
                 /**
                  * @brief Set the weight vector for the cost terms.
                  * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task space velocity tracking per links.
-                 * @param w_joint_vel (Eigen::VectorXd) Weight for joint velocity tracking toward qdot_desired; its size must same as dof.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping toward qdot_now; its size must same as dof.
                  */
                 void setWeight(const std::map<std::string, Vector6d> link_w_tracking,
-                               const Eigen::Ref<const VectorXd>& w_joint_vel,
+                               const Eigen::Ref<const VectorXd>& w_vel_damping,
                                const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 /**
@@ -137,8 +132,7 @@ namespace drc
 
                 std::map<std::string, Vector6d> link_xdot_desired_; // Desired task velocity per links
                 std::map<std::string, Vector6d> link_w_tracking_;   // weight for task velocity tracking per links; ||x_i_dot_des - J_i*q_dot||
-                VectorXd qdot_desired_;                             // desired joint velocity for null space tracking (default: zero)
-                VectorXd w_joint_vel_;                              // weight for joint velocity tracking;          || q_dot - qdot_desired ||
+                VectorXd w_vel_damping_;                            // weight for joint velocity damping;           || q_dot ||
                 VectorXd w_acc_damping_;                            // weight for joint acceleration damping;       || (q_dot - q_dot_now) / dt ||
 
                 // self-collision CBF gradient exponential filter
@@ -151,42 +145,61 @@ namespace drc
                 /**
                  * @brief Set the cost function which minimizes task space velocity error.
                  *        Use slack variables (s) to increase feasibility of QP.
-                 * 
-                 *       min      || x_i_dot_des - J_i*q_dot ||_W1^2 + || q_dot - qdot_des ||_W2^2 + || (q_dot - q_dot_now) / dt ||_W3^2 + 1000*s
-                 *     [qdot,s]
                  *
-                 * =>    min     1/2 [ qdot ]^T * [ 2*J_i.T*W1*J_i + 2*W2 + 2/dt^2*W3     0 ] * [ qdot ] + [ -2*J_i.T*W1*x_i_dot_des - 2*W2*qdot_des - 2/dt^2*W3*q_dot_now ].T * [ qdot ]
-                 *     [qdot,s]      [   s  ]     [                   0                     0 ]   [   s  ]   [                                1000                              ]     [  s   ]
+                 *   ```
+                 *      min      Σ_i || x_i_dot_des - J_i*q_dot ||_W1_i^2
+                 *    [qdot,s]     + || q_dot ||_W2^2
+                 *                 + || (q_dot - q_dot_now) / dt ||_W3^2
+                 *                 + 1000*s
+                 *
+                 *   =>    min     1/2 [ qdot ]^T * [ 2*Σ(J_i.T*W1_i*J_i) + 2*W2 + 2/dt^2*W3   0 ] * [ qdot ]
+                 *       [qdot,s]      [   s  ]     [                 0                         0 ]   [   s  ]
+                 *
+                 *                   + [ -2*Σ(J_i.T*W1_i*x_i_dot_des) - 2/dt^2*W3*q_dot_now ].T * [ qdot ]
+                 *                     [                            1000                        ]     [  s   ]
+                 *   ```
                  */
                 void setCost() override;
                 /**
                  * @brief Set the bound constraint which limits manipulator joint velocities and keeps all slack variables non-negative.
-                 * 
-                 *     subject to [ qdot_min ] <= [ qdot ] <= [ qdot_max ]
-                 *                [    0     ]    [   s  ]    [   inf    ]
+                 *
+                 *   ```
+                 *   subject to [ qdot_min ] <= [ qdot ] <= [ qdot_max ]
+                 *              [    0     ]    [   s  ]    [   inf    ]
+                 *   ```
                  */
                 void setBoundConstraint() override;
                 /**
-                 * @brief Set the inequality constraints which manipulator limit joint angles and avoid singularity and self collision by 1st-order CBF.
-                 * 
+                 * @brief Set the inequality constraints which limit joint angles and avoid singularity and self collision by 1st-order CBF.
+                 *
                  * 1st-order CBF condition with slack: hdot(x) >= -a*h(x) - s
-                 * 
-                 *  1.
-                 *     Manipulator joint angle limit: h_min(q) = q - q_min >= 0  -> hdot_min(q) = qdot
-                 *                                    h_max(q) = q_max - q >= 0  -> hdot_max(q) = -qdot
-                 *     
-                 *     => subject to [  I  I ] * [ qdot ] >= [ -a*(q - q_min) ]
-                 *                   [ -I  I ]   [  s   ]    [ -a*(q_max - q) ]
-                 *  2.
-                 *     Singluarity avoidance: h_sing(q) = manipulability(q) - eps_sing_min >= 0 -> hdot_sing = ∇_(q) manipulability.T * qdot
-                 * 
-                 *     => subject to [ ∇_(q) manipulability.T  I ] * [ qdot ] >= [ -a*(manipulability - eps_sing_min) ]
-                 *                                                   [  s   ]
-                 *  3. 
-                 *      Self collision avoidance: h_selcol(q) = self_dist(q) - eps_selcol_min >= 0 -> hdot_selcol = ∇_q self_dist^T * qdot
-                 *      
-                 *     => subject to [ ∇_(q) self_dist.T  I ] * [ qdot ] >= [ -a*(self_dist - eps_selcol_min) ]
-                 *                                              [  s   ]
+                 *
+                 *  1. Manipulator joint angle limit:
+                 *     h_min(q) = q - q_min >= 0  ->  hdot_min(q) = qdot
+                 *     h_max(q) = q_max - q >= 0  ->  hdot_max(q) = -qdot
+                 *
+                 *   ```
+                 *   => subject to [  I  I ] * [ qdot ] >= [ -a*(q - q_min) ]
+                 *                 [ -I  I ]   [  s   ]    [ -a*(q_max - q) ]
+                 *   ```
+                 *
+                 *  2. Singularity avoidance:
+                 *     h_sing(q) = manipulability(q) - eps_sing_min >= 0
+                 *     hdot_sing = ∇_(q) manipulability.T * qdot
+                 *
+                 *   ```
+                 *   => subject to [ ∇_(q) manipulability.T  I ] * [ qdot ] >= [ -a*(manipulability - eps_sing_min) ]
+                 *                                                  [  s   ]
+                 *   ```
+                 *
+                 *  3. Self collision avoidance (active only when a valid distance gradient is available):
+                 *     h_selcol(q) = self_dist(q) - eps_selcol_min >= 0
+                 *     hdot_selcol = ∇_q self_dist^T * qdot
+                 *
+                 *   ```
+                 *   => subject to [ ∇_(q) self_dist.T  I ] * [ qdot ] >= [ -a*(self_dist - eps_selcol_min) ]
+                 *                                            [  s   ]
+                 *   ```
                  */
                 void setIneqConstraint() override;
                 /**

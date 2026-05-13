@@ -19,11 +19,12 @@ from typing import Tuple
 import numpy as np
 from drc import KinematicParam, JointIndex, ActuatorIndex
 import dyros_robot_controller_cpp_wrapper as drc_cpp
+from ._proxy import _ManiDataProxy, _MobiDataProxy
 
 
 class RobotData(drc_cpp.MobileManipulatorRobotData):
     """
-    A Python wrapper for the C++ RobotData::MobileManipulator::MobileManipulatorBase class.
+    Abstract base class for mobile manipulator robot data.
     
     This class combines the functionality of a mobile base and a manipulator base.
     It provides methods for updating the state, computing kinematics and dynamics,
@@ -45,11 +46,11 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
 
         Parameters:
             dt            : (float) Control loop time step in seconds.
-            mobile_param  : (KinematicParam) Kinematic parameter instance containing drive type and geometry.
+            mobile_param  : (KinematicParam) Kinematic parameter structure of the mobile base containing drive type and geometry.
             joint_idx     : (JointIndex) Joint index structure containing starting indices for virtual, manipulator, and mobile joints.
             actuator_idx  : (ActuatorIndex) Actuator index structure containing starting indices for manipulator and mobile actuators.
-            urdf_path     : (str) Path to the URDF file.
-            srdf_path     : (str) Path to the SRDF file.
+            urdf_path     : (str) URDF file path or URDF XML string when use_xml is True.
+            srdf_path     : (str) SRDF file path or SRDF XML string when use_xml is True.
             packages_path : (str) Path to the packages directory.
             use_xml       : (bool) If True, treat urdf_path/srdf_path as XML strings.
         """
@@ -70,7 +71,26 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         self.mobi_dof     = int(super().getMobileDof())
         self.virtual_dof  = 3
         self.actuated_dof = int(super().getActuatorDof())
-        
+
+        # Backing stores for sub-object proxies
+        self._mani_proxy = _ManiDataProxy(super().mani, self)
+        self._mobi_proxy = _MobiDataProxy(super().mobi, self)
+
+    @property
+    def moma(self):
+        """Return self as the mobile manipulator sub-object."""
+        return self
+
+    @property
+    def mani(self):
+        """Return the manipulator sub-object proxy."""
+        return self._mani_proxy
+
+    @property
+    def mobi(self):
+        """Return the mobile base sub-object proxy."""
+        return self._mobi_proxy
+
     def get_verbose(self) -> str:
         """
         Print current mobile manipulator state and parameters in formatted text.
@@ -794,7 +814,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get lower and upper joint position limits of the manipulator.
         
-        return:
+        Return:
             (Tuple[np.ndarray, np.ndarray]) Joint position limits (lower, upper) of the manipulator.
         """
         return super().getJointPositionLimit()
@@ -803,7 +823,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get lower and upper joint velocity limits of the manipulator.
         
-        return:
+        Return:
             (Tuple[np.ndarray, np.ndarray]) Joint velocity limits (lower, upper) of the manipulator.
         """
         return super().getJointVelocityLimit()
@@ -812,7 +832,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the wheel positions.
         
-        return:
+        Return:
             (np.ndarray) Wheel positions.
         """
         return super().getMobileJointPosition()
@@ -821,7 +841,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the mobile base pose w.r.t world.
         
-        return:
+        Return:
             (np.ndarray) Mobile base pose w.r.t world[x, y, yaw].
         """
         return super().getVirtualJointPosition()
@@ -830,7 +850,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the joint positions of the manipulator.
         
-        return:
+        Return:
             (np.ndarray) Joint positions of the manipulator.
         """
         return super().getManiJointPosition()
@@ -839,7 +859,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the joint velocities of the actuated joints.
         
-        return:
+        Return:
             (np.ndarray) Joint velocities of the actuated joints.
         """
         return super().getJointVelocityActuated()
@@ -848,7 +868,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the wheel velocities of the mobile base.
         
-        return:
+        Return:
             (np.ndarray) Wheel velocities of the mobile base.
         """
         return super().getMobileJointVelocity()
@@ -857,7 +877,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the mobile base velocity w.r.t world.
         
-        return:
+        Return:
             (np.ndarray) Mobile base velocity w.r.t world[vx, vy, wz].
         """
         return super().getVirtualJointVelocity()
@@ -866,7 +886,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the joint velocities of the manipulator.
         
-        return:
+        Return:
             (np.ndarray) Joint velocities of the manipulator.
         """
         return super().getManiJointVelocity()
@@ -875,7 +895,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the joint positions of the actuated joints.
         
-        return:
+        Return:
             (np.ndarray) Joint positions of the actuated joints.
         """
         return super().getJointPositionActuated()
@@ -885,7 +905,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the mass matrix of the whole body.
         
-        return:
+        Return:
             (np.ndarray) Mass matrix of the whole body.
         """
         return super().getMassMatrix()
@@ -894,7 +914,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the inversed mass matrix of the whole body.
         
-        return:
+        Return:
             (np.ndarray) Inversed mass matrix of the whole body.
         """
         return super().getMassMatrixInv()
@@ -903,7 +923,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the coriolis vector of the whole body.
         
-        return:
+        Return:
             (np.ndarray) Coriolis vector of the whole body.
         """
         return super().getCoriolis()
@@ -912,7 +932,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the gravity vector of the whole body.
         
-        return:
+        Return:
             (np.ndarray) Gravity vector of the whole body.
         """
         return super().getGravity()
@@ -921,7 +941,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the nonlinear effects vector of the whole body.
         
-        return:
+        Return:
             (np.ndarray) Nonlinear effects vector of the whole body.
         """
         return super().getNonlinearEffects()
@@ -930,7 +950,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the mass matrix of the actuated joints.
         
-        return:
+        Return:
             (np.ndarray) Mass matrix of the actuated joints.
         """
         return super().getMassMatrixActuated()
@@ -939,7 +959,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the inversed mass matrix of the actuated joints.
         
-        return:
+        Return:
             (np.ndarray) Inversed mass matrix of the actuated joints.
         """
         return super().getMassMatrixActuatedInv()
@@ -948,7 +968,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the gravity vector of the actuated joints.
         
-        return:
+        Return:
             (np.ndarray) Gravity vector of the actuated joints.
         """
         return super().getGravityActuated()
@@ -957,7 +977,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the coriolis vector of the actuated joints.
         
-        return:
+        Return:
             (np.ndarray) Coriolis vector of the actuated joints.
         """
         return super().getCoriolisActuated()
@@ -966,7 +986,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the nonlinear effects vector of the actuated joints.
         
-        return:
+        Return:
             (np.ndarray) Nonlinear effects vector of the actuated joints.
         """
         return super().getNonlinearEffectsActuated()
@@ -979,7 +999,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
         
-        return:
+        Return:
             (np.ndarray) Pose of the link in the task space.
         """
         return super().getPose(link_name)
@@ -991,7 +1011,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
         
-        return:
+        Return:
             (np.ndarray) Jacobian of the link.
         """
         return super().getJacobian(link_name)
@@ -1003,7 +1023,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
         
-        return:
+        Return:
             (np.ndarray) Jacobian time variation of the link.
         """
         return super().getJacobianTimeVariation(link_name)
@@ -1015,7 +1035,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
         
-        return:
+        Return:
             (np.ndarray) Velocity of the link in the task space.
         """
         return super().getVelocity(link_name)
@@ -1028,7 +1048,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
             with_grad    : (bool) If true, computes the gradient of the minimum distance.
             with_graddot : (bool) If true, computes the gradient time variation of the minimum distance.
         
-        return:
+        Return:
             (Tuple[float, np.ndarray, np.ndarray]) Minimum distance, its gradient, and its gradient time variation.
         """
         min_result = super().getMinDistance(with_grad, with_graddot)
@@ -1041,7 +1061,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
         
-        return:
+        Return:
             (np.ndarray) Jacobian of the link for the actuated joints.
         """
         return super().getJacobianActuated(link_name)
@@ -1053,7 +1073,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
         
-        return:
+        Return:
             (np.ndarray) Jacobian time variation of the link for the actuated joints.
         """
         return super().getJacobianActuatedTimeVariation(link_name)
@@ -1062,7 +1082,7 @@ class RobotData(drc_cpp.MobileManipulatorRobotData):
         """
         Get the selection matrix that excludes floating base.
 
-        return:
+        Return:
             (np.ndarray) Selection matrix.
         """
         return super().getSelectionMatrix()

@@ -16,10 +16,14 @@
 // limitations under the License.
 
 #pragma once
+#include <map>
 #include <string>
+#include <vector>
 #include "dyros_robot_controller/manipulator/robot_data.h"
 #include "dyros_robot_controller/manipulator/QP_IK.h"
 #include "dyros_robot_controller/manipulator/QP_ID.h"
+#include "dyros_robot_controller/manipulator/HQP_IK.h"
+#include "dyros_robot_controller/manipulator/HQP_ID.h"
 
 namespace drc
 {
@@ -136,7 +140,7 @@ namespace drc
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
                 void setQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
-                
+
                 /**
                  * @brief Set the weight vector for the cost terms of the QPIK.
                  * @param w_tracking (Vector6d) Weight for task velocity tracking for every link.
@@ -197,12 +201,90 @@ namespace drc
                  * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
                  */
                 void setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
-                /**
-                 * @brief Set the null torque scale for the QPID null space cost (Method 3: M-weighted qddot cost).
-                 * @param w_null_torque (double) Scale factor; 0 disables the null space cost (default).
-                 */
-                void setQPIDNullTorqueGain(const double w_null_torque);
 
+                /**
+                 * @brief Set HQPIK task tracking weights only.
+                 * @param w_tracking (Vector6d) Weight for task velocity tracking for every link.
+                 */
+                void setHQPIKTrackingGain(const Vector6d& w_tracking);
+
+                /**
+                 * @brief Set HQPIK task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 */
+                void setHQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+
+                /**
+                 * @brief Set HQPIK joint velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
+                void setHQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping);
+
+                /**
+                 * @brief Set HQPIK joint acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setHQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
+
+                /**
+                 * @brief Set the weight vector for the cost terms of the HQPIK.
+                 * @param w_tracking (Vector6d) Weight for task velocity tracking for every link.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setHQPIKGain(const Vector6d& w_tracking,
+                                  const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                  const Eigen::Ref<const VectorXd>& w_acc_damping);
+
+                /**
+                 * @brief Set the weight vector for the cost terms of the HQPIK.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task velocity tracking per links.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setHQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking,
+                                  const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                  const Eigen::Ref<const VectorXd>& w_acc_damping);
+
+                /**
+                 * @brief Set HQPID task tracking weights only.
+                 * @param w_tracking (Vector6d) Weight for task acceleration tracking for every link.
+                 */
+                void setHQPIDTrackingGain(const Vector6d& w_tracking);
+
+                /**
+                 * @brief Set HQPID task tracking weights only.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
+                 */
+                void setHQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking);
+
+                /**
+                 * @brief Set HQPID joint velocity damping weights only.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 */
+                void setHQPIDJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping);
+
+                /**
+                 * @brief Set HQPID joint acceleration damping weights only.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setHQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping);
+
+                /**
+                 * @brief Set the weight vector for the cost terms of the HQPID.
+                 * @param w_tracking (Vector6d) Weight for task acceleration tracking for every link.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setHQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
+
+                /**
+                 * @brief Set the weight vector for the cost terms of the HQPID.
+                 * @param link_w_tracking (std::map<std::string, Vector6d>) Weight for task acceleration tracking per links.
+                 * @param w_vel_damping (Eigen::VectorXd) Weight for joint velocity damping; its size must same as dof.
+                 * @param w_acc_damping (Eigen::VectorXd) Weight for joint acceleration damping; its size must same as dof.
+                 */
+                void setHQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping);
 
                 // ================================ Joint space Functions ================================
                 /**
@@ -318,28 +400,24 @@ namespace drc
                                       Eigen::Ref<Eigen::VectorXd> opt_qdot);
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration, then compute joint velocities with null_qdot to follow the resulting trajectory.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time   (double) Current time.
+                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration       (double) Time duration
                  * @param opt_qdot       (Eigen::VectorXd) Output desired joint velocities.
                  * @param null_qdot      (Eigen::VectorXd) Desired joint velocity to be projected on null space.
                  * @return (bool) True if success.
                  */
                 virtual bool CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                        const Eigen::Ref<const VectorXd>& null_qdot);
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time   (double) Current time.
+                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration       (double) Time duration
                  * @param opt_qdot       (Eigen::VectorXd) Output desired joint velocities.
                  * @return (bool) True if success.
                  */
                 virtual bool CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot);
                 /**
@@ -380,59 +458,30 @@ namespace drc
                                      Eigen::Ref<Eigen::VectorXd> opt_torque);
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration, then compute joint torques with null_torque to follow the resulting trajectory.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time   (double) Current time.
+                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration       (double) Time duration
                  * @param opt_torque     (Eigen::VectorXd) Output desired joint torques.
                  * @param null_torque    (Eigen::VectorXd) Desired joint torque to be projected on null space.
                  * @return (bool) True if success.
                  */
                 virtual bool OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                      const double& current_time,
                                       const double& duration,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
                                       const Eigen::Ref<const VectorXd>& null_torque);
                 /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) and velocity (xdot_desired) over the given duration.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time   (double) Current time.
+                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration       (double) Time duration
                  * @param opt_torque     (Eigen::VectorXd) Output desired joint torques.
                  * @return (bool) True if success.
                  */
                 virtual bool OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                      const double& current_time,
                                       const double& duration,
                                       Eigen::Ref<Eigen::VectorXd> opt_torque);
                 /**
                  * @brief Computes joint velocities to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data  (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
                  * @param opt_qdot       (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot      (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
-                 * @param time_verbose   (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
-                 */
-                virtual bool QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                  Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                  const Eigen::Ref<const VectorXd>& null_qdot,
-                                  std::string& time_verbose);
-                /**
-                 * @brief Compatibility overload of QPIK with null_qdot.
-                 * @param link_task_data  (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
-                 * @param opt_qdot       (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot      (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
-                 * @param time_verbose   (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
-                 */
-                virtual bool QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                  Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                  const Eigen::Ref<const VectorXd>& null_qdot,
-                                  const bool time_verbose=false);
-                /**
-                 * @brief Computes joint velocities to achieve desired velocity (xdot_desired) of a link by solving inverse kinematics QP.
-                 *        null_qdot defaults to zero (no null space tracking).
-                 * @param link_task_data  (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
-                 * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                  */
@@ -441,7 +490,6 @@ namespace drc
                                   std::string& time_verbose);
                 /**
                  * @brief Compatibility overload of QPIK.
-                 *        null_qdot defaults to zero (no null space tracking).
                  * @param link_task_data  (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xdot_desired.
                  * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
@@ -454,31 +502,6 @@ namespace drc
                  * @brief Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
                  * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
                  * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot     (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
-                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
-                */
-                virtual bool QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                      Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                      const Eigen::Ref<const VectorXd>& null_qdot,
-                                      std::string& time_verbose);
-                /**
-                 * @brief Compatibility overload of QPIKStep with null_qdot.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
-                 * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot     (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
-                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
-                */
-                virtual bool QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                      Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                      const Eigen::Ref<const VectorXd>& null_qdot,
-                                      const bool time_verbose=false);
-                /**
-                 * @brief Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse kinematics QP.
-                 *        null_qdot defaults to zero (no null space tracking).
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
-                 * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */
@@ -487,7 +510,6 @@ namespace drc
                                       std::string& time_verbose);
                 /**
                  * @brief Compatibility overload of QPIKStep.
-                 *        null_qdot defaults to zero (no null space tracking).
                  * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
                  * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
@@ -498,63 +520,25 @@ namespace drc
                                       const bool time_verbose=false);
                 /**
                  * @brief Perform cubic interpolation then compute joint velocities using QP.
-                 * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time         (double) Current time.
+                 * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration             (double) Time duration.
                  * @param opt_qdot             (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot            (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
-                 * @param time_verbose         (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
-                */
-                virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
-                                       const double& duration,
-                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                       const Eigen::Ref<const VectorXd>& null_qdot,
-                                       std::string& time_verbose);
-                /**
-                 * @brief Compatibility overload of QPIKCubic with null_qdot.
-                 * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time         (double) Current time.
-                 * @param duration             (double) Time duration.
-                 * @param opt_qdot             (Eigen::VectorXd) Output desired joint velocities.
-                 * @param null_qdot            (Eigen::VectorXd) Desired joint velocity for null space tracking (w_joint_vel weighted).
-                 * @param time_verbose         (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
-                */
-                virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
-                                       const double& duration,
-                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                       const Eigen::Ref<const VectorXd>& null_qdot,
-                                       const bool time_verbose=false);
-                /**
-                 * @brief Perform cubic interpolation then compute joint velocities using QP.
-                 *        null_qdot defaults to zero (no null space tracking).
-                 * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time         (double) Current time.
-                 * @param duration             (double) Time duration
-                 * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */
                 virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                        std::string& time_verbose);
                 /**
                  * @brief Compatibility overload of QPIKCubic.
-                 *        null_qdot defaults to zero (no null space tracking).
-                 * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time         (double) Current time.
+                 * @param link_task_data       (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration             (double) Time duration
                  * @param opt_qdot    (Eigen::VectorXd) Output desired joint velocities.
                  * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
                  * @return (bool) True if the problem was solved successfully.
                 */
                 virtual bool QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                        const bool time_verbose=false);
@@ -579,30 +563,6 @@ namespace drc
                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
                                   const bool time_verbose=false);
                 /**
-                 * @brief Computes joint torques to achieve desired acceleration (xddot_desired) of a link by solving inverse dynamics QP, with null_torque projected into null space (Method 3: M-weighted qddot cost, equivalent to OSF null projection).
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
-                 * @param opt_torque     (Eigen::VectorXd) Output desired joint torques.
-                 * @param null_torque    (Eigen::VectorXd) Desired joint torque to track in null space (OSF convention: without gravity); its size must same as dof.
-                 * @param time_verbose   (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
-                 */
-                virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                  Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                  const Eigen::Ref<const VectorXd>& null_torque,
-                                  std::string& time_verbose);
-                /**
-                 * @brief Compatibility overload of QPID with null_torque.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include xddot_desired.
-                 * @param opt_torque     (Eigen::VectorXd) Output desired joint torques.
-                 * @param null_torque    (Eigen::VectorXd) Desired joint torque to track in null space; its size must same as dof.
-                 * @param time_verbose   (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
-                 */
-                virtual bool QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                  Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                  const Eigen::Ref<const VectorXd>& null_torque,
-                                  const bool time_verbose=false);
-                /**
                  * @brief Computes joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link by solving inverse dynamics QP.
                  * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
                  * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
@@ -623,89 +583,159 @@ namespace drc
                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
                                       const bool time_verbose=false);
                 /**
-                 * @brief QPIDStep with null_torque projected into null space.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
-                 * @param opt_torque     (Eigen::VectorXd) Output desired joint torques.
-                 * @param null_torque    (Eigen::VectorXd) Desired joint torque to track in null space; its size must same as dof.
-                 * @param time_verbose   (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
-                 */
-                virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                      Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                      const Eigen::Ref<const VectorXd>& null_torque,
-                                      std::string& time_verbose);
-                /**
-                 * @brief Compatibility overload of QPIDStep with null_torque.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_desired, xdot_desired).
-                 * @param opt_torque     (Eigen::VectorXd) Output desired joint torques.
-                 * @param null_torque    (Eigen::VectorXd) Desired joint torque to track in null space; its size must same as dof.
-                 * @param time_verbose   (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
-                 */
-                virtual bool QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                      Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                      const Eigen::Ref<const VectorXd>& null_torque,
-                                      const bool time_verbose=false);
-                /**
                  * @brief Perform cubic interpolation between the initial (x_init, xdot_init) and desired link pose (x_desired) & velocity (xdot_desired) over the given duration, then compute joint torques using QP to follow the resulting trajectory.
-                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time           (double) Current time.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration               (double) Time duration
                  * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
                  * @param time_verbose  (std::string&) Output formatted computation time information for QP.
                  * @return (bool) True if the problem was solved successfully.
                 */                             
                 virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
                                        std::string& time_verbose);
                 /**
                  * @brief Compatibility overload of QPIDCubic.
-                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time           (double) Current time.
+                 * @param link_task_data         (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
                  * @param duration               (double) Time duration
                  * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
                  * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
                  * @return (bool) True if the problem was solved successfully.
                 */
                 virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
                                        const bool time_verbose=false);
+
                 /**
-                 * @brief QPIDCubic with null_torque projected into null space.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time   (double) Current time.
-                 * @param duration       (double) Time duration.
-                 * @param opt_torque     (Eigen::VectorXd) Output desired joint torques.
-                 * @param null_torque    (Eigen::VectorXd) Desired joint torque to track in null space; its size must same as dof.
-                 * @param time_verbose   (std::string&) Output formatted computation time information for QP.
-                 * @return (bool) True if the problem was solved successfully.
+                 * @brief Computes joint velocities to achieve desired velocity (xdot_desired) of a link hierarchy by solving hierarchical inverse kinematics QP.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include xdot_desired.
+                 * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
+                 * @return (bool) True if all levels were solved successfully.
                  */
-                virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
-                                       const double& duration,
-                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                       const Eigen::Ref<const VectorXd>& null_torque,
+                virtual bool HQPIK(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                   std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of HQPIK.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include xdot_desired.
+                 * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPIK(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                   const bool time_verbose=false);
+                /**
+                 * @brief Computes joint velocities to achieve desired position (x_desired) & velocity (xdot_desired) of a link hierarchy by solving hierarchical inverse kinematics QP.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include (x_desired, xdot_desired).
+                 * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPIKStep(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                        std::string& time_verbose);
                 /**
-                 * @brief Compatibility overload of QPIDCubic with null_torque.
-                 * @param link_task_data (std::map<std::string, TaskSpaceData>) Task space data per links; it must include (x_init, xdot_init, x_desired, xdot_desired).
-                 * @param current_time   (double) Current time.
-                 * @param duration       (double) Time duration.
-                 * @param opt_torque     (Eigen::VectorXd) Output desired joint torques.
-                 * @param null_torque    (Eigen::VectorXd) Desired joint torque to track in null space; its size must same as dof.
-                 * @param time_verbose   (bool) If true, print the formatted computation time information to std::cout.
-                 * @return (bool) True if the problem was solved successfully.
+                 * @brief Compatibility overload of HQPIKStep.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include (x_desired, xdot_desired).
+                 * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if all levels were solved successfully.
                  */
-                virtual bool QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
-                                       const double& duration,
-                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                       const Eigen::Ref<const VectorXd>& null_torque,
+                virtual bool HQPIKStep(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                        const bool time_verbose=false);
+                /**
+                 * @brief Perform cubic interpolation then compute joint velocities using hierarchical QP.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+                 * @param duration      (double) Time duration.
+                 * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPIKCubic(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                        const double& duration,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                        std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of HQPIKCubic.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+                 * @param duration      (double) Time duration.
+                 * @param opt_qdot      (Eigen::VectorXd) Output desired joint velocities.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPIKCubic(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                        const double& duration,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                        const bool time_verbose=false);
+
+                /**
+                 * @brief Computes joint torques to achieve desired acceleration (xddot_desired) of a link hierarchy by solving hierarchical inverse dynamics QP.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include xddot_desired.
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPID(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                   std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of HQPID.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include xddot_desired.
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPID(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                   const bool time_verbose=false);
+                /**
+                 * @brief Computes joint torques to achieve desired position (x_desired) & velocity (xdot_desired) of a link hierarchy by solving hierarchical inverse dynamics QP.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include (x_desired, xdot_desired).
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPIDStep(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                       std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of HQPIDStep.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include (x_desired, xdot_desired).
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPIDStep(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                       const bool time_verbose=false);
+                /**
+                 * @brief Perform cubic interpolation then compute joint torques using hierarchical QP.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+                 * @param duration      (double) Time duration.
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
+                 * @param time_verbose  (std::string&) Output formatted computation time information for QP.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPIDCubic(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                        const double& duration,
+                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                        std::string& time_verbose);
+                /**
+                 * @brief Compatibility overload of HQPIDCubic.
+                 * @param task_hierarchy (std::vector<std::map<std::string, TaskSpaceData>>) Priority-ordered task hierarchy; each level must include (x_init, xdot_init, x_desired, xdot_desired, control_start_time, current_time).
+                 * @param duration      (double) Time duration.
+                 * @param opt_torque    (Eigen::VectorXd) Output desired joint torques.
+                 * @param time_verbose  (bool) If true, print the formatted computation time information to std::cout.
+                 * @return (bool) True if all levels were solved successfully.
+                 */
+                virtual bool HQPIDCubic(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                        const double& duration,
+                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                        const bool time_verbose=false);
 
                 int getDof() const { return dof_; }
 
@@ -713,10 +743,6 @@ namespace drc
                 double dt_;                                          // Control time step in seconds.
                 int dof_;                                            // Total degrees of freedom.
                 std::shared_ptr<Manipulator::RobotData> robot_data_; // Shared pointer to the robot data class.
-
-                // Task space gains
-                // std::map<std::string, Vector6d> link_Kp_task_;
-                // std::map<std::string, Vector6d> link_Kv_task_;
 
                 std::map<std::string, Vector6d> link_IK_Kp_task_;
                 std::map<std::string, Vector6d> link_ID_Kp_task_;
@@ -729,6 +755,11 @@ namespace drc
                 // QP solvers
                 std::unique_ptr<Manipulator::QPIK> QP_mani_IK_;
                 std::unique_ptr<Manipulator::QPID> QP_mani_ID_;
+
+                // HQP solvers
+                std::unique_ptr<Manipulator::HQPIK> HQP_mani_IK_;
+                std::unique_ptr<Manipulator::HQPID> HQP_mani_ID_;
+
                 /**
                  * @brief Internal CLIK overload that receives desired task velocities directly.
                  */
@@ -742,61 +773,53 @@ namespace drc
                                  Eigen::Ref<Eigen::VectorXd> opt_torque,
                                  const Eigen::Ref<const VectorXd>& null_torque);
                 /**
-                 * @brief Internal QPIK core with null_qdot; all public QPIK overloads delegate here.
-                 */
-                virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
-                                  Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                  const Eigen::Ref<const VectorXd>& null_qdot,
-                                  std::string& time_verbose);
-                /**
-                 * @brief Internal compatibility overload of QPIK core with null_qdot.
-                 */
-                virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
-                                  Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                  const Eigen::Ref<const VectorXd>& null_qdot,
-                                  const bool time_verbose=false);
-                /**
                  * @brief Internal QPIK overload that stores QP timing information in a string.
-                 *        null_qdot defaults to zero (no null space tracking).
                  */
                 virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                   std::string& time_verbose);
                 /**
                  * @brief Internal compatibility overload of QPIK with legacy bool argument.
-                 *        null_qdot defaults to zero (no null space tracking).
                  */
                 virtual bool QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                   const bool time_verbose=false);
                 /**
-                 * @brief Internal QPID core with null_torque; all public QPID overloads delegate here.
-                 */
-                virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
-                                  Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                  const Eigen::Ref<const VectorXd>& null_torque,
-                                  std::string& time_verbose);
-                /**
-                 * @brief Internal compatibility overload of QPID core with null_torque.
-                 */
-                virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
-                                  Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                  const Eigen::Ref<const VectorXd>& null_torque,
-                                  const bool time_verbose=false);
-                /**
                  * @brief Internal QPID overload that stores QP timing information in a string.
-                 *        null_torque defaults to zero (no null space tracking).
                  */
                 virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
                                   std::string& time_verbose);
                 /**
                  * @brief Internal compatibility overload of QPID with legacy bool argument.
-                 *        null_torque defaults to zero (no null space tracking).
                  */
                 virtual bool QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
                                   const bool time_verbose=false);
+                /**
+                 * @brief Internal HQPIK overload that stores QP timing information in a string.
+                 */
+                virtual bool HQPIK(const std::vector<std::map<std::string, Vector6d>>& task_hierarchy,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                   std::string& time_verbose);
+                /**
+                 * @brief Internal compatibility overload of HQPIK with legacy bool argument.
+                 */
+                virtual bool HQPIK(const std::vector<std::map<std::string, Vector6d>>& task_hierarchy,
+                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                   const bool time_verbose=false);
+                /**
+                 * @brief Internal HQPID overload that stores QP timing information in a string.
+                 */
+                virtual bool HQPID(const std::vector<std::map<std::string, Vector6d>>& task_hierarchy,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                   std::string& time_verbose);
+                /**
+                 * @brief Internal compatibility overload of HQPID with legacy bool argument.
+                 */
+                virtual bool HQPID(const std::vector<std::map<std::string, Vector6d>>& task_hierarchy,
+                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                   const bool time_verbose=false);
         };
     } // namespace Manipulator
 } // namespace drc

@@ -21,11 +21,22 @@ import numpy as np
 import dyros_robot_controller_cpp_wrapper as drc_cpp
 
 class DriveType(IntEnum):
+    """Enum class defining the type of mobile drive system. (Differential, Mecanum, Caster)"""
+
     Differential = int(drc_cpp.DriveType.Differential)
     Mecanum      = int(drc_cpp.DriveType.Mecanum)
     Caster       = int(drc_cpp.DriveType.Caster)
     
 class KinematicParam:
+    """
+    Kinematic parameters for a mobile robot base.
+
+    This structure contains geometry and dynamic constraints for various mobile base types
+    (Differential, Mecanum, or Caster).
+
+    Required fields and valid values vary depending on the selected drive type.
+    """
+
     def __init__(self,
                  type: DriveType,
                  wheel_radius: float,
@@ -43,17 +54,22 @@ class KinematicParam:
         Constructor for mobile base kinematic parameters.
 
         Parameters:
-            type                 : (DriveType) Drive type of the mobile base.
-            wheel_radius         : (float) Radius of the wheel [m].
-            max_lin_speed        : (float) Maximum linear speed [m/s].
-            max_ang_speed        : (float) Maximum angular speed [rad/s].
-            max_lin_acc          : (float) Maximum linear acceleration [m/s^2].
-            max_ang_acc          : (float) Maximum angular acceleration [rad/s^2].
-            base_width           : (float | None) Distance between left and right wheels [m]. Required for Differential.
-            roller_angles        : (List | None) Roller angles [rad]. Required for Mecanum.
-            base2wheel_positions : (List[np.ndarray] | None) Wheel positions in base frame [m]. Required for Mecanum/Caster.
-            base2wheel_angles    : (List | None) Wheel orientation angles in base frame [rad]. Required for Mecanum.
-            wheel_offset         : (float | None) Offset from caster axis to wheel center [m]. Required for Caster.
+            type                 : (DriveType) [Required] Drive type of the mobile base.
+            wheel_radius         : (float) [Required] Radius of the wheels [m].
+            max_lin_speed        : (float) [Optional] Maximum linear speed in m/s. Default = 2.0.
+            max_ang_speed        : (float) [Optional] Maximum angular speed in rad/s. Default = 2.0.
+            max_lin_acc          : (float) [Optional] Maximum linear acceleration in m/s^2. Default = 2.0.
+            max_ang_acc          : (float) [Optional] Maximum angular acceleration in rad/s^2. Default = 2.0.
+            base_width           : (float | None) [Required if type == DriveType.Differential]
+                                   Distance between left and right wheels [m].
+            roller_angles        : (List | None) [Required if type == DriveType.Mecanum]
+                                   Vector of roller angles [rad] between base and wheel frame.
+            base2wheel_positions : (List[np.ndarray] | None) [Required if type == DriveType.Mecanum or Caster]
+                                   Positions of wheels relative to base frame [m].
+            base2wheel_angles    : (List | None) [Required if type == DriveType.Mecanum or Caster]
+                                   Orientation angle of each wheel relative to base frame [rad].
+            wheel_offset         : (float | None) [Required if type == DriveType.Caster]
+                                   Offset from caster joint rotation axis to wheel center [m].
         """
 
         p = drc_cpp.KinematicParam()
@@ -104,6 +120,15 @@ class KinematicParam:
         return self._cpp
     
 class JointIndex:
+    """
+    Index offsets used in unified joint state vectors.
+
+    In a mobile manipulator system, the full joint vector is typically composed of:
+    virtual joints, manipulator joints, and mobile base joints.
+    This structure defines the starting indices of each group within a single
+    concatenated joint vector.
+    """
+
     def __init__(self, 
                  virtual_start: int, 
                  mani_start: int, 
@@ -113,9 +138,9 @@ class JointIndex:
         Constructor for unified joint index offsets.
 
         Parameters:
-            virtual_start : (int) Start index of virtual joints in full joint state vector.
-            mani_start    : (int) Start index of manipulator joints in full joint state vector.
-            mobi_start    : (int) Start index of mobile joints in full joint state vector.
+            virtual_start : (int) Index at which virtual joints start in the full joint vector.
+            mani_start    : (int) Index at which manipulator joints start.
+            mobi_start    : (int) Index at which mobile wheel joints start.
         """
         j = drc_cpp.JointIndex()
         self.virtual_start = int(virtual_start)
@@ -138,6 +163,14 @@ class JointIndex:
         return self._cpp
 
 class ActuatorIndex:
+    """
+    Index offsets used in unified actuator vectors.
+
+    The actuator vector may be composed of manipulator actuators and mobile base
+    actuators. This structure defines the starting indices of each group within
+    that vector.
+    """
+
     def __init__(self, 
                  mani_start: int, 
                  mobi_start: int
@@ -146,8 +179,8 @@ class ActuatorIndex:
         Constructor for unified actuator index offsets.
 
         Parameters:
-            mani_start : (int) Start index of manipulator actuators in actuator vector.
-            mobi_start : (int) Start index of mobile actuators in actuator vector.
+            mani_start : (int) Index at which manipulator actuator commands begin.
+            mobi_start : (int) Index at which mobile wheel actuator commands begin.
         """
         a = drc_cpp.ActuatorIndex()
         self.mani_start = int(mani_start)
@@ -169,10 +202,11 @@ class ActuatorIndex:
 
 class TaskSpaceData:
     """
-    Python mirror of C++ TaskSpaceData.
+    Task-space state and trajectory information for a robot link or frame.
 
-    - x, x_init, x_desired: (4, 4) homogeneous transform (SE(3))
-    - xdot, xddot and *_init, *_desired: (6, ) twist/accel [v; w]
+    This structure stores current, initial, and desired task-space states
+    (pose, velocity, and acceleration). It is used for task-space control,
+    trajectory tracking, and logging.
     """
 
     def __init__(self,
@@ -185,21 +219,23 @@ class TaskSpaceData:
                  x_desired: np.ndarray | None = None,
                  xdot_desired: np.ndarray | None = None,
                  xddot_desired: np.ndarray | None = None,
+                 current_time: float = 0.0,
                  control_start_time: float = 0.0) -> None:
         """
         Constructor for task-space state and trajectory data.
 
         Parameters:
-            x                   : (np.ndarray | None) Current pose, shape (4, 4).
-            xdot                : (np.ndarray | None) Current task-space velocity, size 6.
-            xddot               : (np.ndarray | None) Current task-space acceleration, size 6.
-            x_init              : (np.ndarray | None) Initial pose, shape (4, 4).
-            xdot_init           : (np.ndarray | None) Initial task-space velocity, size 6.
-            xddot_init          : (np.ndarray | None) Initial task-space acceleration, size 6.
-            x_desired           : (np.ndarray | None) Desired pose, shape (4, 4).
-            xdot_desired        : (np.ndarray | None) Desired task-space velocity, size 6.
-            xddot_desired       : (np.ndarray | None) Desired task-space acceleration, size 6.
-            control_start_time  : (float) Simulation time at the start of the current motion segment.
+            x                  : (np.ndarray | None) Current pose of the frame, shape (4, 4).
+            xdot               : (np.ndarray | None) Current task-space velocity [v, w], size 6.
+            xddot              : (np.ndarray | None) Current task-space acceleration, size 6.
+            x_init             : (np.ndarray | None) Initial pose, shape (4, 4).
+            xdot_init          : (np.ndarray | None) Initial velocity, size 6.
+            xddot_init         : (np.ndarray | None) Initial acceleration, size 6.
+            x_desired          : (np.ndarray | None) Desired pose for task-space control, shape (4, 4).
+            xdot_desired       : (np.ndarray | None) Desired task-space velocity, size 6.
+            xddot_desired      : (np.ndarray | None) Desired task-space acceleration, size 6.
+            current_time       : (float) Current time.
+            control_start_time : (float) Initial control time.
         """
 
         # --------- Allocate defaults (identity / zeros) ----------
@@ -215,6 +251,7 @@ class TaskSpaceData:
         self.xdot_desired  = np.zeros(6) if xdot_desired is None else np.array(xdot_desired, dtype=float, copy=True).reshape(-1)
         self.xddot_desired = np.zeros(6) if xddot_desired is None else np.array(xddot_desired, dtype=float, copy=True).reshape(-1)
 
+        self.current_time = float(current_time)
         self.control_start_time = float(control_start_time)
 
         # --------- Shape checks ----------
@@ -252,6 +289,7 @@ class TaskSpaceData:
         self._cpp.xdot_desired = self.xdot_desired.reshape(6,1)
         self._cpp.xddot_desired = self.xddot_desired.reshape(6,1)
 
+        self._cpp.current_time = self.current_time
         self._cpp.control_start_time = self.control_start_time
 
     def cpp(self) -> drc_cpp.TaskSpaceData:
@@ -261,7 +299,12 @@ class TaskSpaceData:
         return self._cpp
 
     def setZero(self) -> None:
-        """Reset all pose and derivative data to identity/zero (same as C++ setZero())."""
+        """
+        Reset all pose and derivative data to zero/identity.
+
+        Sets x, x_init, and x_desired to identity transform, and sets all twist
+        and acceleration vectors to zero.
+        """
         self.x[:] = np.eye(4)
         self.xdot[:] = 0.0
         self.xddot[:] = 0.0
@@ -274,32 +317,41 @@ class TaskSpaceData:
         self.xdot_desired[:] = 0.0
         self.xddot_desired[:] = 0.0
 
+        self.current_time = 0.0
         self.control_start_time = 0.0
 
         self._sync_to_cpp()
 
     @staticmethod
     def Zero() -> "TaskSpaceData":
-        """Create a zero-initialized TaskSpaceData (same as C++ static Zero())."""
+        """
+        Convenience function that returns a zero-initialized TaskSpaceData.
+
+        Returns:
+            (TaskSpaceData) New instance with all fields zeroed.
+        """
         t = TaskSpaceData()
         t.setZero()
         return t
 
-    def setInit(self, current_time: float | None = None) -> None:
-        """Store current state into *_init (same as C++ setInit()).
+    def setInit(self) -> None:
+        """
+        Store the current task-space state into the *_init fields.
 
-        Parameters:
-            current_time : (float | None) If provided, stores it as control_start_time.
+        Typical usage: call at the start of a motion or trajectory.
         """
         self.x_init[:] = self.x
         self.xdot_init[:] = self.xdot
         self.xddot_init[:] = self.xddot
-        if current_time is not None:
-            self.control_start_time = float(current_time)
+        self.control_start_time = self.current_time
         self._sync_to_cpp()
 
     def setDesired(self) -> None:
-        """Store current state into *_desired (same as C++ setDesired())."""
+        """
+        Store the current task-space state into the *_desired fields.
+
+        Often used when updating the reference trajectory in controllers.
+        """
         self.x_desired[:] = self.x
         self.xdot_desired[:] = self.xdot
         self.xddot_desired[:] = self.xddot

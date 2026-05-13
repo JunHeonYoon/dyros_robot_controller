@@ -64,8 +64,11 @@ namespace drc
     
             QP_mani_IK_ = std::make_unique<Manipulator::QPIK>(robot_data_, dt_);
             QP_mani_ID_ = std::make_unique<Manipulator::QPID>(robot_data_, dt_);
+
+            HQP_mani_IK_ = std::make_unique<Manipulator::HQPIK>(robot_data_, dt_);
+            HQP_mani_ID_ = std::make_unique<Manipulator::HQPID>(robot_data_, dt_);
         }
-    
+
         void RobotController::setJointGain(const Eigen::Ref<const VectorXd>& Kp, const Eigen::Ref<const VectorXd>& Kv)
         {
             assert(Kp.size() == dof_ && Kv.size() == dof_);
@@ -193,7 +196,7 @@ namespace drc
             assert(w_acc_damping.size() == dof_);
             QP_mani_IK_->setJointAccWeight(w_acc_damping);
         }
-        
+
         void RobotController::setQPIKGain(const Vector6d& w_tracking,
                                           const Eigen::Ref<const VectorXd>& w_vel_damping,
                                           const Eigen::Ref<const VectorXd>& w_acc_damping)
@@ -234,17 +237,16 @@ namespace drc
 
         void RobotController::setQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
-            QP_mani_ID_->setWeight(w_tracking, w_vel_damping, w_acc_damping);
-        }
-        
-        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
-        {
-            QP_mani_ID_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
+            QP_mani_ID_->setTrackingWeight(w_tracking);
+            QP_mani_ID_->setJointVelWeight(w_vel_damping);
+            QP_mani_ID_->setJointAccWeight(w_acc_damping);
         }
 
-        void RobotController::setQPIDNullTorqueGain(const double w_null_torque)
+        void RobotController::setQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
-            QP_mani_ID_->setNullTorqueWeight(w_null_torque);
+            QP_mani_ID_->setTrackingWeight(link_w_tracking);
+            QP_mani_ID_->setJointVelWeight(w_vel_damping);
+            QP_mani_ID_->setJointAccWeight(w_acc_damping);
         }
 
         VectorXd RobotController::moveJointPositionCubic(const Eigen::Ref<const VectorXd>& q_target,
@@ -399,7 +401,6 @@ namespace drc
         }
 
         bool RobotController::CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                         const Eigen::Ref<const VectorXd>& null_qdot)
@@ -408,7 +409,7 @@ namespace drc
             for (auto &[link_name, task_data] : link_task_data)
             {
                 TaskSpaceData task_data_result = task_data;
-                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, task_data.current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
 
@@ -416,12 +417,11 @@ namespace drc
         }
 
         bool RobotController::CLIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot)
         {
             VectorXd null_qdot = VectorXd::Zero(dof_);
-            return CLIKCubic(link_task_data, current_time, duration, opt_qdot, null_qdot);
+            return CLIKCubic(link_task_data, duration, opt_qdot, null_qdot);
         }
 
         bool RobotController::OSF(const std::map<std::string, Vector6d>& link_xddot_target,
@@ -505,7 +505,6 @@ namespace drc
         }
 
         bool RobotController::OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
                                        const Eigen::Ref<const VectorXd>& null_torque)
@@ -514,25 +513,23 @@ namespace drc
             for (auto &[link_name, task_data] : link_task_data)
             {
                 TaskSpaceData task_data_result = task_data;
-                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, task_data.current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
             return OSFStep(link_task_data_result, opt_torque, null_torque);
         }
 
         bool RobotController::OSFCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       const double& current_time,
                                        const double& duration,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque)
         {
             VectorXd null_torque = VectorXd::Zero(dof_);
-            return OSFCubic(link_task_data, current_time, duration, opt_torque, null_torque);
+            return OSFCubic(link_task_data, duration, opt_torque, null_torque);
         }
 
         // ── Core implementation (all overloads delegate here) ──────────────────
         bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
                                    Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                   const Eigen::Ref<const VectorXd>& null_qdot,
                                    std::string& time_verbose)
         {
             time_verbose.clear();
@@ -544,7 +541,6 @@ namespace drc
             opt_qdot.setZero();
 
             QP_mani_IK_->setDesiredTaskVel(link_xdot_target);
-            QP_mani_IK_->setDesiredJointVel(null_qdot);
             QP::TimeDuration time_duration;
             const bool qp_success = QP_mani_IK_->getOptJointVel(opt_qdot, time_duration);
             if(!qp_success)
@@ -554,25 +550,6 @@ namespace drc
 
             time_verbose = formatQPTimeInfo("QPIK", time_duration);
             return qp_success;
-        }
-
-        bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
-                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                   const Eigen::Ref<const VectorXd>& null_qdot,
-                                   const bool time_verbose)
-        {
-            std::string time_verbose_str;
-            const bool qp_success = QPIK(link_xdot_target, opt_qdot, null_qdot, time_verbose_str);
-            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
-            return qp_success;
-        }
-
-        bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
-                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                   std::string& time_verbose)
-        {
-            const VectorXd null_qdot = VectorXd::Zero(dof_);
-            return QPIK(link_xdot_target, opt_qdot, null_qdot, time_verbose);
         }
 
         bool RobotController::QPIK(const std::map<std::string, Vector6d>& link_xdot_target,
@@ -588,32 +565,12 @@ namespace drc
         // ── QPIK (TaskSpaceData) ────────────────────────────────────────────────
         bool RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
                                    Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                   const Eigen::Ref<const VectorXd>& null_qdot,
                                    std::string& time_verbose)
         {
             std::map<std::string, Vector6d> link_xdot_target;
             for (auto &[link_name, task_data] : link_task_data)
                 link_xdot_target[link_name] = task_data.xdot_desired;
-            return QPIK(link_xdot_target, opt_qdot, null_qdot, time_verbose);
-        }
-
-        bool RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                   const Eigen::Ref<const VectorXd>& null_qdot,
-                                   const bool time_verbose)
-        {
-            std::string time_verbose_str;
-            const bool qp_success = QPIK(link_task_data, opt_qdot, null_qdot, time_verbose_str);
-            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
-            return qp_success;
-        }
-
-        bool RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                   Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                   std::string& time_verbose)
-        {
-            const VectorXd null_qdot = VectorXd::Zero(dof_);
-            return QPIK(link_task_data, opt_qdot, null_qdot, time_verbose);
+            return QPIK(link_xdot_target, opt_qdot, time_verbose);
         }
 
         bool RobotController::QPIK(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -629,7 +586,6 @@ namespace drc
         // ── QPIKStep ────────────────────────────────────────────────────────────
         bool RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                       const Eigen::Ref<const VectorXd>& null_qdot,
                                        std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -644,26 +600,7 @@ namespace drc
 
                 link_task_data_result[link_name].xdot_desired = Kp_task.asDiagonal() * x_error + task_data.xdot_desired;
             }
-            return QPIK(link_task_data_result, opt_qdot, null_qdot, time_verbose);
-        }
-
-        bool RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                       const Eigen::Ref<const VectorXd>& null_qdot,
-                                       const bool time_verbose)
-        {
-            std::string time_verbose_str;
-            const bool qp_success = QPIKStep(link_task_data, opt_qdot, null_qdot, time_verbose_str);
-            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
-            return qp_success;
-        }
-
-        bool RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                       std::string& time_verbose)
-        {
-            const VectorXd null_qdot = VectorXd::Zero(dof_);
-            return QPIKStep(link_task_data, opt_qdot, null_qdot, time_verbose);
+            return QPIK(link_task_data_result, opt_qdot, time_verbose);
         }
 
         bool RobotController::QPIKStep(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -678,60 +615,33 @@ namespace drc
 
         // ── QPIKCubic ───────────────────────────────────────────────────────────
         bool RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                        const Eigen::Ref<const VectorXd>& null_qdot,
                                         std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
             {
                 TaskSpaceData task_data_result = task_data;
-                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, task_data.current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
-            return QPIKStep(link_task_data_result, opt_qdot, null_qdot, time_verbose);
+            return QPIKStep(link_task_data_result, opt_qdot, time_verbose);
         }
 
         bool RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
-                                        const double& duration,
-                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                        const Eigen::Ref<const VectorXd>& null_qdot,
-                                        const bool time_verbose)
-        {
-            std::string time_verbose_str;
-            const bool qp_success = QPIKCubic(link_task_data, current_time, duration, opt_qdot, null_qdot, time_verbose_str);
-            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
-            return qp_success;
-        }
-
-        bool RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
-                                        const double& duration,
-                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
-                                        std::string& time_verbose)
-        {
-            const VectorXd null_qdot = VectorXd::Zero(dof_);
-            return QPIKCubic(link_task_data, current_time, duration, opt_qdot, null_qdot, time_verbose);
-        }
-
-        bool RobotController::QPIKCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_qdot,
                                         const bool time_verbose)
         {
             std::string time_verbose_str;
-            const bool qp_success = QPIKCubic(link_task_data, current_time, duration, opt_qdot, time_verbose_str);
+            const bool qp_success = QPIKCubic(link_task_data, duration, opt_qdot, time_verbose_str);
             printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
 
         bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                    Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                   const Eigen::Ref<const VectorXd>& null_torque,
                                    std::string& time_verbose)
         {
             time_verbose.clear();
@@ -741,7 +651,6 @@ namespace drc
                 return false;
             }
             QP_mani_ID_->setDesiredTaskAcc(link_xddot_target);
-            QP_mani_ID_->setNullTorque(null_torque);
             VectorXd opt_qddot = VectorXd::Zero(dof_);
             opt_torque.setZero();
             QP::TimeDuration time_duration;
@@ -756,25 +665,6 @@ namespace drc
 
         bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
                                    Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                   const Eigen::Ref<const VectorXd>& null_torque,
-                                   const bool time_verbose)
-        {
-            std::string time_verbose_str;
-            const bool qp_success = QPID(link_xddot_target, opt_torque, null_torque, time_verbose_str);
-            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
-            return qp_success;
-        }
-
-        bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
-                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                   std::string& time_verbose)
-        {
-            const VectorXd null_torque = VectorXd::Zero(dof_);
-            return QPID(link_xddot_target, opt_torque, null_torque, time_verbose);
-        }
-
-        bool RobotController::QPID(const std::map<std::string, Vector6d>& link_xddot_target,
-                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
                                    const bool time_verbose)
         {
             std::string time_verbose_str;
@@ -785,7 +675,6 @@ namespace drc
 
         bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
                                    Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                   const Eigen::Ref<const VectorXd>& null_torque,
                                    std::string& time_verbose)
         {
             std::map<std::string, Vector6d> link_xddot_target;
@@ -793,26 +682,7 @@ namespace drc
             {
                 link_xddot_target[link_name] = task_data.xddot_desired;
             }
-            return QPID(link_xddot_target, opt_torque, null_torque, time_verbose);
-        }
-
-        bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                   const Eigen::Ref<const VectorXd>& null_torque,
-                                   const bool time_verbose)
-        {
-            std::string time_verbose_str;
-            const bool qp_success = QPID(link_task_data, opt_torque, null_torque, time_verbose_str);
-            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
-            return qp_success;
-        }
-
-        bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                   Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                   std::string& time_verbose)
-        {
-            const VectorXd null_torque = VectorXd::Zero(dof_);
-            return QPID(link_task_data, opt_torque, null_torque, time_verbose);
+            return QPID(link_xddot_target, opt_torque, time_verbose);
         }
 
         bool RobotController::QPID(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -827,7 +697,6 @@ namespace drc
 
         bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
                                        Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                       const Eigen::Ref<const VectorXd>& null_torque,
                                        std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
@@ -845,26 +714,7 @@ namespace drc
 
                 link_task_data_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
             }
-            return QPID(link_task_data_result, opt_torque, null_torque, time_verbose);
-        }
-
-        bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                       const Eigen::Ref<const VectorXd>& null_torque,
-                                       const bool time_verbose)
-        {
-            std::string time_verbose_str;
-            const bool qp_success = QPIDStep(link_task_data, opt_torque, null_torque, time_verbose_str);
-            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
-            return qp_success;
-        }
-
-        bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                       Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                       std::string& time_verbose)
-        {
-            const VectorXd null_torque = VectorXd::Zero(dof_);
-            return QPIDStep(link_task_data, opt_torque, null_torque, time_verbose);
+            return QPID(link_task_data_result, opt_torque, time_verbose);
         }
 
         bool RobotController::QPIDStep(const std::map<std::string, TaskSpaceData>& link_task_data,
@@ -878,55 +728,363 @@ namespace drc
         }
 
         bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                        const Eigen::Ref<const VectorXd>& null_torque,
                                         std::string& time_verbose)
         {
             std::map<std::string, TaskSpaceData> link_task_data_result;
             for (auto &[link_name, task_data] : link_task_data)
             {
                 TaskSpaceData task_data_result = task_data;
-                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, task_data.current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
                 link_task_data_result[link_name] = task_data_result;
             }
-            return QPIDStep(link_task_data_result, opt_torque, null_torque, time_verbose);
+            return QPIDStep(link_task_data_result, opt_torque, time_verbose);
         }
 
         bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
                                         const double& duration,
                                         Eigen::Ref<Eigen::VectorXd> opt_torque,
-                                        const Eigen::Ref<const VectorXd>& null_torque,
                                         const bool time_verbose)
         {
             std::string time_verbose_str;
-            const bool qp_success = QPIDCubic(link_task_data, current_time, duration, opt_torque, null_torque, time_verbose_str);
+            const bool qp_success = QPIDCubic(link_task_data, duration, opt_torque, time_verbose_str);
             printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
 
-        bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
-                                        const double& duration,
+        // ── HQPIK/HQPID gain setters ────────────────────────────────────────────
+        void RobotController::setHQPIKTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking)
+        {
+            HQP_mani_IK_->setTrackingWeight(link_w_tracking);
+        }
+
+        void RobotController::setHQPIKTrackingGain(const Vector6d& w_tracking)
+        {
+            HQP_mani_IK_->setTrackingWeight(w_tracking);
+        }
+
+        void RobotController::setHQPIKJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping)
+        {
+            assert(w_vel_damping.size() == dof_);
+            HQP_mani_IK_->setJointVelWeight(w_vel_damping);
+        }
+
+        void RobotController::setHQPIKJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            assert(w_acc_damping.size() == dof_);
+            HQP_mani_IK_->setJointAccWeight(w_acc_damping);
+        }
+
+        void RobotController::setHQPIKGain(const Vector6d& w_tracking,
+                                            const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                            const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            assert(w_vel_damping.size() == dof_);
+            assert(w_acc_damping.size() == dof_);
+            HQP_mani_IK_->setWeight(w_tracking, w_vel_damping, w_acc_damping);
+        }
+
+        void RobotController::setHQPIKGain(const std::map<std::string, Vector6d>& link_w_tracking,
+                                            const Eigen::Ref<const VectorXd>& w_vel_damping,
+                                            const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            assert(w_vel_damping.size() == dof_);
+            assert(w_acc_damping.size() == dof_);
+            HQP_mani_IK_->setWeight(link_w_tracking, w_vel_damping, w_acc_damping);
+        }
+
+        void RobotController::setHQPIDTrackingGain(const Vector6d& w_tracking)
+        {
+            HQP_mani_ID_->setTrackingWeight(w_tracking);
+        }
+
+        void RobotController::setHQPIDTrackingGain(const std::map<std::string, Vector6d>& link_w_tracking)
+        {
+            HQP_mani_ID_->setTrackingWeight(link_w_tracking);
+        }
+
+        void RobotController::setHQPIDJointVelGain(const Eigen::Ref<const VectorXd>& w_vel_damping)
+        {
+            HQP_mani_ID_->setJointVelWeight(w_vel_damping);
+        }
+
+        void RobotController::setHQPIDJointAccGain(const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            HQP_mani_ID_->setJointAccWeight(w_acc_damping);
+        }
+
+        void RobotController::setHQPIDGain(const Vector6d& w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            HQP_mani_ID_->setTrackingWeight(w_tracking);
+            HQP_mani_ID_->setJointVelWeight(w_vel_damping);
+            HQP_mani_ID_->setJointAccWeight(w_acc_damping);
+        }
+
+        void RobotController::setHQPIDGain(const std::map<std::string, Vector6d>& link_w_tracking, const Eigen::Ref<const VectorXd>& w_vel_damping, const Eigen::Ref<const VectorXd>& w_acc_damping)
+        {
+            HQP_mani_ID_->setTrackingWeight(link_w_tracking);
+            HQP_mani_ID_->setJointVelWeight(w_vel_damping);
+            HQP_mani_ID_->setJointAccWeight(w_acc_damping);
+        }
+
+        // ── HQPIK core ──────────────────────────────────────────────────────────
+        bool RobotController::HQPIK(const std::vector<std::map<std::string, Vector6d>>& task_hierarchy,
+                                    Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                    std::string& time_verbose)
+        {
+            time_verbose.clear();
+            if(opt_qdot.size() != dof_)
+            {
+                std::cerr << "Size of opt_qdot(" << opt_qdot.size() << ") is not same as dof_(" << dof_ << ")" << std::endl;
+                return false;
+            }
+            opt_qdot.setZero();
+
+            HQP_mani_IK_->setDesiredTaskVel(task_hierarchy);
+            QP::TimeDuration time_duration;
+            const bool qp_success = HQP_mani_IK_->getOptJointVel(opt_qdot, time_duration);
+            if(!qp_success)
+            {
+                opt_qdot.setZero();
+            }
+
+            time_verbose = formatQPTimeInfo("HQPIK", time_duration);
+            return qp_success;
+        }
+
+        bool RobotController::HQPIK(const std::vector<std::map<std::string, Vector6d>>& task_hierarchy,
+                                    Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                    const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = HQPIK(task_hierarchy, opt_qdot, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
+        // ── HQPIK (TaskSpaceData) ────────────────────────────────────────────────
+        bool RobotController::HQPIK(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                    Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                    std::string& time_verbose)
+        {
+            std::vector<std::map<std::string, Vector6d>> hierarchy_xdot;
+            for (const auto& level : task_hierarchy)
+            {
+                std::map<std::string, Vector6d> level_xdot;
+                for (const auto& [link_name, task_data] : level)
+                    level_xdot[link_name] = task_data.xdot_desired;
+                hierarchy_xdot.push_back(std::move(level_xdot));
+            }
+            return HQPIK(hierarchy_xdot, opt_qdot, time_verbose);
+        }
+
+        bool RobotController::HQPIK(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                    Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                    const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = HQPIK(task_hierarchy, opt_qdot, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
+        // ── HQPIKStep ────────────────────────────────────────────────────────────
+        bool RobotController::HQPIKStep(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                        std::string& time_verbose)
+        {
+            std::vector<std::map<std::string, TaskSpaceData>> hierarchy_result;
+            for (const auto& level : task_hierarchy)
+            {
+                std::map<std::string, TaskSpaceData> level_result;
+                for (const auto& [link_name, task_data] : level)
+                {
+                    Vector6d x_error, xdot_error;
+                    DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+
+                    Vector6d Kp_task; Kp_task.setOnes();
+                    auto iter = link_IK_Kp_task_.find(link_name);
+                    if(iter != link_IK_Kp_task_.end()) Kp_task = iter->second;
+
+                    level_result[link_name].xdot_desired = Kp_task.asDiagonal() * x_error + task_data.xdot_desired;
+                }
+                hierarchy_result.push_back(std::move(level_result));
+            }
+            return HQPIK(hierarchy_result, opt_qdot, time_verbose);
+        }
+
+        bool RobotController::HQPIKStep(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                        Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                        const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = HQPIKStep(task_hierarchy, opt_qdot, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
+        // ── HQPIKCubic ───────────────────────────────────────────────────────────
+        bool RobotController::HQPIKCubic(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                         const double& duration,
+                                         Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                         std::string& time_verbose)
+        {
+            std::vector<std::map<std::string, TaskSpaceData>> hierarchy_result;
+            for (const auto& level : task_hierarchy)
+            {
+                std::map<std::string, TaskSpaceData> level_result;
+                for (const auto& [link_name, task_data] : level)
+                {
+                    TaskSpaceData task_data_result = task_data;
+                    DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, task_data.current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                    level_result[link_name] = task_data_result;
+                }
+                hierarchy_result.push_back(std::move(level_result));
+            }
+            return HQPIKStep(hierarchy_result, opt_qdot, time_verbose);
+        }
+
+        bool RobotController::HQPIKCubic(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                         const double& duration,
+                                         Eigen::Ref<Eigen::VectorXd> opt_qdot,
+                                         const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = HQPIKCubic(task_hierarchy, duration, opt_qdot, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
+        // ── HQPID core ──────────────────────────────────────────────────────────
+        bool RobotController::HQPID(const std::vector<std::map<std::string, Vector6d>>& task_hierarchy,
+                                    Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                    std::string& time_verbose)
+        {
+            time_verbose.clear();
+            if(opt_torque.size() != dof_)
+            {
+                std::cerr << "Size of opt_torque(" << opt_torque.size() << ") is not same as dof_(" << dof_ << ")" << std::endl;
+                return false;
+            }
+            HQP_mani_ID_->setDesiredTaskAcc(task_hierarchy);
+            VectorXd opt_qddot = VectorXd::Zero(dof_);
+            opt_torque.setZero();
+            QP::TimeDuration time_duration;
+            const bool qp_success = HQP_mani_ID_->getOptJoint(opt_qddot, opt_torque, time_duration);
+            if(!qp_success)
+            {
+                opt_torque = robot_data_->getGravity();
+            }
+            time_verbose = formatQPTimeInfo("HQPID", time_duration);
+            return qp_success;
+        }
+
+        bool RobotController::HQPID(const std::vector<std::map<std::string, Vector6d>>& task_hierarchy,
+                                    Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                    const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = HQPID(task_hierarchy, opt_torque, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
+        // ── HQPID (TaskSpaceData) ────────────────────────────────────────────────
+        bool RobotController::HQPID(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                    Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                    std::string& time_verbose)
+        {
+            std::vector<std::map<std::string, Vector6d>> hierarchy_xddot;
+            for (const auto& level : task_hierarchy)
+            {
+                std::map<std::string, Vector6d> level_xddot;
+                for (const auto& [link_name, task_data] : level)
+                    level_xddot[link_name] = task_data.xddot_desired;
+                hierarchy_xddot.push_back(std::move(level_xddot));
+            }
+            return HQPID(hierarchy_xddot, opt_torque, time_verbose);
+        }
+
+        bool RobotController::HQPID(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                    Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                    const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = HQPID(task_hierarchy, opt_torque, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
+        // ── HQPIDStep ────────────────────────────────────────────────────────────
+        bool RobotController::HQPIDStep(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
                                         Eigen::Ref<Eigen::VectorXd> opt_torque,
                                         std::string& time_verbose)
         {
-            const VectorXd null_torque = VectorXd::Zero(dof_);
-            return QPIDCubic(link_task_data, current_time, duration, opt_torque, null_torque, time_verbose);
+            std::vector<std::map<std::string, TaskSpaceData>> hierarchy_result;
+            for (const auto& level : task_hierarchy)
+            {
+                std::map<std::string, TaskSpaceData> level_result;
+                for (const auto& [link_name, task_data] : level)
+                {
+                    Vector6d x_error, xdot_error;
+                    DyrosMath::getTaskSpaceError(task_data.x_desired, task_data.xdot_desired, robot_data_->getPose(link_name), robot_data_->getVelocity(link_name), x_error, xdot_error);
+
+                    Vector6d Kp_task; Kp_task.setOnes();
+                    Vector6d Kv_task; Kv_task.setOnes();
+                    auto iter_kp = link_ID_Kp_task_.find(link_name);
+                    if(iter_kp != link_ID_Kp_task_.end()) Kp_task = iter_kp->second;
+                    auto iter_kv = link_ID_Kv_task_.find(link_name);
+                    if(iter_kv != link_ID_Kv_task_.end()) Kv_task = iter_kv->second;
+
+                    level_result[link_name].xddot_desired = Kp_task.asDiagonal() * x_error + Kv_task.asDiagonal() * xdot_error + task_data.xddot_desired;
+                }
+                hierarchy_result.push_back(std::move(level_result));
+            }
+            return HQPID(hierarchy_result, opt_torque, time_verbose);
         }
 
-        bool RobotController::QPIDCubic(const std::map<std::string, TaskSpaceData>& link_task_data,
-                                        const double& current_time,
-                                        const double& duration,
+        bool RobotController::HQPIDStep(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
                                         Eigen::Ref<Eigen::VectorXd> opt_torque,
                                         const bool time_verbose)
         {
             std::string time_verbose_str;
-            const bool qp_success = QPIDCubic(link_task_data, current_time, duration, opt_torque, time_verbose_str);
+            const bool qp_success = HQPIDStep(task_hierarchy, opt_torque, time_verbose_str);
             printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
             return qp_success;
         }
+
+        // ── HQPIDCubic ───────────────────────────────────────────────────────────
+        bool RobotController::HQPIDCubic(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                         const double& duration,
+                                         Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                         std::string& time_verbose)
+        {
+            std::vector<std::map<std::string, TaskSpaceData>> hierarchy_result;
+            for (const auto& level : task_hierarchy)
+            {
+                std::map<std::string, TaskSpaceData> level_result;
+                for (const auto& [link_name, task_data] : level)
+                {
+                    TaskSpaceData task_data_result = task_data;
+                    DyrosMath::getTaskSpaceCubic(task_data.x_desired, task_data.xdot_desired, task_data.x_init, task_data.xdot_init, task_data.current_time, task_data.control_start_time, duration, task_data_result.x_desired, task_data_result.xdot_desired);
+                    level_result[link_name] = task_data_result;
+                }
+                hierarchy_result.push_back(std::move(level_result));
+            }
+            return HQPIDStep(hierarchy_result, opt_torque, time_verbose);
+        }
+
+        bool RobotController::HQPIDCubic(const std::vector<std::map<std::string, TaskSpaceData>>& task_hierarchy,
+                                         const double& duration,
+                                         Eigen::Ref<Eigen::VectorXd> opt_torque,
+                                         const bool time_verbose)
+        {
+            std::string time_verbose_str;
+            const bool qp_success = HQPIDCubic(task_hierarchy, duration, opt_torque, time_verbose_str);
+            printQPTimeInfoIfEnabled(time_verbose, time_verbose_str);
+            return qp_success;
+        }
+
     } // namespace Manipulator
 } // namespace drc

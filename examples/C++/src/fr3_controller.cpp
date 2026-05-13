@@ -105,6 +105,7 @@ void FR3Controller::updateModel(const double current_time,
     robot_data_->updateState(q_, qdot_);
     link_ee_task_[ee_link_name_].x    = robot_data_->getPose(ee_link_name_);
     link_ee_task_[ee_link_name_].xdot = robot_data_->getVelocity(ee_link_name_);
+    link_ee_task_[ee_link_name_].current_time = sim_time_;
 }
 
 std::unordered_map<std::string, double> FR3Controller::compute() 
@@ -161,8 +162,6 @@ std::unordered_map<std::string, double> FR3Controller::compute()
         link_ee_task_[ee_link_name_].x_desired.translation() += Eigen::Vector3d(0.0, 0.1, 0.1); // +10 cm in Y and Z
 
         robot_controller_->QPIKCubic(link_ee_task_,
-                                     sim_time_, 
-                                     control_start_time_, 
                                      3.0,
                                      qdot_desired_);
 

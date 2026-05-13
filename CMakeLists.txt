@@ -62,8 +62,12 @@ endif()
 target_sources(${PROJECT_NAME} PRIVATE
   src/manipulator/QP_ID.cpp
   src/manipulator/QP_IK.cpp
+  src/manipulator/HQP_IK.cpp
+  src/manipulator/HQP_ID.cpp
   src/mobile_manipulator/QP_ID.cpp
   src/mobile_manipulator/QP_IK.cpp
+  src/mobile_manipulator/HQP_IK.cpp
+  src/mobile_manipulator/HQP_ID.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

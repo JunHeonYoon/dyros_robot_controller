@@ -22,7 +22,7 @@ import dyros_robot_controller_cpp_wrapper as drc_cpp
 
 class RobotData(drc_cpp.ManipulatorRobotData):
     """
-    A Python wrapper for the C++ RobotData::Manipulator::ManipulatorBase class.
+    Abstract base class for manipulator robot data.
     
     This class provides a general interface and shared logic for manipulators.
     It supports state update, forward kinematics, dynamics computation and
@@ -34,8 +34,8 @@ class RobotData(drc_cpp.ManipulatorRobotData):
 
         Parameters:
             dt            : (float) Control loop time step in seconds.
-            urdf_path     : (str) Path to the URDF file or URDF XML string when use_xml is True.
-            srdf_path     : (str) Path to the SRDF file or SRDF XML string when use_xml is True.
+            urdf_path     : (str) URDF file path or URDF XML string when use_xml is True.
+            srdf_path     : (str) SRDF file path or SRDF XML string when use_xml is True.
             packages_path : (str) Path to the packages directory.
             use_xml       : (bool) If True, treat urdf_path/srdf_path as XML strings.
         """
@@ -336,7 +336,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         Get the joint positions of the manipulator.
 
-        return:
+        Return:
             (np.ndarray) Joint positions of the manipulator.
         """
         return super().getJointPosition()
@@ -345,7 +345,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         Get the joint velocities of the manipulator.
 
-        return:
+        Return:
             (np.ndarray) Joint velocities of the manipulator.
         """
         return super().getJointVelocity()
@@ -354,7 +354,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         Get lower and upper joint position limits of the manipulator.
         
-        return:
+        Return:
             (Tuple[np.ndarray, np.ndarray]) Joint position limits (lower, upper) of the manipulator.
         """
         return super().getJointPositionLimit()
@@ -363,7 +363,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         Get lower and upper joint velocity limits of the manipulator.
         
-        return:
+        Return:
             (Tuple[np.ndarray, np.ndarray]) Joint velocity limits (lower, upper) of the manipulator.
         """
         return super().getJointVelocityLimit()
@@ -381,7 +381,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         Get the mass matrix of the manipulator.
 
-        return:
+        Return:
             (np.ndarray) Mass matrix of the manipulator.
         """
         return super().getMassMatrix()
@@ -390,7 +390,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         Get the inversed mass matrix of the manipulator.
 
-        return:
+        Return:
             (np.ndarray) Inversed mass matrix of the manipulator.
         """
         return super().getMassMatrixInv()
@@ -399,7 +399,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         Get the coriolis vector of the manipulator.
 
-        return:
+        Return:
             (np.ndarray) Coriolis vector of the manipulator.
         """
         return super().getCoriolis()
@@ -408,7 +408,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         Get the gravity vector of the manipulator.
 
-        return:
+        Return:
             (np.ndarray) Gravity vector of the manipulator.
         """
         return super().getGravity()
@@ -417,7 +417,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         """
         Get the nonlinear effects vector of the manipulator.
 
-        return:
+        Return:
             (np.ndarray) Nonlinear effects vector of the manipulator.
         """
         return super().getNonlinearEffects()
@@ -430,7 +430,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
 
-        return:
+        Return:
             (np.ndarray) Pose of the link in the task space.
         """
         return super().getPose(link_name)
@@ -442,7 +442,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
 
-        return:
+        Return:
             (np.ndarray) Jacobian of the link.
         """
         return super().getJacobian(link_name)
@@ -454,7 +454,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
 
-        return:
+        Return:
             (np.ndarray) Jacobian time variation of the link.
         """
         return super().getJacobianTimeVariation(link_name)
@@ -466,7 +466,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
         Parameters:
             link_name : (str) Name of the link.
 
-        return:
+        Return:
             (np.ndarray) Velocity of the link in the task space.
         """
         return super().getVelocity(link_name)
@@ -479,7 +479,7 @@ class RobotData(drc_cpp.ManipulatorRobotData):
             with_grad    : (bool) If true, get the gradient of the minimum distance.
             with_graddot : (bool) If true, get the gradient time variation of the minimum distance.
 
-        return:
+        Return:
             (Tuple[float, np.ndarray, np.ndarray]) Minimum distance, its gradient, and its gradient time variation.
         """
         min_result = super().getMinDistance(with_grad, with_graddot)

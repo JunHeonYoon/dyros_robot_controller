@@ -92,8 +92,12 @@ class FR3Controller:
         self.robot_controller.set_joint_gain(kp=self.joint_kp, kv=self.joint_kv)
         self.robot_controller.set_IK_gain(kp=self.task_ik_kp)
         self.robot_controller.set_ID_gain(kp=self.task_id_kp, kv=self.task_id_kv)
-        self.robot_controller.set_QPIK_gain(w_tracking=self.qpik_tracking, w_vel_damping=self.qpik_vel_damping, w_acc_damping=self.qpik_acc_damping)
-        self.robot_controller.set_QPID_gain(w_tracking=self.qpid_tracking, w_vel_damping=self.qpid_vel_damping, w_acc_damping=self.qpid_acc_damping)
+        self.robot_controller.set_QPIK_gain(w_tracking=self.qpik_tracking,
+                                            w_vel_damping=self.qpik_vel_damping,
+                                            w_acc_damping=self.qpik_acc_damping)
+        self.robot_controller.set_QPID_gain(w_tracking=self.qpid_tracking,
+                                            w_vel_damping=self.qpid_vel_damping,
+                                            w_acc_damping=self.qpid_acc_damping)
         
         # Print FR3 URDF info
         print("info:")
@@ -113,7 +117,7 @@ class FR3Controller:
         self._listener = keyboard.Listener(on_press=self._on_key_press)
         self._listener.daemon = True
         self._listener.start()
-        print("[FR3Controller] Keyboard: [1]=Home, [2]=QPIK, [3]=Gravity Compensation, [3]=Gravity Compensation W QPID")
+        print("[FR3Controller] Keyboard: [1]=Home, [2]=QPIK, [3]=Gravity Compensation, [4]=Gravity Compensation W QPID")
 
     def update_model(self, current_time: float, qpos_dict: Dict[str, float], qvel_dict: Dict[str, float]) -> None:
         """
@@ -141,6 +145,7 @@ class FR3Controller:
         self.robot_data.update_state(self.q, self.qdot)
         self.link_ee_task[self.ee_link_name].x = self.robot_data.get_pose(self.ee_link_name).copy()
         self.link_ee_task[self.ee_link_name].xdot = self.robot_data.get_velocity(self.ee_link_name).copy()
+        self.link_ee_task[self.ee_link_name].current_time = self.sim_time
 
     def compute(self) -> Dict[str, float]:
         """
@@ -199,8 +204,6 @@ class FR3Controller:
 
             _, self.qdot_desired = self.robot_controller.QPIK_cubic(
                 link_task_data=self.link_ee_task,
-                init_time=self.control_start_time,
-                current_time=self.sim_time,
                 duration=2.0,
             )
             # Simple Euler integrate desired joint positions from qdot_desired
@@ -217,7 +220,7 @@ class FR3Controller:
 
         # --- Mode: Gravity Compensation W QPID (no tracking) ---
         elif self.control_mode == "Gravity Compensation W QPID":
-            self.link_ee_task[self.ee_link_name].xddot = np.zeros(6)
+            self.link_ee_task[self.ee_link_name].xddot_desired = np.zeros(6)
             _, self.tau_desired = self.robot_controller.QPID(link_task_data=self.link_ee_task)
 
         # Format output for simulator actuators

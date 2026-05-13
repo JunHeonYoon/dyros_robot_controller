@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include "dyros_robot_controller/mobile_manipulator/QP_IK.h"
+#include <cmath>
 
 namespace drc
 {
@@ -24,6 +25,7 @@ namespace drc
         QPIK::QPIK(std::shared_ptr<MobileManipulator::RobotData> robot_data, const double dt)
         : QP::QPBase(), robot_data_(robot_data), dt_(dt)
         {
+            if (dt_ <= 1e-9) std::cerr << "[QPIK] WARNING: constructed with dt=" << dt_ << " (zero or near-zero)" << std::endl;
             actuator_dof_ = robot_data_->getActuatorDof();
             mani_dof_ = robot_data_->getManipulatorDof();
             mobi_dof_ = robot_data_->getMobileDof();
@@ -68,11 +70,8 @@ namespace drc
             si_index_.con_base_vel_start      = si_index_.con_sel_col_start    + si_index_.con_sel_col_size;
             si_index_.con_base_acc_start      = si_index_.con_base_vel_start   + si_index_.con_base_vel_size;
 
-            mani_qdot_desired_.setZero(mani_dof_);
-            w_mani_joint_vel_.setOnes(mani_dof_);
-            w_mani_acc_damping_.setOnes(mani_dof_);
-            w_base_vel_damping_.setOnes();
-            w_base_acc_damping_.setOnes();
+            w_vel_damping_.setZero(actuator_dof_);
+            w_acc_damping_.setOnes(actuator_dof_);
         }
     
         void QPIK::setTrackingWeight(const Vector6d w_tracking)
@@ -86,29 +85,21 @@ namespace drc
         }
 
         void QPIK::setWeight(const std::map<std::string, Vector6d>& link_w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_mani_joint_vel,
-                             const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                             const Eigen::Vector3d& w_base_damping,
-                             const Eigen::Vector3d& w_base_acc_damping)
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             link_w_tracking_ = link_w_tracking;
-            w_mani_joint_vel_ = w_mani_joint_vel;
-            w_mani_acc_damping_ = w_mani_acc_damping;
-            w_base_vel_damping_ = w_base_damping;
-            w_base_acc_damping_ = w_base_acc_damping;
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
         }
 
         void QPIK::setWeight(const Vector6d& w_tracking,
-                             const Eigen::Ref<const VectorXd>& w_mani_joint_vel,
-                             const Eigen::Ref<const VectorXd>& w_mani_acc_damping,
-                             const Eigen::Vector3d& w_base_damping,
-                             const Eigen::Vector3d& w_base_acc_damping)
+                             const Eigen::Ref<const VectorXd>& w_vel_damping,
+                             const Eigen::Ref<const VectorXd>& w_acc_damping)
         {
             setTrackingWeight(w_tracking);
-            w_mani_joint_vel_ = w_mani_joint_vel;
-            w_mani_acc_damping_ = w_mani_acc_damping;
-            w_base_vel_damping_ = w_base_damping;
-            w_base_acc_damping_ = w_base_acc_damping;
+            w_vel_damping_ = w_vel_damping;
+            w_acc_damping_ = w_acc_damping;
         }
 
         void QPIK::setDesiredTaskVel(const std::map<std::string, Vector6d> &link_xdot_desired)
@@ -134,7 +125,15 @@ namespace drc
             }
             else
             {
-                opt_eta = sol.block(si_index_.eta_start,0,si_index_.eta_size,1);
+                const VectorXd eta_sol = sol.block(si_index_.eta_start,0,si_index_.eta_size,1);
+                if(!eta_sol.allFinite())
+                {
+                    std::cerr << "QP IK returned non-finite actuator velocity." << std::endl;
+                    opt_eta.setZero();
+                    time_status.setZero();
+                    return false;
+                }
+                opt_eta = eta_sol;
                 return true;
             }
         }
@@ -157,44 +156,20 @@ namespace drc
                 q_ds_.segment(si_index_.eta_start,si_index_.eta_size) += -2.0 * J_i_tilda.transpose() * w_tracking.asDiagonal() * xdot_desired;
             }
 
-            const int mani_start = robot_data_->getActuatorIndex().mani_start;
-            const int mobi_start = robot_data_->getActuatorIndex().mobi_start;
+            // for actuator velocity damping: || eta ||_W2^2
+            P_ds_.block(si_index_.eta_start,si_index_.eta_start,si_index_.eta_size,si_index_.eta_size) +=
+                2.0 * w_vel_damping_.asDiagonal();
+
             const double dt_sq_inv = 1.0 / (dt_ * dt_);
 
-            // for manipulator joint velocity tracking: || eta_mani - qdot_desired ||_W2^2
-            P_ds_.block(si_index_.eta_start+mani_start,
-                        si_index_.eta_start+mani_start,
-                        mani_dof_,
-                        mani_dof_) += 2.0 * w_mani_joint_vel_.asDiagonal();
-            q_ds_.segment(si_index_.eta_start+mani_start, mani_dof_) +=
-                -2.0 * w_mani_joint_vel_.asDiagonal() * mani_qdot_desired_;
-
-            // for manipulator joint acceleration damping: || (eta_mani - eta_mani_now) / dt ||_W3^2
-            P_ds_.block(si_index_.eta_start+mani_start,
-                        si_index_.eta_start+mani_start,
-                        mani_dof_,
-                        mani_dof_) += 2.0 * dt_sq_inv * w_mani_acc_damping_.asDiagonal();
-            q_ds_.segment(si_index_.eta_start+mani_start, mani_dof_) +=
-                -2.0 * dt_sq_inv * w_mani_acc_damping_.asDiagonal() * robot_data_->getManiJointVelocity();
-
-            // for mobile base velocity damping
-            const MatrixXd J_mobile = robot_data_->getMobileFKJacobian();
-            const MatrixXd J_mobile_T = J_mobile.transpose();
-            const Matrix3d w_base_vel = w_base_vel_damping_.asDiagonal();
-            const Matrix3d w_base_acc = w_base_acc_damping_.asDiagonal();
-            P_ds_.block(si_index_.eta_start+mobi_start,
-                        si_index_.eta_start+mobi_start,
-                        mobi_dof_,
-                        mobi_dof_) += 2.0 * J_mobile_T * w_base_vel * J_mobile;
-
-            // for mobile base acceleration damping: a_base = (v_base - v_base_now) / dt
-            const Vector3d base_vel_now = robot_data_->getMobileBaseVel().head<3>();
-            P_ds_.block(si_index_.eta_start+mobi_start,
-                        si_index_.eta_start+mobi_start,
-                        mobi_dof_,
-                        mobi_dof_) += 2.0 * dt_sq_inv * J_mobile_T * w_base_acc * J_mobile;
-            q_ds_.segment(si_index_.eta_start+mobi_start,
-                          mobi_dof_) += -2.0 * dt_sq_inv * J_mobile_T * w_base_acc * base_vel_now;
+            // for actuator acceleration damping: || (eta - eta_now) / dt ||_W3^2
+            const VectorXd eta_now = robot_data_->getJointVelocityActuated();
+            P_ds_.block(si_index_.eta_start,
+                        si_index_.eta_start,
+                        si_index_.eta_size,
+                        si_index_.eta_size) += 2.0 * dt_sq_inv * w_acc_damping_.asDiagonal();
+            q_ds_.segment(si_index_.eta_start, si_index_.eta_size) +=
+                -2.0 * dt_sq_inv * w_acc_damping_.asDiagonal() * eta_now;
 
             // for slack
             q_ds_.segment(si_index_.slack_q_mani_min_start,si_index_.slack_q_mani_min_size) = VectorXd::Constant(si_index_.slack_q_mani_min_size, 1000.0);
@@ -214,11 +189,11 @@ namespace drc
             const VectorXd qdot_mani_max_raw = qdot_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
             const VectorXd qdot_mani_min =
                 (qdot_mani_min_raw.array() < 0.0)
-                    .select(qdot_mani_min_raw.array() * 0.9, qdot_mani_min_raw.array() * 1.9)
+                    .select(qdot_mani_min_raw.array() * 0.9, qdot_mani_min_raw.array() * 1.1)
                     .matrix();
             const VectorXd qdot_mani_max =
                 (qdot_mani_max_raw.array() > 0.0)
-                    .select(qdot_mani_max_raw.array() * 0.9, qdot_mani_max_raw.array() * 1.9)
+                    .select(qdot_mani_max_raw.array() * 0.9, qdot_mani_max_raw.array() * 1.1)
                     .matrix();
 
             l_bound_ds_.segment(si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
@@ -241,7 +216,7 @@ namespace drc
             l_ineq_ds_.setConstant(nineqc_,-OSQP_INFTY);
             u_ineq_ds_.setConstant(nineqc_,OSQP_INFTY);
 
-            const double alpha = 10.;
+            const double alpha = 100.;
     
             // Manipulator Joint Angle Limit (CBF)
             const auto q_lim = robot_data_->getJointPositionLimit();
@@ -249,11 +224,11 @@ namespace drc
             const VectorXd q_mani_max_raw = q_lim.second.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
             const VectorXd q_mani_min =
                 (q_mani_min_raw.array() < 0.0)
-                    .select(q_mani_min_raw.array() * 0.9, q_mani_min_raw.array() * 1.9)
+                    .select(q_mani_min_raw.array() * 0.9, q_mani_min_raw.array() * 1.1)
                     .matrix();
             const VectorXd q_mani_max =
                 (q_mani_max_raw.array() > 0.0)
-                    .select(q_mani_max_raw.array() * 0.9, q_mani_max_raw.array() * 1.9)
+                    .select(q_mani_max_raw.array() * 0.9, q_mani_max_raw.array() * 1.1)
                     .matrix();
             // const VectorXd q_mani_min = robot_data_->getJointPositionLimit().first.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
             // const VectorXd q_mani_max = robot_data_->getJointPositionLimit().second.segment(robot_data_->getJointIndex().mani_start,mani_dof_);
@@ -297,28 +272,42 @@ namespace drc
             // l_ineq_ds_(si_index_.con_sing_start) = - alpha*(mani_result.manipulability -0.01);
     
             // self collision avoidance (CBF)
-            Manipulator::MinDistResult min_dist_res = robot_data_->getMinDistance(true, false, false);
-            min_dist_res.grad = min_dist_res.grad.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+            const Manipulator::MinDistResult min_dist_res = robot_data_->getMinDistance(true, false, false);
 
-            // exponential low-pass filter on grad to smooth discontinuous jumps
-            // when the closest collision pair switches (argmin is non-smooth)
-            if (!col_grad_initialized_) {
-                col_grad_filtered_    = min_dist_res.grad;
-                col_grad_initialized_ = true;
-            } else {
-                col_grad_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
-                                   + col_grad_filter_alpha_ * min_dist_res.grad;
+            if (std::isfinite(min_dist_res.distance))
+            {
+                const VectorXd col_grad = min_dist_res.grad.segment(robot_data_->getJointIndex().mani_start, mani_dof_);
+
+                if (col_grad.allFinite() && col_grad.squaredNorm() > 1e-12)
+                {
+                    // Skip the CBF row when the distance Jacobian becomes undefined.
+                    if (!col_grad_initialized_) {
+                        col_grad_filtered_    = col_grad;
+                        col_grad_initialized_ = true;
+                    } else {
+                        col_grad_filtered_ = (1.0 - col_grad_filter_alpha_) * col_grad_filtered_
+                                           + col_grad_filter_alpha_ * col_grad;
+                    }
+
+                    A_ineq_ds_.block(si_index_.con_sel_col_start,
+                                     si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
+                                     si_index_.con_sel_col_size,
+                                     mani_dof_) = col_grad_filtered_.transpose();
+                    A_ineq_ds_.block(si_index_.con_sel_col_start,
+                                     si_index_.slack_sel_col_start,
+                                     si_index_.con_sel_col_size,
+                                     si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
+                    l_ineq_ds_(si_index_.con_sel_col_start) = -alpha * (min_dist_res.distance - 0.01);
+                }
+                else
+                {
+                    col_grad_initialized_ = false;
+                }
             }
-
-            A_ineq_ds_.block(si_index_.con_sel_col_start,
-                             si_index_.eta_start + robot_data_->getActuatorIndex().mani_start,
-                             si_index_.con_sel_col_size,
-                             mani_dof_) = col_grad_filtered_.transpose();
-            A_ineq_ds_.block(si_index_.con_sel_col_start,
-                             si_index_.slack_sel_col_start,
-                             si_index_.con_sel_col_size,
-                             si_index_.slack_sel_col_size) = MatrixXd::Identity(si_index_.con_sel_col_size, si_index_.slack_sel_col_size);
-            l_ineq_ds_(si_index_.con_sel_col_start) = -alpha * (min_dist_res.distance - 0.01);
+            else
+            {
+                col_grad_initialized_ = false;
+            }
 
             // Mobile base velocity limit
             const auto& param = robot_data_->getKineParam();
