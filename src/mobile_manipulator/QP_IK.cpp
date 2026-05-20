@@ -109,6 +109,7 @@ namespace drc
 
         bool QPIK::getOptJointVel(Eigen::Ref<Eigen::VectorXd> opt_eta, QP::TimeDuration &time_status)
         {
+            SuhanBenchmark total_timer;
             if(opt_eta.size() != actuator_dof_)
             {
                 std::cerr << "Size of opt_eta(" << opt_eta.size() << ") is not same as actuator_dof_(" << actuator_dof_ << ")" << std::endl;
@@ -134,6 +135,7 @@ namespace drc
                     return false;
                 }
                 opt_eta = eta_sol;
+                time_status.total = total_timer.elapsed();
                 return true;
             }
         }

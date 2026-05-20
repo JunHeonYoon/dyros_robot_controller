@@ -281,9 +281,7 @@ namespace drc
                                                               const bool& with_graddot,
                                                               const bool verbose) override
                     {
-                        const auto full = src_.computeMinDistance(src_.q_virtual_, src_.q_mobile_, src_.q_mani_,
-                                                                  src_.qdot_virtual_, src_.qdot_mobile_, src_.qdot_mani_,
-                                                                  with_grad, with_graddot, verbose);
+                        const auto full = src_.Manipulator::RobotData::getMinDistance(with_grad, with_graddot, verbose);
                         Manipulator::MinDistResult result;
                         result.setZero(src_.mani_dof_);
                         result.distance = full.distance;
@@ -311,8 +309,7 @@ namespace drc
                                                                         const bool& with_graddot,
                                                                         const std::string& link_name) override
                     {
-                        return computeManipulability(src_.q_mani_, src_.qdot_mani_,
-                                                     with_grad, with_graddot, link_name);
+                        return src_.getManipulability(with_grad, with_graddot, link_name);
                     }
 
                     /// State update is a no-op: the parent MobileManipulator::RobotData

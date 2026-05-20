@@ -413,6 +413,8 @@ SharedIneqData HQPIK::computeSharedConstraints()
 
 bool HQPIK::getOptJointVel(Eigen::Ref<VectorXd> opt_eta, QP::TimeDuration& time_status)
 {
+    SuhanBenchmark total_timer;
+
     if (opt_eta.size() != actuator_dof_)
     {
         std::cerr << "[HQPIK] size mismatch: opt_eta=" << opt_eta.size()
@@ -430,10 +432,15 @@ bool HQPIK::getOptJointVel(Eigen::Ref<VectorXd> opt_eta, QP::TimeDuration& time_
     }
 
     // Compute all shared constraints once for this cycle
+    SuhanBenchmark shared_timer;
     const SharedIneqData shared = computeSharedConstraints();
+    const double shared_time = shared_timer.elapsed();
 
     // Hierarchical solve
     time_status.setZero();
+    time_status.set_ineq       += shared_time;
+    time_status.set_constraint += shared_time;
+    time_status.set_qp         += shared_time;
     VectorXd eta_result = eta_prev_;  // fallback if first level fails
     bool all_ok = true;
 
@@ -493,6 +500,7 @@ bool HQPIK::getOptJointVel(Eigen::Ref<VectorXd> opt_eta, QP::TimeDuration& time_
 
     eta_prev_ = eta_result;
     opt_eta   = eta_result;
+    time_status.total = total_timer.elapsed();
     return all_ok;
 }
 

@@ -537,6 +537,8 @@ SharedIneqDataID HQPID::computeSharedConstraints()
 
 bool HQPID::getOptJoint(Eigen::Ref<VectorXd> opt_etadot, Eigen::Ref<VectorXd> opt_torque, QP::TimeDuration& time_status)
 {
+    SuhanBenchmark total_timer;
+
     if (opt_etadot.size() != actuator_dof_ || opt_torque.size() != actuator_dof_)
     {
         std::cerr << "[HQPID] size mismatch: opt_etadot=" << opt_etadot.size()
@@ -556,10 +558,15 @@ bool HQPID::getOptJoint(Eigen::Ref<VectorXd> opt_etadot, Eigen::Ref<VectorXd> op
     }
 
     // Compute all shared constraints once for this cycle
+    SuhanBenchmark shared_timer;
     const SharedIneqDataID shared = computeSharedConstraints();
+    const double shared_time = shared_timer.elapsed();
 
     // Hierarchical solve
     time_status.setZero();
+    time_status.set_ineq       += shared_time;
+    time_status.set_constraint += shared_time;
+    time_status.set_qp         += shared_time;
     VectorXd etadot_result = VectorXd::Zero(actuator_dof_);
     VectorXd torque_result = VectorXd::Zero(actuator_dof_);
     bool all_ok = true;
@@ -620,6 +627,7 @@ bool HQPID::getOptJoint(Eigen::Ref<VectorXd> opt_etadot, Eigen::Ref<VectorXd> op
 
     opt_etadot = etadot_result;
     opt_torque = torque_result;
+    time_status.total = total_timer.elapsed();
     return all_ok;
 }
 

@@ -35,6 +35,7 @@ namespace drc
          */
         struct TimeDuration
         {
+            double total;           // Total time taken for the entire getOptJoint(Vel) call.
             double set_qp;          // Time taken to set up the QP problem.(set_cost + set_bound + set_ineq + set_eq + set_constraint)
             double set_cost;        // Time taken to set the cost function.
             double set_bound;       // Time taken to set the bound constraints.
@@ -48,6 +49,7 @@ namespace drc
              */
             void setZero()
             {
+                total = 0;
                 set_qp = 0;
                 set_cost = 0;
                 set_bound = 0;

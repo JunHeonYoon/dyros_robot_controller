@@ -102,6 +102,7 @@ namespace drc
     
         bool QPIK::getOptJointVel(Eigen::Ref<Eigen::VectorXd> opt_qdot, QP::TimeDuration &time_status)
         {
+            SuhanBenchmark total_timer;
             if(opt_qdot.size() != joint_dof_)
             {
                 std::cerr << "Size of opt_qdot(" << opt_qdot.size() << ") is not same as joint_dof_(" << joint_dof_ << ")" << std::endl;
@@ -127,6 +128,7 @@ namespace drc
                     return false;
                 }
                 opt_qdot = qdot_sol;
+                time_status.total = total_timer.elapsed();
                 return true;
             }
         }

@@ -143,6 +143,7 @@ namespace drc
     
         bool QPID::getOptJoint(Eigen::Ref<Eigen::VectorXd> opt_etadot, Eigen::Ref<Eigen::VectorXd> opt_torque, QP::TimeDuration &time_status)
         {
+            SuhanBenchmark total_timer;
             if(opt_etadot.size() != actuator_dof_ || opt_torque.size() != actuator_dof_)
             {
                 std::cerr << "Size of opt_etadot(" << opt_etadot.size() << ") or opt_torque(" << opt_torque.size() << ") are not same as actuator_dof_(" << actuator_dof_ << ")" << std::endl;
@@ -162,6 +163,7 @@ namespace drc
             {
                 opt_etadot = sol.block(si_index_.eta_dot_start,0,si_index_.eta_dot_size,1);
                 opt_torque = sol.block(si_index_.torque_start,0,si_index_.torque_size,1);
+                time_status.total = total_timer.elapsed();
                 return true;
             }
         }
