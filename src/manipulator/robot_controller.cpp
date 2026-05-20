@@ -25,7 +25,7 @@ namespace
     {
         std::ostringstream oss;
         oss << "============ " << qp_name << " Time Information ==============\n";
-        oss << "Duration for total [ms]: " << (time_duration.set_qp + time_duration.set_solver + time_duration.solve_qp) * 1000 << "\n";
+        oss << "Duration for total [ms]: " << time_duration.total * 1000 << "\n";
         oss << "\tDuration for set up QP problem [ms]: " << time_duration.set_qp * 1000 << "\n";
         oss << "\t\tDuration for set up cost [ms]      : " << time_duration.set_cost * 1000 << "\n";
         oss << "\t\tDuration for set up constraint [ms]: " << time_duration.set_constraint * 1000 << "\n";

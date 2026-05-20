@@ -117,6 +117,7 @@ namespace drc
     
         bool QPID::getOptJoint(Eigen::Ref<Eigen::VectorXd> opt_qddot, Eigen::Ref<Eigen::VectorXd> opt_torque, QP::TimeDuration &time_status)
         {
+            SuhanBenchmark total_timer;
             if(opt_qddot.size() != joint_dof_ || opt_torque.size() != joint_dof_)
             {
                 std::cerr << "Size of opt_qddot(" << opt_qddot.size() << ") or opt_torque(" << opt_torque.size() << ") are not same as joint_dof_(" << joint_dof_ << ")" << std::endl;
@@ -136,6 +137,7 @@ namespace drc
             {
                 opt_qddot = sol.block(si_index_.qddot_start,0,si_index_.qddot_size,1);
                 opt_torque = sol.block(si_index_.torque_start,0,si_index_.torque_size,1);
+                time_status.total = total_timer.elapsed();
                 return true;
             }
         }
