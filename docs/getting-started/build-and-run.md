@@ -3,15 +3,24 @@
 ## Build the Library
 
 ```bash
-cd ~/ros2_ws
-colcon build --symlink-install --packages-select dyros_robot_controller
-source install/setup.bash
+cd dyros_robot_controller
+mkdir build && cd build
+cmake -DCMAKE_INSTALL_PREFIX:PATH=<custom-folder> ../
+make
+make install
+```
+
+Add to `~/.bashrc`:
+
+```bash
+export dyros_robot_controller_DIR="<custom-folder>"
+export LD_LIBRARY_PATH="$dyros_robot_controller_DIR/lib:$LD_LIBRARY_PATH"
 ```
 
 ## Build C++ Examples
 
 ```bash
-cd ~/ros2_ws/src/dyros_robot_controller/examples/C++
+cd dyros_robot_controller/examples/C++
 mkdir -p build
 cd build
 cmake ..
@@ -21,7 +30,7 @@ cmake --build . -j
 ## Run C++ Examples
 
 ```bash
-cd ~/ros2_ws/src/dyros_robot_controller/examples/C++/build
+cd dyros_robot_controller/examples/C++/build
 ./dyros_robot_controller_example fr3
 ./dyros_robot_controller_example xls
 ./dyros_robot_controller_example fr3_xls
@@ -30,7 +39,7 @@ cd ~/ros2_ws/src/dyros_robot_controller/examples/C++/build
 ## Run Python Examples
 
 ```bash
-cd ~/ros2_ws/src/dyros_robot_controller/examples/python
+cd dyros_robot_controller/examples/python
 python3 dyros_robot_controller_example.py --robot_name fr3
 python3 dyros_robot_controller_example.py --robot_name xls
 python3 dyros_robot_controller_example.py --robot_name fr3_xls
@@ -39,7 +48,7 @@ python3 dyros_robot_controller_example.py --robot_name fr3_xls
 ## Build the Documentation Site
 
 ```bash
-cd ~/ros2_ws/src/dyros_robot_controller
+cd dyros_robot_controller
 python3 -m pip install -r docs/requirements.txt
 mkdocs build --strict
 ```

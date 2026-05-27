@@ -1,6 +1,6 @@
 # Python API
 
-The Python package is installed as `drc` via `ament_python_install_package`. After sourcing the workspace:
+The Python package is installed as `drc` under `<custom-folder>/lib/python3.x/site-packages/`. After setting the environment variables (see [Installation](../getting-started/installation.md)):
 
 ```python
 import drc
