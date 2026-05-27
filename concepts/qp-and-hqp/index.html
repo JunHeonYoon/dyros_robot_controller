@@ -814,10 +814,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#algorithm" class="md-nav__link">
+  <a href="#hqpik-velocity-level" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Algorithm
+        HQPIK — velocity level
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hqpid-torque-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HQPID — torque level
       
     </span>
   </a>
@@ -1451,10 +1462,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#algorithm" class="md-nav__link">
+  <a href="#hqpik-velocity-level" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Algorithm
+        HQPIK — velocity level
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hqpid-torque-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HQPID — torque level
       
     </span>
   </a>
@@ -1714,9 +1736,9 @@ See the <a href="#3-self-collision-avoidance-1st-order-cbf">identical warning in
 <hr />
 <h2 id="hierarchical-qp">Hierarchical QP (HQPIK / HQPID)<a class="headerlink" href="#hierarchical-qp" title="Permanent link">&para;</a></h2>
 <p>HQP solves a sequence of QP problems, one per priority level. Higher-priority task results are enforced as <strong>strict equality constraints</strong> for lower-priority solvers.</p>
-<h3 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Permanent link">&para;</a></h3>
+<h3 id="hqpik-velocity-level">HQPIK — velocity level<a class="headerlink" href="#hqpik-velocity-level" title="Permanent link">&para;</a></h3>
 <p>For each priority level <span class="arithmatex">\(k = 0, 1, \ldots, K-1\)</span>:</p>
-<p><strong>1. Cost function</strong> (same structure as QPIK/QPID):</p>
+<p><strong>1. Cost function</strong> (same structure as QPIK):</p>
 <div class="arithmatex">\[
 \min_{\dot{q},\,s^{(k)}} \quad
 \sum_i \left\| \dot{x}^d_{k,i} - J_{k,i}\dot{q} \right\|^2_{W_{1,k,i}}
@@ -1729,7 +1751,29 @@ J_{\text{eq}}^{(k)} \dot{q} = v_{\text{eq}}^{(k)}
 \]</div>
 <p>where <span class="arithmatex">\(J_{\text{eq}}^{(k)}\)</span> stacks the Jacobians of levels <span class="arithmatex">\(0,\ldots,k-1\)</span> and
 <span class="arithmatex">\(v_{\text{eq}}^{(k)} = J_{\text{eq}}^{(k)} \dot{q}_{k-1}^*\)</span> uses the optimal velocity from the previous level.</p>
-<p><strong>3. Shared inequality constraints</strong> (joint limits, singularity, self-collision) are computed once per cycle and applied identically to all levels.</p>
+<p><strong>3. Inequality constraints</strong> (same CBF set as QPIK: joint angle limits 1st-order, singularity, self-collision) are computed once per cycle and applied identically to all levels.</p>
+<hr />
+<h3 id="hqpid-torque-level">HQPID — torque level<a class="headerlink" href="#hqpid-torque-level" title="Permanent link">&para;</a></h3>
+<p>For each priority level <span class="arithmatex">\(k = 0, 1, \ldots, K-1\)</span>:</p>
+<p><strong>1. Cost function</strong> (same structure as QPID):</p>
+<div class="arithmatex">\[
+\min_{\ddot{q},\,\tau,\,s^{(k)}} \quad
+\sum_i \left\| \ddot{x}^d_{k,i} - J_{k,i}\ddot{q} - \dot{J}_{k,i}\dot{q} \right\|^2_{W_{1,k,i}}
++ \left\| \ddot{q} \right\|^2_{W_2}
++ \left\| \Delta t\,\ddot{q} + \dot{q} \right\|^2_{W_3}
+\]</div>
+<p><strong>2. Equality constraints:</strong></p>
+<p><strong>(a) Robot dynamics</strong> (shared across all levels, same as QPID):</p>
+<div class="arithmatex">\[
+M(q)\,\ddot{q} + \text{nle}(q,\dot{q}) = \tau
+\]</div>
+<p><strong>(b) Preservation of all higher-priority tasks:</strong></p>
+<div class="arithmatex">\[
+J_{\text{eq}}^{(k)} \ddot{q} = a_{\text{eq}}^{(k)}
+\]</div>
+<p>where <span class="arithmatex">\(J_{\text{eq}}^{(k)}\)</span> stacks the Jacobians of levels <span class="arithmatex">\(0,\ldots,k-1\)</span> and
+<span class="arithmatex">\(a_{\text{eq}}^{(k)} = \ddot{x}_{k-1}^* - \dot{J}_{\text{eq}}^{(k)}\dot{q}\)</span> converts the optimal task acceleration from the previous level into a constraint on <span class="arithmatex">\(\ddot{q}\)</span>.</p>
+<p><strong>3. Inequality constraints</strong> (same CBF set as QPID: joint angle limits 2nd-order, joint velocity limits 1st-order, self-collision 2nd-order) are computed once per cycle and applied identically to all levels.</p>
 <h3 id="input-format">Input format<a class="headerlink" href="#input-format" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// C++</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">drc</span><span class="o">::</span><span class="n">TaskSpaceData</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">hierarchy</span><span class="p">;</span>
