@@ -70,6 +70,7 @@ Add to `~/.bashrc`:
 export dyros_robot_controller_DIR="<custom-folder>"
 export LD_LIBRARY_PATH="$dyros_robot_controller_DIR/lib:$LD_LIBRARY_PATH"
 ```
+---
 
 ## Applications
 
@@ -78,8 +79,9 @@ export LD_LIBRARY_PATH="$dyros_robot_controller_DIR/lib:$LD_LIBRARY_PATH"
 - Mobile robot kinematic control  
 - Advanced manipulator control strategies  
 - Whole-body control for mobile manipulators
+- ---
 
-- ## Examples
+## Examples
 
 In the [examples](https://github.com/JunHeonYoon/dyros_robot_controller/tree/main/examples) directory, we provide some basic examples of using dyros robot controller in Python and C++.
 It enables fast prototyping of novel controllers and facilitates seamless integration between simulation and real-world robotics platforms.  
@@ -90,6 +92,7 @@ It enables fast prototyping of novel controllers and facilitates seamless integr
 
 - Yoon Junheon, Dynamic Robotic Systems Laboratory (DYROS), Seoul National University
 
+---
 ## License
 
 Copyright 2026 Electronics and Telecommunications Research Institute (ETRI).
