@@ -15,7 +15,7 @@ Documentation of the **Dyros Robot Controller** is available [here](https://junh
 | ------------------------------ | ------------------------------- |
 | ![fr3_model](imgs/fr3.gif)     | ![xls_model](imgs/ur5.gif)      | 
 
-| Husky FR3                              | XLS FR3                             | XLS FR3                             |
+| Husky FR3                              | XLS FR3                             | PCV FR3                             |
 | -------------------------------------- | ----------------------------------- | ----------------------------------- |
 | ![fr3_husky_model](imgs/fr3_husky.gif) | ![fr3_xls_model](imgs/fr3_xls.gif)  | ![fr3_pcv_model](imgs/fr3_pcv.gif)  | 
 
