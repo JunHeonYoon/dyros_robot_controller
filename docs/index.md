@@ -1,6 +1,6 @@
 # Dyros Robot Controller
 
-**Dyros Robot Controller** is a ROS 2 C++ library for mobile robots, manipulators, and mobile manipulators.
+**Dyros Robot Controller** is a C++ library for mobile robots, manipulators, and mobile manipulators.
 It provides a unified controller API backed by [Pinocchio](https://stack-of-tasks.github.io/pinocchio/) for kinematics/dynamics and [OSQP](https://osqp.org/) for quadratic-programming solvers, along with Python bindings and MuJoCo simulation examples.
 
 <div class="grid cards" markdown>

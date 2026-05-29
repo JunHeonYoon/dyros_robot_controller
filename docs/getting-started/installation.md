@@ -2,11 +2,8 @@
 
 ## System Requirements
 
-The package is built as a ROS 2 package and expects a ROS 2 workspace layout.
-
 Required dependencies:
 
-- ROS 2 Humble
 - Eigen3
 - Pinocchio
 - OSQP and OSQP-Eigen
@@ -15,26 +12,32 @@ Required dependencies:
 
 ## Clone
 
-Clone the repository into the `src` directory of a ROS 2 workspace.
-
 ```bash
-cd ~/ros2_ws/src
 git clone https://github.com/JunHeonYoon/dyros_robot_controller.git
 ```
-
-If the package is part of a larger workspace, keep it under that workspace's `src` tree.
 
 ## Build
 
 ```bash
-cd ~/ros2_ws
-colcon build --symlink-install --packages-select dyros_robot_controller
-source install/setup.bash
+cd dyros_robot_controller
+mkdir build && cd build
+cmake -DCMAKE_INSTALL_PREFIX:PATH=<custom-folder> ../
+make
+make install
+```
+
+## Environment Variables
+
+Add to `~/.bashrc`:
+
+```bash
+export dyros_robot_controller_DIR="<custom-folder>"
+export LD_LIBRARY_PATH="$dyros_robot_controller_DIR/lib:$LD_LIBRARY_PATH"
 ```
 
 ## Python Bindings
 
-The Python package is installed as `drc` through `ament_python_install_package(drc)`. After sourcing the workspace, the package can be imported from Python.
+After setting the environment variables, the `drc` package can be imported from Python:
 
 ```python
 import drc

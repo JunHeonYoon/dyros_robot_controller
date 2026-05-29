@@ -20,17 +20,20 @@ project(dyros_robot_controller LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release )
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 add_compile_options(-O3)
 
-find_package(ament_cmake        REQUIRED)
-find_package(ament_cmake_python REQUIRED)
-find_package(eigenpy            REQUIRED)
-find_package(rclcpp             REQUIRED)
-find_package(Eigen3             REQUIRED)
-find_package(pinocchio          REQUIRED)
-find_package(OsqpEigen          REQUIRED)
+# Embed RPATH so installed .so files find libdyros_robot_controller without LD_LIBRARY_PATH
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(Boost   REQUIRED COMPONENTS python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
+find_package(eigenpy REQUIRED)
+find_package(Eigen3  REQUIRED)
+find_package(pinocchio REQUIRED)
+find_package(OsqpEigen REQUIRED)
 
 include_directories(
   ${EIGEN3_INCLUDE_DIRS}
@@ -42,7 +45,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include
 )
 
-add_library(${PROJECT_NAME} SHARED 
+add_library(${PROJECT_NAME} SHARED
   src/mobile/robot_controller.cpp
   src/mobile/robot_data.cpp
   src/manipulator/robot_controller.cpp
@@ -77,12 +80,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   pinocchio::pinocchio
-  rclcpp::rclcpp
   OsqpEigen::OsqpEigen
 )
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-
 
 add_library(${PROJECT_NAME}_cpp_wrapper MODULE
   src/bindings.cpp
@@ -104,9 +105,11 @@ set_target_properties(${PROJECT_NAME}_cpp_wrapper PROPERTIES
   SUFFIX ".so"
 )
 
+# ── Install targets ──────────────────────────────────────────────────────────
+
 install(
   TARGETS ${PROJECT_NAME}
-  EXPORT export_${PROJECT_NAME}
+  EXPORT dyros_robot_controllerTargets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -116,8 +119,7 @@ install(
 install(
   DIRECTORY include/
   DESTINATION include
-  FILES_MATCHING
-    PATTERN "*.h"
+  FILES_MATCHING PATTERN "*.h"
 )
 
 install(
@@ -125,15 +127,46 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
+# Python wrapper → site-packages (importable) AND lib (for ldconfig)
+set(PYTHON_INSTALL_DIR "lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages")
+
 install(TARGETS ${PROJECT_NAME}_cpp_wrapper
-  LIBRARY DESTINATION lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages
+  LIBRARY DESTINATION ${PYTHON_INSTALL_DIR}
 )
 
 install(TARGETS ${PROJECT_NAME}_cpp_wrapper
   LIBRARY DESTINATION lib
 )
-          
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(Eigen3 rclcpp pinocchio OsqpEigen eigenpy)
-ament_python_install_package(drc)
-ament_package()
+
+# drc Python package
+install(DIRECTORY drc/
+  DESTINATION ${PYTHON_INSTALL_DIR}/drc
+  PATTERN "__pycache__" EXCLUDE
+  PATTERN "*.pyc"       EXCLUDE
+)
+
+# ── CMake package config (enables find_package(dyros_robot_controller)) ──────
+
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+  cmake/dyros_robot_controllerConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/dyros_robot_controllerConfig.cmake
+  INSTALL_DESTINATION .
+)
+
+install(EXPORT dyros_robot_controllerTargets
+  NAMESPACE ${PROJECT_NAME}::
+  FILE dyros_robot_controllerTargets.cmake
+  DESTINATION lib/cmake/${PROJECT_NAME}
+)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dyros_robot_controllerConfig.cmake
+  DESTINATION .
+)
+
+# ── Uninstall target ──────────────────────────────────────────────────────────
+add_custom_target(uninstall
+  COMMAND xargs rm -f < ${CMAKE_CURRENT_BINARY_DIR}/install_manifest.txt
+  COMMENT "Uninstalling..."
+)
